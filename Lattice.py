@@ -38,38 +38,35 @@ class Lattice:
 
     def generate_random_lattice(self, Tmin, Tmax, padding):
         self.cells = []
-        random_cells = []
         random_cell = self.generate_random_cells(Tmin, Tmax, padding)
         for i in range(self.num_cells_x):
             for j in range(self.num_cells_y):
                 for k in range(self.num_cells_z):
                     cell = copy.deepcopy(random_cell)
                     cell.translate((i, j, k))
-                    random_cells.append(cell)
-            for cell in random_cells:
-                new_points, _, _, _ = cell.generate_points(Tmin, Tmax, padding)
-                cell.points = new_points
-                cell.merge_points()
-                cell.beams = cell.generate_beams()
-                cell.remove_unused_points()
-                self.cells.append(cell)
+                    self.cells.append(cell)
         return self.cells
-    # def generate_random_lattice(self, Tmin, Tmax, padding):
-    #     self.cells = []
-    #     random_cell = self.generate_random_cells(Tmin, Tmax, padding)  # Step 1: Generate a random cell
-    #
-    #     for i in range(self.num_cells_x):
-    #         for j in range(self.num_cells_y):
-    #             for k in range(self.num_cells_z):
-    #                 cell = copy.deepcopy(random_cell)  # Step 2: Copy the random cell
-    #                 cell.translate((i, j, k))  # Step 2: Translate the copied cell
-    #                 new_points, _, _, _ = cell.generate_points(Tmin, Tmax, padding)  # Step 3: Generate points
-    #                 cell.points = new_points
-    #                 cell.merge_points()
-    #                 cell.beams = cell.generate_beams()  # Step 3: Generate beams
-    #                 cell.remove_unused_points()  # Step 3: Remove unused points
-    #                 self.cells.append(cell)
-    #     return self.cells
+
+    def generate_random_lattice(self, Tmin, Tmax, padding):
+        self.cells = []
+        random_cell = self.generate_random_cells(Tmin, Tmax, padding)  # Step 1: Generate a random cell
+
+        for i in range(self.num_cells_x):
+            for j in range(self.num_cells_y):
+                for k in range(self.num_cells_z):
+                    new_cell = copy.deepcopy(random_cell)  # Step 2: Copy the random cell
+                    # Step 2: Translate the copied cell
+                    new_points = new_cell.points
+                    new_cell.points = new_points
+                    new_cell.merge_points()
+                    new_beams = new_cell.beams
+                    new_cell.beams = new_beams
+                    new_cell.remove_unused_points()  # Step 3: Remove unused points
+                    new_cell.translate((i, j, k))
+                    self.cells.append(new_cell)
+
+        return self.cells
+
     def generate_custom_lattice(self, lattice_choix):
         self.cells = []
         custom_cell = self.generate_custom_cells(lattice_choix)[0]  # Generate a single custom cell
