@@ -37,7 +37,7 @@ while choix != 999:
         # min_points = int(input("Nombre minimum de points : "))
         # max_points = int(input("Nombre maximum de points : "))
         # cells = lattice.generate_random_lattice(min_points, max_points, 0.01)
-        cells = lattice.generate_random_lattice(10, 15, 0.01)
+        cells = lattice.generate_random_lattice(30, 80, 0.01)
 
     elif choix == 2:
         latticeChoix = int(input("Entrez le nombre du lattice choisi : "))

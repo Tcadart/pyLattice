@@ -18,6 +18,8 @@ class Cellule:
     def nbPointsTBCI(self, Tmin, Tmax):
         pointtotal = random.randint(Tmin, Tmax)
         pointinterieur = random.randint(0, pointtotal)
+        # pointinterieur1 = random.randint(0, pointtotal)
+        # pointinterieur = pointinterieur1-5
         proportion_coins = random.uniform(0, 1)
         pointBordOuCoins = pointtotal - pointinterieur
         pointcoin = int(pointBordOuCoins * proportion_coins)

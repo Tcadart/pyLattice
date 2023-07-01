@@ -36,16 +36,16 @@ class Lattice:
         self.cells.append(cell)
         return self.cells
 
-    def generate_random_lattice(self, Tmin, Tmax, padding):
-        self.cells = []
-        random_cell = self.generate_random_cells(Tmin, Tmax, padding)
-        for i in range(self.num_cells_x):
-            for j in range(self.num_cells_y):
-                for k in range(self.num_cells_z):
-                    cell = copy.deepcopy(random_cell)
-                    cell.translate((i, j, k))
-                    self.cells.append(cell)
-        return self.cells
+    # def generate_random_lattice(self, Tmin, Tmax, padding):
+    #     self.cells = []
+    #     random_cell = self.generate_random_cells(Tmin, Tmax, padding)
+    #     for i in range(self.num_cells_x):
+    #         for j in range(self.num_cells_y):
+    #             for k in range(self.num_cells_z):
+    #                 cell = copy.deepcopy(random_cell)
+    #                 cell.translate((i, j, k))
+    #                 self.cells.append(cell)
+    #     return self.cells
 
     def generate_random_lattice(self, Tmin, Tmax, padding):
         self.cells = []
