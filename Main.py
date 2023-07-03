@@ -26,7 +26,7 @@ print("Entrez les paramètres du Lattice :")
 # num_cells_z = int(input("Nombre de cellules (en Z) : "))
 #
 # lattice = Lattice(1, 1, 1, num_cells_x, num_cells_y, num_cells_z)
-lattice = Lattice(1, 1, 1, 2, 2, 2)
+lattice = Lattice(1, 1, 1, 2, 1, 1)
 
 print("Choisissez le mode : 1 pour rnd, 2 pour choisi")
 choix = int(input())
@@ -42,8 +42,8 @@ while choix != 999:
     elif choix == 2:
         latticeChoix = int(input("Entrez le nombre du lattice choisi : "))
         cells = lattice.generate_custom_lattice(latticeChoix)
-    lattice.cells = cells
+    # lattice.cells = cells
     # lattice.remove_cell(3)
     display_lattice_points_beams()
-
+    # lattice.display_volumetric_beams()
 print("Programme terminé.")

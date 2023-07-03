@@ -1,10 +1,12 @@
 import copy
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
+from mpl_toolkits.mplot3d.art3d import Line3DCollection
+
 from Cellule import *
 from Point import *
 from Beam import *
-
+import numpy as np
 
 class Lattice:
     def __init__(self, cell_size_x, cell_size_y, cell_size_z, num_cells_x, num_cells_y, num_cells_z):
@@ -15,7 +17,7 @@ class Lattice:
         self.num_cells_y = num_cells_y
         self.num_cells_z = num_cells_z
         self.cells = []
-
+        self.beams = []
         self.size_x = self.cell_size_x * self.num_cells_x
         self.size_y = self.cell_size_y * self.num_cells_y
         self.size_z = self.cell_size_z * self.num_cells_z
@@ -47,6 +49,10 @@ class Lattice:
     #                 self.cells.append(cell)
     #     return self.cells
 
+    def get_beams(self):
+        for cell in self.cells:
+            self.beams.append(cell.beams)
+        return self.beams
     def generate_random_lattice(self, Tmin, Tmax, padding):
         self.cells = []
         random_cell = self.generate_random_cells(Tmin, Tmax, padding)  # Step 1: Generate a random cell
@@ -103,12 +109,12 @@ class Lattice:
         unique_points = [point for point, count in point_counts.items() if count > 1]
         return unique_points
 
-    def display_all_points(self):
+    def affichage_points_console(self):
         unique_points = self.count_unique_points()
         for index, point in enumerate(unique_points):
-            print(f"[{index}, {point.x}, {point.y}, {point.z}],")
+            print(f"[P {index}, {point.x}, {point.y}, {point.z}],")
 
-    def display_all_beams(self):
+    def count_unique_beams(self):
         updated_beams = set()
         unique_points = self.count_unique_points()
         for index, cell in enumerate(self.cells):
@@ -116,10 +122,27 @@ class Lattice:
                 point1_index = self.get_unique_point_index(beam.point1, unique_points)
                 point2_index = self.get_unique_point_index(beam.point2, unique_points)
                 if point1_index is not None and point2_index is not None:
-                    updated_beams.add(tuple(sorted([point1_index, point2_index])))
+                    unique_beam = tuple(sorted([point1_index, point2_index]))
+                    updated_beams.add(unique_beam)
+        return list(updated_beams)
 
-        for index, beam in enumerate(updated_beams):
-            print(f" [{index}, {beam[0]}, {beam[1]}],")
+    def affichage_beams_console(self):
+        unique_beams = self.count_unique_beams()
+        for index, beam in enumerate(unique_beams):
+            print(f"B [{index}, {beam[0]}, {beam[1]}],")
+
+    # def display_all_beams(self):
+    #     updated_beams = set()
+    #     unique_points = self.count_unique_points()
+    #     for index, cell in enumerate(self.cells):
+    #         for beam in cell.beams:
+    #             point1_index = self.get_unique_point_index(beam.point1, unique_points)
+    #             point2_index = self.get_unique_point_index(beam.point2, unique_points)
+    #             if point1_index is not None and point2_index is not None:
+    #                 updated_beams.add(tuple(sorted([point1_index, point2_index])))
+    #
+    #     for index, beam in enumerate(updated_beams):
+    #         print(f"B [{index}, {beam[0]}, {beam[1]}],")
 
     def get_unique_point_index(self, point, unique_points):
         for index, unique_point in enumerate(unique_points):
@@ -128,8 +151,8 @@ class Lattice:
         return None
 
     def visualize_3d(self, ax):
-        self.display_all_points()
-        self.display_all_beams()
+        self.affichage_points_console()
+        self.affichage_beams_console()
         for index, cell in enumerate(self.cells):
             cell.display_point(ax, 'r', 'pink', 'black')
             cell.display_beams(ax, 'b', 'r')
@@ -139,3 +162,192 @@ class Lattice:
         ax.set_xlim3d(0, self.size_x)
         ax.set_ylim3d(0, self.size_y)
         ax.set_zlim3d(0, self.size_z)
+
+    # def display_volumetric_beams(self):
+    #     fig = plt.figure()
+    #     ax = fig.add_subplot(111, projection='3d')
+    #     self.beams = self.get_beams()
+    #     # Calculer le volume maximum pour normaliser les couleurs (facultatif)
+    #     max_volume = max(beam.get_volume() for beam in self.beams)
+    #     for cell in self.cells:
+    #         # Affichage des poutres avec couleur en fonction du volume
+    #         for index, beam in enumerate(cell.beams):
+    #             point1 = beam.point1
+    #             point2 = beam.point2
+    #             volume = beam.get_volume()
+    #
+    #             # Utilisation d'une carte de couleurs jet pour la coloration en fonction du volume
+    #             ax.plot([point1.x, point2.x], [point1.y, point2.y], [point1.z, point2.z],
+    #                     color=plt.cm.plot_wireframe(volume / max_volume))
+    #
+    #     ax.set_xlabel('X')
+    #     ax.set_ylabel('Y')
+    #     ax.set_zlabel('Z')
+    #     ax.set_xlim3d(0, self.size_x)
+    #     ax.set_ylim3d(0, self.size_y)
+    #     ax.set_zlim3d(0, self.size_z)
+    #
+    #     plt.show()
+    # def visualize_3d(self, ax):
+    #     self.affichage_points_console()
+    #     self.affichage_beams_console()
+    #
+    #     # Counter for the total number of beams processed so far
+    #     num_beams = 0
+    #
+    #     for index, cell in enumerate(self.cells):
+    #         cell.display_point(ax, 'r', 'pink', 'black')
+    #         # Call the display_beams method from the Cellule class with the updated beam number offset
+    #         cell.display_beams(ax, 'b', 'r', num_beams)
+    #         num_beams += len(cell.beams)  # Increment the counter by the number of beams in the current cell
+    #
+    #         ax.set_xlabel('X')
+    #         ax.set_ylabel('Y')
+    #         ax.set_zlabel('Z')
+    #     ax.set_xlim3d(0, self.size_x)
+    #     ax.set_ylim3d(0, self.size_y)
+    #     ax.set_zlim3d(0, self.size_z)
+
+    # def visualize_3d(self, ax):
+    #     self.affichage_points_console()
+    #     self.affichage_beams_console()
+    #
+    #     num_beams = 0  # Counter for the total number of beams processed so far
+    #
+    #     for index, cell in enumerate(self.cells):
+    #         cell.display_point(ax, 'r', 'pink', 'black')
+    #         # Call the display_beams method from the Cellule class with the updated beam number offset
+    #         num_beams = cell.display_beams(ax, 'b', 'r', num_beams)  # Update the counter with the return value
+    #         ax.set_xlabel('X')
+    #         ax.set_ylabel('Y')
+    #         ax.set_zlabel('Z')
+    #     ax.set_xlim3d(0, self.size_x)
+    #     ax.set_ylim3d(0, self.size_y)
+    #     ax.set_zlim3d(0, self.size_z)
+    # def display_volumetric_beams(self):
+    #     fig = plt.figure()
+    #     ax = fig.add_subplot(111, projection='3d')
+    #     self.beams = self.get_beams()
+    #
+    #     # Aplatir la liste de listes de poutres
+    #     all_beams = [beam for sublist in self.beams for beam in sublist]
+    #
+    #     # Calculer le volume maximum pour normaliser les couleurs (facultatif)
+    #     max_volume = max(beam.get_volume() for beam in all_beams)
+    #
+    #     # Nombre de facettes pour chaque cylindre (plus de facettes = meilleure approximation du cylindre)
+    #     num_facets = 20
+    #
+    #     for cell in self.cells:
+    #         # Affichage des poutres avec couleur en fonction du volume
+    #         for index, beam in enumerate(cell.beams):
+    #             point1 = beam.point1
+    #             point2 = beam.point2
+    #             volume = beam.get_volume()
+    #
+    #             # Utilisation d'une carte de couleurs jet pour la coloration en fonction du volume
+    #             color = plt.cm.plasma(volume / max_volume)
+    #
+    #             # Calcul des coordonnées et dimensions pour le cylindre
+    #             x = (point1.x + point2.x) / 2
+    #             y = (point1.y + point2.y) / 2
+    #             z = (point1.z + point2.z) / 2
+    #             dx = point2.x - point1.x
+    #             dy = point2.y - point1.y
+    #             dz = point2.z - point1.z
+    #             radius = beam.radius
+    #             length = beam.length
+    #
+    #             # Coordonnées pour les facettes du cylindre
+    #             theta = np.linspace(0, 2 * np.pi, num_facets)
+    #             z_vals = np.linspace(0, length, num_facets)
+    #             z_vals, theta = np.meshgrid(z_vals, theta)
+    #
+    #             # Coordonnées x, y, z pour chaque facette
+    #             x_vals = x + radius * np.cos(theta)
+    #             y_vals = y + radius * np.sin(theta)
+    #
+    #             # Ajout du cylindre à l'axe
+    #             ax.plot_surface(x_vals, y_vals, z_vals + z, color=color)
+    #
+    #     ax.set_xlabel('X')
+    #     ax.set_ylabel('Y')
+    #     ax.set_zlabel('Z')
+    #     ax.set_xlim3d(0, self.size_x)
+    #     ax.set_ylim3d(0, self.size_y)
+    #     ax.set_zlim3d(0, self.size_z)
+    #     plt.show()
+
+    # def display_volumetric_beams(self):
+    #     fig = plt.figure()
+    #     ax = fig.add_subplot(111, projection='3d')
+    #     self.beams = self.get_beams()
+    #
+    #     for cell in self.cells:
+    #         # Affichage des poutres sous forme de cylindres approximatifs
+    #         for index, beam in enumerate(cell.beams):
+    #             point1 = beam.point1
+    #             point2 = beam.point2
+    #             radius = 0.05  # Modification du rayon ici (vous pouvez ajuster cette valeur)
+    #
+    #             # Coordonnées des extrémités du cylindre
+    #             x = [point1.x, point2.x]
+    #             y = [point1.y, point2.y]
+    #             z = [point1.z, point2.z]
+    #
+    #             # Approximation du cylindre avec plusieurs segments de droite
+    #             num_segments = 10
+    #             theta = np.linspace(0, 2 * np.pi, num_segments)
+    #             xs = np.outer(np.ones(num_segments), x) + np.outer(radius * np.cos(theta), np.ones(2))
+    #             ys = np.outer(np.ones(num_segments), y) + np.outer(radius * np.sin(theta), np.ones(2))
+    #             zs = np.outer(np.linspace(0, 1, num_segments), z) + np.outer(np.ones(num_segments), np.array([z[0], z[1]]))
+    #
+    #             # Afficher les segments du cylindre approximatif
+    #             ax.plot_surface(xs, ys, zs, color='b', linewidth=0, alpha=0.7)
+    #
+    #     ax.set_xlabel('X')
+    #     ax.set_ylabel('Y')
+    #     ax.set_zlabel('Z')
+    #     ax.set_xlim3d(0, self.size_x)
+    #     ax.set_ylim3d(0, self.size_y)
+    #     ax.set_zlim3d(0, self.size_z)
+    #     plt.show()
+
+    def display_volumetric_beams(self):
+        fig = plt.figure()
+        ax = fig.add_subplot(111, projection='3d')
+        self.beams = self.get_beams()
+
+        for cell in self.cells:
+            # Affichage des poutres sous forme de segments de droite (cylindres)
+            for index, beam in enumerate(cell.beams):
+                point1 = beam.point1
+                point2 = beam.point2
+
+                # Coordonnées du cylindre (segments de droite)
+                x = [point1.x, point2.x]
+                y = [point1.y, point2.y]
+                z = [point1.z, point2.z]
+
+                # Calcul de la longueur et de la direction de la poutre
+                length = np.sqrt((point2.x - point1.x) ** 2 + (point2.y - point1.y) ** 2 + (point2.z - point1.z) ** 2)
+                direction = np.array([point2.x - point1.x, point2.y - point1.y, point2.z - point1.z])
+
+                # Affichage du cylindre (segment de droite)
+                ax.add_collection3d(Line3DCollection([list(zip(x, y, z))], colors='b'))
+
+        ax.set_xlabel('X')
+        ax.set_ylabel('Y')
+        ax.set_zlabel('Z')
+        ax.set_xlim([0, self.size_x])
+        ax.set_ylim([0, self.size_y])
+        ax.set_zlim([0, self.size_z])
+        plt.show()
+
+        def afficheLenghtVolume():
+            listLenghts = []
+            listVolumes = []
+            for beam, point in self:
+                listLenghts.append(beam.get_length())
+                listVolumes.append(beam.get_volume())
+            return listLenghts, listVolumes

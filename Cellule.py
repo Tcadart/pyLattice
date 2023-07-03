@@ -396,18 +396,92 @@ class Cellule:
                 color = color3
             ax.scatter(x, y, z, c=color)
 
-    def display_beams(self, ax, color1=None, color2=None):
-        connections = self.calculate_connections()
-        for beam in self.beams:
-            point1, point2 = beam.point1, beam.point2
-            x = [point1.x, point2.x]
-            y = [point1.y, point2.y]
-            z = [point1.z, point2.z]
-            color = color1
-            if connections[self.points.index(point1)] == 1 and connections[self.points.index(point2)] == 1:
-                color = color2
-            ax.plot(x, y, z, c=color)
+    # def display_beams(self, ax, color1=None, color2=None):
+    #     connections = self.calculate_connections()
+    #     for beam in self.beams:
+    #         point1, point2 = beam.point1, beam.point2
+    #         x = [point1.x, point2.x]
+    #         y = [point1.y, point2.y]
+    #         z = [point1.z, point2.z]
+    #         color = color1
+    #         if connections[self.points.index(point1)] == 1 and connections[self.points.index(point2)] == 1:
+    #             color = color2
+    #         ax.plot(x, y, z, c=color)
+    def display_beams(self, ax, line_color, text_color):
+        for index, beam in enumerate(self.beams):
+            point1 = beam.point1
+            point2 = beam.point2
 
+            ax.plot([point1.x, point2.x], [point1.y, point2.y], [point1.z, point2.z], color=line_color)
+
+    #         # Add text annotation with the beam number
+    #         text_position_x = (point1.x + point2.x) / 2
+    #         text_position_y = (point1.y + point2.y) / 2
+    #         text_position_z = (point1.z + point2.z) / 2
+    #         ax.text(text_position_x, text_position_y, text_position_z, str(index), color=text_color)
+
+    # def display_beams(self, ax, line_color, text_color, beam_number_offset=0):
+    #     for index, beam in enumerate(self.beams):
+    #         point1 = beam.point1
+    #         point2 = beam.point2
+    #
+    #         ax.plot([point1.x, point2.x], [point1.y, point2.y], [point1.z, point2.z], color=line_color)
+    #
+    #         # Add text annotation with the beam number
+    #         text_position_x = (point1.x + point2.x) / 2
+    #         text_position_y = (point1.y + point2.y) / 2
+    #         text_position_z = (point1.z + point2.z) / 2
+    #         ax.text(text_position_x, text_position_y, text_position_z, str(index + beam_number_offset),
+    #                 color=text_color)
+
+    # def display_beams(self, ax, color1=None, color2=None):
+    #     connections = self.calculate_connections()
+    #     for index, beam in enumerate(self.beams):
+    #         point1, point2 = beam.point1, beam.point2
+    #         x = [point1.x, point2.x]
+    #         y = [point1.y, point2.y]
+    #         z = [point1.z, point2.z]
+    #         color = color1
+    #         if connections[self.points.index(point1)] == 1 and connections[self.points.index(point2)] == 1:
+    #             color = color2
+    #         ax.plot(x, y, z, c=color)
+    #
+    #         # Calculate the mid-point of the beam
+    #         mid_x = (point1.x + point2.x) / 2
+    #         mid_y = (point1.y + point2.y) / 2
+    #         mid_z = (point1.z + point2.z) / 2
+    #
+    #         # Add an annotation with the beam number at the mid-point
+    #         ax.text(mid_x, mid_y, mid_z, f"{index}", color="black", fontsize=10, ha='center', va='center')
+
+    # def display_beams(self, ax, line_color, text_color):
+    #     for index, beam in enumerate(self.beams):
+    #         point1 = beam.point1
+    #         point2 = beam.point2
+    #
+    #         ax.plot([point1.x, point2.x], [point1.y, point2.y], [point1.z, point2.z], color=line_color)
+    #
+    #         # Add text annotation with the beam number
+    #         text_position_x = (point1.x + point2.x) / 2
+    #         text_position_y = (point1.y + point2.y) / 2
+    #         text_position_z = (point1.z + point2.z) / 2
+    #         ax.text(text_position_x, text_position_y, text_position_z, str(index), color=text_color)
+    # def display_beams(self, ax, line_color, text_color, beam_number_offset=0):
+    #     for index, beam in enumerate(self.beams):
+    #         point1 = beam.point1
+    #         point2 = beam.point2
+    #
+    #         ax.plot([point1.x, point2.x], [point1.y, point2.y], [point1.z, point2.z], color=line_color)
+    #
+    #         # Add text annotation with the beam number
+    #         text_position_x = (point1.x + point2.x) / 2
+    #         text_position_y = (point1.y + point2.y) / 2
+    #         text_position_z = (point1.z + point2.z) / 2
+    #         ax.text(text_position_x, text_position_y, text_position_z, str(index + beam_number_offset),
+    #                 color=text_color)
+    #
+    #     # Return the updated beam number counter (num_beams)
+    #     return beam_number_offset + len(self.beams)
     def visualize_3d(self, ax):
         self.display_point(ax, 'r', 'pink', 'black')
         self.display_beams(ax, 'b', 'r')
