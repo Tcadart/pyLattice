@@ -18,8 +18,6 @@ class Cellule:
     def nbPointsTBCI(self, Tmin, Tmax):
         pointtotal = random.randint(Tmin, Tmax)
         pointinterieur = random.randint(0, pointtotal)
-        # pointinterieur1 = random.randint(0, pointtotal)
-        # pointinterieur = pointinterieur1-5
         proportion_coins = random.uniform(0, 1)
         pointBordOuCoins = pointtotal - pointinterieur
         pointcoin = int(pointBordOuCoins * proportion_coins)
@@ -33,7 +31,6 @@ class Cellule:
         return pointtotal, pointbord, pointcoin, pointinterieur
 
     def translate(self, translation):
-        # Translater la cellule selon la translation spécifiée
         self.x += translation[0]
         self.y += translation[1]
         self.z += translation[2]
@@ -42,59 +39,6 @@ class Cellule:
             point.x += translation[0]
             point.y += translation[1]
             point.z += translation[2]
-
-    def generate_points(self, Tmin, Tmax, padding):
-        self.points = []
-        pointtotal, pointbord, pointcoin, pointinterieur = self.nbPointsTBCI(Tmin, Tmax)
-        points_interior = []
-        points_border = []
-        points_corner = []
-        for _ in range(pointinterieur):
-            x = round(random.uniform(0 + padding, self.cell_size_x - padding), 2)
-            y = round(random.uniform(0 + padding, self.cell_size_y - padding), 2)
-            z = round(random.uniform(0 + padding, self.cell_size_z - padding), 2)
-            point = Point(x, y, z)
-            points_interior.append(point)
-        for _ in range(pointcoin):
-            x = random.choice([0, self.cell_size_x])
-            y = random.choice([0, self.cell_size_y])
-            z = random.choice([0, self.cell_size_z])
-            point = Point(x, y, z)
-            points_corner.append(point)
-        for _ in range(pointbord):
-            if random.random() < 0.5:
-                x = random.choice([0, self.cell_size_x])
-                y = random.uniform(0, self.cell_size_y)
-                z = random.uniform(0, self.cell_size_z)
-            else:
-                x = random.uniform(0, self.cell_size_x)
-                y = random.choice([0, self.cell_size_y])
-                z = random.uniform(0, self.cell_size_z)
-            point = Point(round(x, 2), round(y, 2), round(z, 2))
-            points_border.append(point)
-        self.points = points_interior + points_border + points_corner
-        return self.points, points_border, points_corner, points_interior
-
-    def merge_points(self):
-        z_values = [point.z for point in self.points]
-        z_min = min(z_values)
-        z_max = max(z_values)
-        merged_points = set()
-        for point in self.points:
-            x, y, z = point.x, point.y, point.z
-            if z == z_min or (x in [0, self.cell_size_x] and y in [0, self.cell_size_y]) or (
-                    z == z_max and x != 0 and x != self.cell_size_x and y != 0 and y != self.cell_size_y):
-                merged_points.add(Point(x, y, z_max))
-            elif z == z_max or (x in [0, self.cell_size_x] and y in [0, self.cell_size_y]) or (
-                    z == z_min and x != 0 and x != self.cell_size_x and y != 0 and y != self.cell_size_y):
-                merged_points.add(Point(x, y, z_min))
-            else:
-                merged_points.add(point)
-        self.points = list(merged_points)  # Convert set back to a list
-
-    def affichage_points(self):
-        for index, point in enumerate(self.points):
-            print(f"Point {index}: {point.x}, {point.y}, {point.z}")
 
     def Lattice_geometry(self, Lattice, Radius_geom):
         BCC = [(0.0, 0.0, 0.0, 0.5, 0.5, 0.5, Radius_geom),
@@ -309,40 +253,6 @@ class Cellule:
             self.beams.append(beam)
         return self.points, self.beams
 
-    def generate_beams(self):
-        self.beams = []
-        num_points = len(self.points)
-        min_beams = num_points // 2
-        max_beams = num_points
-        num_beams = random.randint(min_beams, max_beams)
-        used_pairs = set()
-        used_beams = set()
-        while num_beams > 0:
-            index1 = random.randint(0, num_points - 1)
-            index2 = random.randint(0, num_points - 1)
-            if index1 != index2 and (index1, index2) not in used_pairs and (index2, index1) not in used_pairs:
-                point1 = self.points[index1]
-                point2 = self.points[index2]
-                beam = Beam(point1, point2)
-                if beam not in used_beams:
-                    self.beams.append(beam)
-                    used_pairs.add((index1, index2))
-                    used_beams.add(beam)
-                    num_beams -= 1
-        return self.points, self.beams
-
-    def remove_unused_points(self):
-        used_points = set()
-        for beam in self.beams:
-            used_points.add(beam.point1)
-            used_points.add(beam.point2)
-        self.points = list(used_points)
-        return self.points
-
-    def display_pointsAfterRemove(self):
-        for index, point in enumerate(self.points):
-            print(f"Point {index}: {point.x}, {point.y}, {point.z}")
-
     def calculate_connections(self):
         connections = {}
         for i, point in enumerate(self.points):
@@ -354,28 +264,6 @@ class Cellule:
             connections[end_point_index] += 1
         return connections
 
-    def num_points(self):
-        return len(self.points)
-
-    def num_beams(self):
-        return len(self.beams)
-
-    def remove_isolated_beams(self):
-        point_counts = {}
-
-        for beam in self.beams:
-            point1 = beam.point1
-            point2 = beam.point2
-
-            if point1 not in point_counts:
-                point_counts[point1] = 0
-            if point2 not in point_counts:
-                point_counts[point2] = 0
-
-            point_counts[point1] += 1
-            point_counts[point2] += 1
-
-        self.beams = [beam for beam in self.beams if point_counts[beam.point1] > 1 and point_counts[beam.point2] > 1]
 
     def num_connections(self):
         total_connections = 0
@@ -383,77 +271,20 @@ class Cellule:
             total_connections += beam.num_connections()
         return total_connections
 
-    def display_point(self, ax, color1=None, color2=None, color3=None):
-        for point in self.points:
-            x, y, z = point.x, point.y, point.z
-            color = color1
-            if z == 0 or z == self.cell_size_z:
-                if (x == 0 or x == self.cell_size_x) and (y == 0 or y == self.cell_size_y):
-                    color = color2
-                else:
-                    color = 'y'
-            elif (x == 0 or x == self.cell_size_x) or (y == 0 or y == self.cell_size_y):
-                color = color3
-            ax.scatter(x, y, z, c=color)
-
-    # def display_beams(self, ax, color1=None, color2=None):
-    #     connections = self.calculate_connections()
-    #     for beam in self.beams:
-    #         point1, point2 = beam.point1, beam.point2
-    #         x = [point1.x, point2.x]
-    #         y = [point1.y, point2.y]
-    #         z = [point1.z, point2.z]
+    # def display_point(self, ax, color1=None, color2=None, color3=None):
+    #     for point in self.points:
+    #         x, y, z = point.x, point.y, point.z
     #         color = color1
-    #         if connections[self.points.index(point1)] == 1 and connections[self.points.index(point2)] == 1:
-    #             color = color2
-    #         ax.plot(x, y, z, c=color)
-    def display_beams(self, ax, line_color, text_color):
-        for index, beam in enumerate(self.beams):
-            point1 = beam.point1
-            point2 = beam.point2
-
-            ax.plot([point1.x, point2.x], [point1.y, point2.y], [point1.z, point2.z], color=line_color)
-
-    #         # Add text annotation with the beam number
-    #         text_position_x = (point1.x + point2.x) / 2
-    #         text_position_y = (point1.y + point2.y) / 2
-    #         text_position_z = (point1.z + point2.z) / 2
-    #         ax.text(text_position_x, text_position_y, text_position_z, str(index), color=text_color)
-
-    # def display_beams(self, ax, line_color, text_color, beam_number_offset=0):
-    #     for index, beam in enumerate(self.beams):
-    #         point1 = beam.point1
-    #         point2 = beam.point2
+    #         if z == 0 or z == self.cell_size_z:
+    #             if (x == 0 or x == self.cell_size_x) and (y == 0 or y == self.cell_size_y):
+    #                 color = color2
+    #             else:
+    #                 color = 'y'
+    #         elif (x == 0 or x == self.cell_size_x) or (y == 0 or y == self.cell_size_y):
+    #             color = color3
+    #         ax.scatter(x, y, z, c=color)
     #
-    #         ax.plot([point1.x, point2.x], [point1.y, point2.y], [point1.z, point2.z], color=line_color)
     #
-    #         # Add text annotation with the beam number
-    #         text_position_x = (point1.x + point2.x) / 2
-    #         text_position_y = (point1.y + point2.y) / 2
-    #         text_position_z = (point1.z + point2.z) / 2
-    #         ax.text(text_position_x, text_position_y, text_position_z, str(index + beam_number_offset),
-    #                 color=text_color)
-
-    # def display_beams(self, ax, color1=None, color2=None):
-    #     connections = self.calculate_connections()
-    #     for index, beam in enumerate(self.beams):
-    #         point1, point2 = beam.point1, beam.point2
-    #         x = [point1.x, point2.x]
-    #         y = [point1.y, point2.y]
-    #         z = [point1.z, point2.z]
-    #         color = color1
-    #         if connections[self.points.index(point1)] == 1 and connections[self.points.index(point2)] == 1:
-    #             color = color2
-    #         ax.plot(x, y, z, c=color)
-    #
-    #         # Calculate the mid-point of the beam
-    #         mid_x = (point1.x + point2.x) / 2
-    #         mid_y = (point1.y + point2.y) / 2
-    #         mid_z = (point1.z + point2.z) / 2
-    #
-    #         # Add an annotation with the beam number at the mid-point
-    #         ax.text(mid_x, mid_y, mid_z, f"{index}", color="black", fontsize=10, ha='center', va='center')
-
     # def display_beams(self, ax, line_color, text_color):
     #     for index, beam in enumerate(self.beams):
     #         point1 = beam.point1
@@ -461,27 +292,7 @@ class Cellule:
     #
     #         ax.plot([point1.x, point2.x], [point1.y, point2.y], [point1.z, point2.z], color=line_color)
     #
-    #         # Add text annotation with the beam number
-    #         text_position_x = (point1.x + point2.x) / 2
-    #         text_position_y = (point1.y + point2.y) / 2
-    #         text_position_z = (point1.z + point2.z) / 2
-    #         ax.text(text_position_x, text_position_y, text_position_z, str(index), color=text_color)
-    # def display_beams(self, ax, line_color, text_color, beam_number_offset=0):
-    #     for index, beam in enumerate(self.beams):
-    #         point1 = beam.point1
-    #         point2 = beam.point2
     #
-    #         ax.plot([point1.x, point2.x], [point1.y, point2.y], [point1.z, point2.z], color=line_color)
-    #
-    #         # Add text annotation with the beam number
-    #         text_position_x = (point1.x + point2.x) / 2
-    #         text_position_y = (point1.y + point2.y) / 2
-    #         text_position_z = (point1.z + point2.z) / 2
-    #         ax.text(text_position_x, text_position_y, text_position_z, str(index + beam_number_offset),
-    #                 color=text_color)
-    #
-    #     # Return the updated beam number counter (num_beams)
-    #     return beam_number_offset + len(self.beams)
-    def visualize_3d(self, ax):
-        self.display_point(ax, 'r', 'pink', 'black')
-        self.display_beams(ax, 'b', 'r')
+    # def visualize_3d(self, ax):
+    #     self.display_point(ax, 'r', 'pink', 'black')
+    #     self.display_beams(ax, 'b', 'r')

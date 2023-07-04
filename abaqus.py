@@ -1,0 +1,95 @@
+from abaqus import *
+from abaqusConstants import *
+import regionToolset
+import __main__
+import section
+import regionToolset
+import part
+import material
+import assembly
+import step
+import interaction
+import load
+import mesh
+import job
+import sketch
+import visualization
+import xyPlot
+import connectorBehavior
+import odbAccess
+from operator import add
+import sys
+import os
+
+import numpy as np
+
+
+def CreateModel(name_model):
+    # Create Model
+    mdb.Model(name=name_model, modelType=STANDARD_EXPLICIT)
+
+
+def CreatePart(name_model, name_Part):
+    # Create Part
+    s1 = mdb.models[name_model].ConstrainedSketch(name='__profile__',
+                                                  sheetSize=200.0)
+    g, v, d, c = s1.geometry, s1.vertices, s1.dimensions, s1.constraints
+    s1.setPrimaryObject(option=STANDALONE)
+    s1.Line(point1=(0.0, 0.0), point2=(0.0, 5.0))
+    s1.VerticalConstraint(entity=g[2], addUndoState=False)
+    p = mdb.models[name_model].Part(name=name_Part, dimensionality=THREE_D,
+                                    type=DEFORMABLE_BODY)
+    p = mdb.models[name_model].parts[name_Part]
+    p.BaseWire(sketch=s1)
+    s1.unsetPrimaryObject()
+    p = mdb.models[name_model].parts[name_Part]
+    del mdb.models[name_model].sketches['__profile__']
+    # Delete Part
+    del p.features['Wire-1']
+
+
+def CreateNodes(name_model, name_Part, node_data):
+    p = mdb.models[name_model].parts[name_Part]
+    for i in range(len(node_data)):
+        p.DatumPointByCoordinate(coords=(node_data[i][1], node_data[i][2], node_data[i][3]))
+
+
+def CreateBeams(name_model, name_Part, Beam_data):
+    p = mdb.models[name_model].parts[name_Part]
+    d2 = p.datums
+    for i in range(len(Beam_data)):
+        p.WirePolyLine(points=((d2[int(Beam_data[i][1]) + 2], d2[int(Beam_data[i][2]) + 2]),), mergeType=IMPRINT,
+                       meshable=ON)
+
+
+name_model = 'Lattice_cube'
+name_Job = 'Job_1'
+name_Part = 'Lattice_Part'
+
+from Lattice import *
+
+lattice = Lattice(1, 1, 1, 2, 2, 2)
+lattice.generate_random_lattice(15, 55, 0.01)
+
+def affichage_points_console(lattice):
+    unique_points = lattice.count_unique_points()
+    node_data = []
+    for index, point in enumerate(unique_points):
+        node_data.append([index, point.x, point.y, point.z])
+    return node_data
+
+
+def affichage_beams_console(lattice):
+    unique_beams = lattice.count_unique_beams()
+    Beam_data = []
+    for index, beam in enumerate(unique_beams):
+        Beam_data.append([index, beam[0], beam[1]])
+    return Beam_data
+
+
+node_data = affichage_points_console(lattice)
+Beam_data = affichage_beams_console(lattice)
+CreateModel(name_model)
+CreatePart(name_model, name_Part)
+CreateNodes(name_model, name_Part, node_data)
+CreateBeams(name_model, name_Part, Beam_data)
