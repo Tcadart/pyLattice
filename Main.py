@@ -42,8 +42,9 @@ while choix != 999:
     elif choix == 2:
         latticeChoix = int(input("Entrez le nombre du lattice choisi : "))
         cells = lattice.generate_custom_lattice(latticeChoix)
-    # lattice.cells = cells
+    lattice.cells = cells
     # lattice.remove_cell(3)
+    lattice.afficheLenghtVolume()
     display_lattice_points_beams()
     # lattice.display_volumetric_beams()
 print("Programme terminé.")
