@@ -10,7 +10,10 @@ class Beam:
         self.radius = radius if radius is not None else round(random.uniform(0.01, 0.05), 2)
         self.volume = volume if volume is not None else round(random.uniform(0.5, 0.9), 2)
         self.material = material if material is not None else random.choice([1, 2, 3])
+        self.nodes = []  # Liste des nœuds de contact
 
+    def add_node(self, node):
+        self.nodes.append(node)
 
     def get_length(self, point1, point2):
         x1, y1, z1 = point1.x, point1.y, point1.z
@@ -19,4 +22,4 @@ class Beam:
         return length
 
     def get_volume(self):
-        return math.pi * (self.radius**2) * self.length
+        return math.pi * (self.radius ** 2) * self.length

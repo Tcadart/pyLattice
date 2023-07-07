@@ -14,6 +14,7 @@ class Lattice:
         self.num_cells_z = num_cells_z
         self.cells = []
         self._beams = []
+        self.angles = []
         self.size_x = self.cell_size_x * self.num_cells_x
         self.size_y = self.cell_size_y * self.num_cells_y
         self.size_z = self.cell_size_z * self.num_cells_z
@@ -207,20 +208,19 @@ class Lattice:
         ax.set_ylim3d(0, self.size_y)
         ax.set_zlim3d(0, self.size_z)
 
-
-    def Getangle(liaison, Lattice_geom):
+    def Getangle(self):
         angle = []
         angle_deg = []
-        for j in range(len(liaison)):
-            u = [Lattice_geom[liaison[0]][3] - Lattice_geom[liaison[0]][0],
-                 Lattice_geom[liaison[0]][4] - Lattice_geom[liaison[0]][1],
-                 Lattice_geom[liaison[0]][5] - Lattice_geom[liaison[0]][2]]
-            v = [Lattice_geom[liaison[j]][3] - Lattice_geom[liaison[j]][0],
-                 Lattice_geom[liaison[j]][4] - Lattice_geom[liaison[j]][1],
-                 Lattice_geom[liaison[j]][5] - Lattice_geom[liaison[j]][2]]
+        for j in range(len(self._beams)):
+            u = [self._beams[0][3] - self._beams[0][0],
+                 self._beams[0][4] - self._beams[0][1],
+                 self._beams[0][5] - self._beams[0][2]]
+            v = [self._beams[j][3] - self._beams[j][0],
+                 self._beams[j][4] - self._beams[j][1],
+                 self._beams[j][5] - self._beams[j][2]]
             if np.dot(u, v) < (np.linalg.norm(u) * np.linalg.norm(v)):
-                angle_rad = acos(np.dot(u, v) / (np.linalg.norm(u) * np.linalg.norm(v)))
-                angle_deg.append(degrees(angle_rad))
+                angle_rad = np.arccos(np.dot(u, v) / (np.linalg.norm(u) * np.linalg.norm(v)))
+                angle_deg.append(np.degrees(angle_rad))
             else:
                 angle_deg.append(0)
         angle_deg = np.array(angle_deg)
@@ -230,4 +230,5 @@ class Lattice:
             non_zero_angle = [x for x in angle_deg if x >= 0.01]
             angle.append(min(non_zero_angle))
         angle = np.array(angle)
+        self.angles.append(angle)
         return angle

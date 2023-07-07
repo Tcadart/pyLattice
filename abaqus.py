@@ -51,6 +51,9 @@ print("node_data", node_data)
 # Beam_data = affichage_beams_console(lattice)
 Beam_data = lattice.affichage_beams_console()
 print("Beam_data", Beam_data)
+# angles = lattice.Getangle()
+angles = lattice.angles
+print("les angles", angles)
 name_model = 'Lattice_cube'
 name_Part = 'Lattice_Part'
 name_Job = 'Job_1'
