@@ -1,5 +1,8 @@
-from Cellule import *
+import copy
 
+from Cellule import *
+import time
+import numpy as np
 
 class Lattice:
     def __init__(self, cell_size_x, cell_size_y, cell_size_z, num_cells_x, num_cells_y, num_cells_z):
@@ -15,10 +18,30 @@ class Lattice:
         self.size_y = self.cell_size_y * self.num_cells_y
         self.size_z = self.cell_size_z * self.num_cells_z
 
+    # def generate_random_cells(self, Tmin, Tmax, padding):
+    #     cell = Cellule(self.cell_size_x, self.cell_size_y, self.cell_size_z, 0, 0, 0)
+    #     cell.generate_points(Tmin, Tmax, padding)
+    #     # cell.points = cell.generate_points(Tmin, Tmax, padding)
+    #     cell.merge_points()
+    #     cell.generate_beams()
+    #     # cell.beams = cell.generate_beams()
+    #     cell.remove_unused_points()
+    #     cell.remove_unused_points()
+    #     self.cells.append(cell)
+    #     return self.cells
+    def generate_random_cells(self, Tmin, Tmax, padding):
+        cell = Cellule(self.cell_size_x, self.cell_size_y, self.cell_size_z, 0, 0, 0)
+        cell.generate_points(Tmin, Tmax, padding)
+        # _, _, _, _ = cell.generate_points(Tmin, Tmax, padding)
+        time.sleep(1)
+        cell.merge_points()
+        cell.generate_beams()
+        cell.remove_unused_points()
+        return cell
+
     def generate_custom_cells(self, lattice_choix):
         cell = Cellule(self.cell_size_x, self.cell_size_y, self.cell_size_z, 0, 0, 0)
         BCC = cell.Lattice_geometry(lattice_choix, 1.0)
-        # cell.generate_beams_from_given_point_list(BCC, 0)
         cell.generate_beams_from_given_point_list(BCC)
         self.cells.append(cell)
         return self.cells
@@ -32,6 +55,63 @@ class Lattice:
         for cell in self.cells:
             all_beams.extend(cell.beams)
         return all_beams
+
+    def generate_random_lattice(self, Tmin, Tmax, padding):
+        self.cells = []
+        random_cell = self.generate_random_cells(Tmin, Tmax, padding)
+
+        for i in range(self.num_cells_x):
+            for j in range(self.num_cells_y):
+                for k in range(self.num_cells_z):
+                    new_cell = copy.deepcopy(random_cell)
+                    # Step 2: Translate the copied cell
+                    new_points = new_cell.points
+                    new_cell.points = new_points
+                    new_cell.merge_points()
+                    new_beams = new_cell.beams
+                    new_cell.beams = new_beams
+                    new_cell.remove_unused_points()
+                    new_cell.translate((i, j, k))
+                    self.cells.append(new_cell)
+
+        return self.cells
+
+    # def generate_random_lattice(self, Tmin, Tmax, padding):
+    #     self.cells = []
+    #     random_cell = self.generate_random_cells(Tmin, Tmax, padding)
+    #     # random_cell = self.generate_random_cells(Tmin, Tmax, padding)[0]
+    #
+    #     for i in range(self.num_cells_x):
+    #         for j in range(self.num_cells_y):
+    #             for k in range(self.num_cells_z):
+    #                 new_cell = copy.deepcopy(random_cell)
+    #                 new_points = new_cell.points
+    #                 new_cell.points = new_points
+    #                 new_cell.merge_points()
+    #                 new_beams = new_cell.beams
+    #                 new_cell.beams = new_beams
+    #                 # new_cell.remove_unused_points()
+    #                 new_cell.translate((i, j, k))
+    #                 self.cells.append(new_cell)
+    #
+    #     return self.cells
+
+    # def generate_random_lattice(self, Tmin, Tmax, padding):
+    #     self.cells = []
+    #     random_cell = self.generate_random_cells(Tmin, Tmax, padding)[0]
+    #     for i in range(self.num_cells_x):
+    #         for j in range(self.num_cells_y):
+    #             for k in range(self.num_cells_z):
+    #                 new_points = random_cell.generate_points(Tmin, Tmax, padding)
+    #                 new_beams = random_cell.generate_beams()
+    #                 new_cell = Cellule(random_cell.cell_size_x, random_cell.cell_size_y, random_cell.cell_size_z,
+    #                                    random_cell.x, random_cell.y, random_cell.z)
+    #                 new_cell.points = new_points
+    #                 new_cell.beams = new_beams
+    #                 new_cell.remove_unused_points()
+    #                 new_cell.translate((i, j, k))
+    #                 self.cells.append(new_cell)
+    #     return self.cells
 
     def generate_custom_lattice(self, lattice_choix):
         self.cells = []
@@ -49,6 +129,12 @@ class Lattice:
                     self.cells.append(new_cell)
         return self.cells
 
+    def remove_cell(self, index):
+        if 0 <= index < len(self.cells):
+            del self.cells[index]
+        else:
+            raise IndexError("Invalid cell index.")
+
     def count_unique_points(self):
         list_points_lattice = []
         for cell in self.cells:
@@ -65,10 +151,15 @@ class Lattice:
 
     def affichage_points_console(self):
         unique_points = self.count_unique_points()
-        thomas = []
+        node_data = []
         for index, point in enumerate(unique_points):
-            thomas.append([index, float(point.x), float(point.y), float(point.z)])
-        return thomas
+            node_data.append([index, point.x, point.y, point.z])
+        return node_data
+
+    # def affichage_points_console(self):
+    #     unique_points = self.count_unique_points()
+    #     for index, point in enumerate(unique_points):
+    #         print(f"[{index}, {point.x}, {point.y}, {point.z}],")
 
     def count_unique_beams(self):
         updated_beams = set()
@@ -82,17 +173,61 @@ class Lattice:
                     updated_beams.add(unique_beam)
         return list(updated_beams)
 
+    # def affichage_beams_console(self):
+    #     unique_beams = self.count_unique_beams()
+    #     for index, beam in enumerate(unique_beams):
+    #         print(f"[{index}, {beam[0]}, {beam[1]}],")
+
     def affichage_beams_console(self):
         unique_beams = self.count_unique_beams()
-        thomasB = []
+        Beam_data = []
         for index, beam in enumerate(unique_beams):
-            # thomasB.append(beam)
-            thomasB.append([index, beam[0], beam[1]])
-            # print(f"[{index}, {beam[0]}, {beam[1]}],")
-        return thomasB
+            Beam_data.append([index, beam[0], beam[1]])
+        return Beam_data
 
     def get_unique_point_index(self, point, unique_points):
         for index, unique_point in enumerate(unique_points):
             if point.x == unique_point.x and point.y == unique_point.y and point.z == unique_point.z:
                 return index
         return None
+
+    def visualize_3d(self, ax):
+        # self.affichage_points_console()
+        # print("h")
+        # self.affichage_beams_console()
+        print("p", self.affichage_points_console())
+        print("b", self.affichage_beams_console())
+        for index, cell in enumerate(self.cells):
+            cell.display_point(ax, 'r', 'pink', 'black')
+            cell.display_beams(ax, 'b', 'r')
+            ax.set_xlabel('X')
+            ax.set_ylabel('Y')
+            ax.set_zlabel('Z')
+        ax.set_xlim3d(0, self.size_x)
+        ax.set_ylim3d(0, self.size_y)
+        ax.set_zlim3d(0, self.size_z)
+
+
+    def Getangle(liaison, Lattice_geom):
+        angle = []
+        angle_deg = []
+        for j in range(len(liaison)):
+            u = [Lattice_geom[liaison[0]][3] - Lattice_geom[liaison[0]][0],
+                 Lattice_geom[liaison[0]][4] - Lattice_geom[liaison[0]][1],
+                 Lattice_geom[liaison[0]][5] - Lattice_geom[liaison[0]][2]]
+            v = [Lattice_geom[liaison[j]][3] - Lattice_geom[liaison[j]][0],
+                 Lattice_geom[liaison[j]][4] - Lattice_geom[liaison[j]][1],
+                 Lattice_geom[liaison[j]][5] - Lattice_geom[liaison[j]][2]]
+            if np.dot(u, v) < (np.linalg.norm(u) * np.linalg.norm(v)):
+                angle_rad = acos(np.dot(u, v) / (np.linalg.norm(u) * np.linalg.norm(v)))
+                angle_deg.append(degrees(angle_rad))
+            else:
+                angle_deg.append(0)
+        angle_deg = np.array(angle_deg)
+        if np.all(angle_deg == 0):
+            angle.append(0)
+        else:
+            non_zero_angle = [x for x in angle_deg if x >= 0.01]
+            angle.append(min(non_zero_angle))
+        angle = np.array(angle)
+        return angle

@@ -1,0 +1,29 @@
+<Description>
+   ABAQUS/ABQcaeG rank 0 received the ABORT signal
+
+</Description>
+
+<Context>
+   ABQcaeG
+</Context>
+
+<Callstack>
+</Callstack>
+
+<Memory>
+   <Current>              86 MB </Current>
+   <Resident>            145 MB </Resident>
+   <Physical>          65221 MB </Physical>
+   <Limit>                 0 MB </Limit>
+   <Accessible>        65221 MB </Accessible>
+   <Allocator>            DL    </Allocator>
+</Memory>
+
+<Directories>
+  <current> D:\PycharmProjects\Lattice     </current> <free>    144 GB </free>   <used>    808 GB </used> 
+     <temp> C:\Users\serik\AppData\Local\Temp </temp>    <free>    155 GB </free>
+</Directories>
+
+<Installation>
+</Installation>
+
