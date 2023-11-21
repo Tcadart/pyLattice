@@ -2,7 +2,7 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
-      <module fileurl="file://$PROJECT_DIR$/../Lattice/.idea/Lattice.iml" filepath="$PROJECT_DIR$/../Lattice/.idea/Lattice.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/Lattice.iml" filepath="$PROJECT_DIR$/.idea/Lattice.iml" />
     </modules>
   </component>
 </project>

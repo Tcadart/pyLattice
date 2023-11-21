@@ -41,8 +41,8 @@ def CreateBeams(name_model, name_Part, Beam_data):
 
 lattice = Lattice(1, 1, 1, 2, 2, 2)
 
-# lattice.generate_custom_lattice(7)
-cell = lattice.generate_random_lattice(20, 40, 0.01)[0]
+lattice.generate_custom_lattice(7)
+# cell = lattice.generate_random_lattice(20, 40, 0.01)[0]
 
 # node_data = affichage_points_console(lattice)
 node_data = lattice.affichage_points_console()
@@ -51,8 +51,10 @@ print("node_data", node_data)
 # Beam_data = affichage_beams_console(lattice)
 Beam_data = lattice.affichage_beams_console()
 print("Beam_data", Beam_data)
-# angles = lattice.Getangle()
-angles = lattice.angles
+# angles = lattice.angles
+
+# angles = lattice.Getangle().tolist()
+angles = lattice.Getangle()
 print("les angles", angles)
 name_model = 'Lattice_cube'
 name_Part = 'Lattice_Part'

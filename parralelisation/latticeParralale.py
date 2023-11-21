@@ -61,7 +61,7 @@ class Lattice:
 
     def generate_custom_cells(self, lattice_choix):
         cell = Cellule(self.cell_size_x, self.cell_size_y, self.cell_size_z, 0, 0, 0)
-        BCC = cell.Lattice_geometry(lattice_choix, 1.0)
+        BCC = cell.Lattice_geometry(lattice_choix)
         # cell.generate_beams_from_given_point_list(BCC, 0)
         cell.generate_beams_from_given_point_list(BCC)
         self.cells.append(cell)
