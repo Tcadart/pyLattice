@@ -1,5 +1,4 @@
 from Cellule import *
-import time
 import math
 
 
