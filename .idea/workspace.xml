@@ -4,7 +4,10 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="e3dc1a1d-8b4b-4101-aad1-b4f2b4f8d3a5" name="Changes" comment="" />
+    <list default="true" id="e3dc1a1d-8b4b-4101-aad1-b4f2b4f8d3a5" name="Changes" comment="">
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/FullLatticeSimulation.py" beforeDir="false" afterPath="$PROJECT_DIR$/FullLatticeSimulation.py" afterDir="false" />
+    </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
@@ -26,13 +29,14 @@
     "RunOnceActivity.OpenProjectViewOnStart": "true",
     "RunOnceActivity.ShowReadmeOnStart": "true",
     "WebServerToolWindowFactoryState": "false",
-    "git-widget-placeholder": "getAngleAbaqus",
+    "git-widget-placeholder": "Rebasing LatticeWIP",
+    "ignore.virus.scanning.warn.message": "true",
     "last_opened_file_path": "D:/travail_Abaqus/Lattice",
     "node.js.detected.package.eslint": "true",
     "node.js.detected.package.tslint": "true",
     "node.js.selected.package.eslint": "(autodetect)",
     "node.js.selected.package.tslint": "(autodetect)",
-    "settings.editor.selected.configurable": "PyScientificConfigurable",
+    "settings.editor.selected.configurable": "preferences.pluginManager",
     "vue.rearranger.settings.migration": "true"
   }
 }]]></component>
@@ -50,13 +54,28 @@
       <option name="presentableId" value="Default" />
       <updated>1700581558441</updated>
       <workItem from="1700581559496" duration="2381000" />
+      <workItem from="1700585562212" duration="44000" />
+      <workItem from="1700585613200" duration="283000" />
+      <workItem from="1700585905004" duration="35000" />
+      <workItem from="1700641883424" duration="1594000" />
     </task>
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
     <option name="version" value="3" />
   </component>
+  <component name="Vcs.Log.Tabs.Properties">
+    <option name="TAB_STATES">
+      <map>
+        <entry key="MAIN">
+          <value>
+            <State />
+          </value>
+        </entry>
+      </map>
+    </option>
+  </component>
   <component name="com.intellij.coverage.CoverageDataManagerImpl">
-    <SUITE FILE_PATH="coverage/Lattice$plot_result.coverage" NAME="plot_result Coverage Results" MODIFIED="1700584495486" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
+    <SUITE FILE_PATH="coverage/Lattice$plot_result.coverage" NAME="plot_result Coverage Results" MODIFIED="1700584521027" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
   </component>
 </project>
