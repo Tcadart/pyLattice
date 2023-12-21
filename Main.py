@@ -121,15 +121,15 @@ name_Job = 'Job_1'
 name_Part = 'Lattice_Part'
 name_Assembly = 'Lattice_assembly'
 VectorOrientation = [0,0,-1]
-Radius = 0.05
+Radius = 0.5
 cell_size = 1
-cell_size_X = 1
-cell_size_Y = 1
-cell_size_Z = cell_size
+cell_size_X = 5
+cell_size_Y = 5
+cell_size_Z = 5
 number_cell = 1
-number_cell_X = 5
-number_cell_Y = 5
-number_cell_Z = 5
+number_cell_X = 1
+number_cell_Y = 1
+number_cell_Z = 1
 
 Lattice_Type = 0
 # 0 => BCC
@@ -187,4 +187,5 @@ gradMat = gradMaterialSetting(Multimat,GradMaterialDirection,number_cell_X,numbe
 
 #Generate data from lattice
 lattice = Lattice(cell_size_X,cell_size_Y,cell_size_Z, number_cell_X,number_cell_Y,number_cell_Z,Lattice_Type, Radius,gradRadius,gradDim,gradMat,MethodSim)
+print(lattice.Getangle())
 display_only_lattice()

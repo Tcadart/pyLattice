@@ -264,7 +264,11 @@ def Submit_Job(name_Job,name_model):
 
 def Create_Step(name_model,name_step,name_previous_step,AnalysisType):
     if AnalysisType == 1:
-        mdb.models[name_model].StaticStep(name=name_step, previous=name_previous_step)
+        # mdb.models[name_model].StaticStep(name=name_step, previous=name_previous_step)
+        mdb.models[name_model].StaticStep(name=name_step, previous=name_previous_step, nlgeom=ON,
+                                                stabilizationMagnitude=0.0002,
+                                                stabilizationMethod=DISSIPATED_ENERGY_FRACTION,
+                                                continueDampingFactors=False, adaptiveDampingRatio=0.05, initialInc=0.1)
     elif AnalysisType == 2:
         mdb.models[name_model].StaticStep(name=name_step, previous=name_previous_step, nlgeom=ON)
 
@@ -360,7 +364,7 @@ def constructLatticeAbaqus(name_model,name_Part,name_Assembly,Lattice_Type,Metho
         name_Beam_Profile = 'Circ'
         name_Beam_Profile, AllBeam = Create_Beam_Profile(name_model,name_Part,getVectorOrientation(Lattice_Type),name_region,name_Beam_Profile)
     
-    name_material = create_material(name_model,3,1)
+    name_material = create_material(name_model,4,1)
 
     if MethodSim == 1:
         Create_Beam_Section(name_model,'CircBeam',name_material,name_Beam_Profile[1],Region_mid)
@@ -809,20 +813,20 @@ def Type_lattice(Lattice):
 #*******************************************************************************************************************
 #*******************************************************************************************************************
 
-name_model = 'BCC_4_beam'
+name_model = 'BCC_test'
 name_Job = 'Job_1'
 name_Part = 'Lattice_Part'
 name_Assembly = 'Lattice_assembly'
 VectorOrientation = [0,0,-1]
-Radius = 0.1
-cell_size = 1
+Radius = 0.5
+cell_size = 7.5
 cell_size_X = cell_size
 cell_size_Y = cell_size
 cell_size_Z = cell_size
 number_cell = 5
 number_cell_X = number_cell
 number_cell_Y = number_cell
-number_cell_Z = number_cell
+number_cell_Z = 8
 
 Lattice_Type = 0
 # 0 => BCC
@@ -862,7 +866,7 @@ AnalysisType = 1
 # 1 Compression Z static
 # 2 Compression Z Implicit
 # 3 Compression BCC Solid Plastic Static
-compressionPourcent = 50
+compressionPourcent = 20
 
 MethodSim = 1
 # 0 No modification

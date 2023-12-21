@@ -1,6 +1,7 @@
 import numpy as np
 from numpy import linalg as LA
 import matplotlib.pyplot as plt
+import pandas as pd
 
 def Type_lattice(Lattice):
     if (Lattice == 0):
@@ -51,12 +52,12 @@ def openFile(Lattice_Type,number_cell,AnalysisType,MethodSim):
                 idx+=1
     return np.concatenate(dataRF),np.concatenate(dataU),np.concatenate(dataTime)
 
-def processDataStressStrain(dataRF, dataU,Number_cell):
+def processDataStressStrain(dataRF, dataU,Number_cell,length_cell):
     # Modifier les valeurs RF en les divisant par la surface
-    dataRF = [rf / (Number_cell * Number_cell) for rf in dataRF]
+    dataRF = [rf / (Number_cell * length_cell * Number_cell * length_cell) for rf in dataRF]
     
     # Modifier les valeurs U en les multipliant par la longueur du lattice selon Z
-    dataU = [-u / (Number_cell) for u in dataU]
+    dataU = [-u / (Number_cell * length_cell) for u in dataU]
     return dataRF, dataU
 
 def plotData(dataRF, dataU,legend):
@@ -114,8 +115,19 @@ def open_solid_file(chemin_fichier):
     return x_array, xydata_1_array, xydata_2_array
 
 
+def plotDataExperience(number_cell, length_cell):
+    number_cell = 8
+    liste_feuille = ['BCC_1','BCC_2','BCC_3']
+    df = pd.read_excel('D:/Fichiers/4_Experimentation/Compression lattice/compression_lattice.xlsx', sheet_name=liste_feuille[0])
+    Force = df.iloc[:, 1]
+    Displacement = df.iloc[:, 2]
+    dataRF, dataU = processDataStressStrain(Force, -Displacement, number_cell, length_cell)
+    plotData(dataRF, dataU, 'Experiments')
 
-number_cell = 4
+
+
+number_cell = 5
+length_cell = 7.5
 
 Lattice_Type = 0
 # 0 => BCC
@@ -142,19 +154,22 @@ MethodSim = 0
 
 
 # Beam
-MethodSim = 0
-dataRF,dataU,dataTime = openFile(Lattice_Type,number_cell,AnalysisType,MethodSim)
-dataRF, dataU = processDataStressStrain(dataRF, dataU,number_cell)
-plotData(dataRF, dataU, 'Beam')
+# MethodSim = 0
+# dataRF,dataU,dataTime = openFile(Lattice_Type,number_cell,AnalysisType,MethodSim)
+# dataRF, dataU = processDataStressStrain(dataRF, dataU,number_cell)
+# plotData(dataRF, dataU, 'Beam')
 
 MethodSim = 1
 dataRF,dataU,dataTime = openFile(Lattice_Type,number_cell,AnalysisType,MethodSim)
-dataRF, dataU = processDataStressStrain(dataRF, dataU,number_cell)
+dataRF, dataU = processDataStressStrain(dataRF, dataU,number_cell, length_cell)
 plotData(dataRF, dataU,'BeamMod')
 
-dataTimeSolid, dataRF3Solid, dataU3Solid = open_solid_file("D:/Fichiers/70_Projet_1_Homogeneisation_Abaqus/Plasticity/result_solid_"+str(number_cell)+".txt")
-dataRF3Solid, dataU3Solid = processDataStressStrain(dataRF3Solid, dataU3Solid,number_cell)
-plotData(dataRF3Solid, dataU3Solid,'Solid')
+# dataTimeSolid, dataRF3Solid, dataU3Solid = open_solid_file("D:/Fichiers/70_Projet_1_Homogeneisation_Abaqus/Plasticity/result_solid_"+str(number_cell)+".txt")
+# dataRF3Solid, dataU3Solid = processDataStressStrain(dataRF3Solid, dataU3Solid,number_cell)
+# plotData(dataRF3Solid, dataU3Solid,'Solid')
+
+plotDataExperience(number_cell, length_cell)
+
 
 plt.legend(fontsize=15)
 plt.show()
