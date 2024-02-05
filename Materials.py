@@ -109,7 +109,7 @@ class MatProperties:
                 'elastic': [104000.0, 0.35],
                 'plastic': (460.0, 1450.0, 1.31, 0.85, 1500.0, 1000.0),
             },
-            4: {  # Johnson-cook
+            4: {
                 'name': 'VeroClear',
                 'density': 1.18E-9,
                 'elastic': [1800.0, 0.3],

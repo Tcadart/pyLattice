@@ -5,8 +5,9 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="e3dc1a1d-8b4b-4101-aad1-b4f2b4f8d3a5" name="Changes" comment="">
-      <change beforePath="$PROJECT_DIR$/.idea/inspectionProfiles/profiles_settings.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/inspectionProfiles/profiles_settings.xml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/Lattice_description.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Cellule.py" beforeDir="false" afterPath="$PROJECT_DIR$/Cellule.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/FullLatticeSimulation.py" beforeDir="false" afterPath="$PROJECT_DIR$/FullLatticeSimulation.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Main.py" beforeDir="false" afterPath="$PROJECT_DIR$/Main.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Materials.py" beforeDir="false" afterPath="$PROJECT_DIR$/Materials.py" afterDir="false" />
@@ -72,7 +73,12 @@
       <workItem from="1701442970589" duration="23000" />
       <workItem from="1701775958588" duration="25000" />
       <workItem from="1702464116504" duration="10204000" />
-      <workItem from="1702888033393" duration="2682000" />
+      <workItem from="1702888033393" duration="2714000" />
+      <workItem from="1704704022705" duration="18000" />
+      <workItem from="1706606022101" duration="1396000" />
+      <workItem from="1706714399820" duration="17216000" />
+      <workItem from="1707137425250" duration="327000" />
+      <workItem from="1707138046365" duration="45000" />
     </task>
     <servers />
   </component>
@@ -119,13 +125,23 @@
     {
     },
     {
+    },
+    {
+    },
+    {
+    },
+    {
+    },
+    {
+    },
+    {
     }
   ],
   "lastFilter": {
   }
 }]]></component>
   <component name="com.intellij.coverage.CoverageDataManagerImpl">
-    <SUITE FILE_PATH="coverage/Lattice$Main.coverage" NAME="Main Coverage Results" MODIFIED="1703149834601" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
-    <SUITE FILE_PATH="coverage/Lattice$plot_result.coverage" NAME="plot_result Coverage Results" MODIFIED="1702565289157" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
+    <SUITE FILE_PATH="coverage/Lattice$Main.coverage" NAME="Main Coverage Results" MODIFIED="1706715874736" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
+    <SUITE FILE_PATH="coverage/Lattice$plot_result.coverage" NAME="plot_result Coverage Results" MODIFIED="1706885471966" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
   </component>
 </project>

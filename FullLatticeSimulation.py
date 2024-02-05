@@ -51,6 +51,8 @@ import time
 from Lattice import *
 import re
 from Materials import *
+
+from Lattice_description import *
 # *******************************************************************************************************************
 # *******************************************************************************************************************
 
@@ -308,37 +310,8 @@ def Create_GetDisplacement(name_model,name_step,name_set):
     
 def Delete_output_default(name_model):
     del mdb.models[name_model].historyOutputRequests['H-Output-1']
-    mdb.models[name_model].fieldOutputRequests['F-Output-1'].setValues(variables=('S', 'PE', 'PEEQ', 'U'))
+    mdb.models[name_model].fieldOutputRequests['F-Output-1'].setValues(variables=('S', 'PE', 'PEEQ', 'U', 'RF'))
 
-
-def getVectorOrientation(Lattice):
-    if (Lattice == 0):
-        VectorOrientation = [0,0,-1]
-    elif (Lattice == 1):
-        VectorOrientation = [0,0,-1]
-    elif (Lattice == 2):
-        VectorOrientation = [0,0,-1]
-    elif (Lattice == 3):
-        VectorOrientation = [0,0,-1]
-    elif (Lattice == 4):
-        VectorOrientation = [0,1,-1]
-    elif (Lattice == 5):
-        VectorOrientation = [0,1,-1]
-    elif (Lattice == 6):
-        VectorOrientation = [1,-1,1]
-    elif (Lattice == 7):
-        VectorOrientation = [1,-1,-1]
-    elif (Lattice == 8):
-        VectorOrientation = [0,0,-1]
-    elif (Lattice == 9):
-        VectorOrientation = [1,0,-1]
-    elif (Lattice == 10):
-        VectorOrientation = [1,0,-1]
-    elif (Lattice == 11):
-        VectorOrientation = [1,0,-1]
-    else:
-        VectorOrientation = [0,0,-1]
-    return VectorOrientation
 
 def visualizationSimulation(name_Job):
     o3 = session.openOdb(name='D:/travail_Abaqus/Lattice/'+name_Job+'.odb')
@@ -425,40 +398,58 @@ def getReactionForce(name_Job):
     print(reactionForceZ)
     return reactionForceZ
 
-def get_result(name_Job,name_step):
-    odb = openOdb(name_Job+'.odb')
-    NameOutput = odb.steps[name_step].historyRegions
-    dataRF3 = []
-    dataU3 = []
-    dataTime = []
-    for i in range(len(NameOutput)):
-        try:
-            if len(dataRF3) == 0:
-                rf3_data = [odb.steps[name_step].historyRegions[NameOutput.keys()[i]].historyOutputs['RF3'].data][0]
-                for i in range(len(rf3_data)):
-                    dataRF3.append(rf3_data[i][1])
-            else:
-                rf3_data = [odb.steps[name_step].historyRegions[NameOutput.keys()[i]].historyOutputs['RF3'].data][0]
-                for i in range(len(rf3_data)):
-                    dataRF3[i] = dataRF3[i] + rf3_data[i][1]
-        except:
-            try:
-                if len(dataU3) == 0:
-                    U3_data = [odb.steps[name_step].historyRegions[NameOutput.keys()[i]].historyOutputs['U3'].data][0]
-                    time_data = [odb.steps[name_step].historyRegions[NameOutput.keys()[i]].historyOutputs['U3'].data][0]
-                    for i in range(len(U3_data)):
-                        dataU3.append(U3_data[i][1])
-                        dataTime.append(time_data[i][0])
-            except:
-                continue
-    return dataRF3, dataU3, dataTime
+def get_result(name_Job, name_step):
+    odb = openOdb(name_Job + '.odb')
+    historyRegions = odb.steps[name_step].historyRegions
 
-def save_result(Lattice_Type, number_cell, AnalysisType, MethodSim, dataRF3, dataU3, dataTime):
-    f = open(Type_lattice(Lattice_Type)+"_"+str(number_cell)+str(AnalysisType)+str(MethodSim)+".txt", "w")
-    f.writelines([np.array2string(np.array(dataRF3), separator=',')+"\n"])
-    f.writelines([np.array2string(np.array(dataU3), separator=',')+"\n"])
-    f.writelines([np.array2string(np.array(dataTime), separator=',')+"\n"])
-    f.close()
+    dataRF = {'RF1': [], 'RF2': [], 'RF3': []}
+    dataU = {'U1': [], 'U2': [], 'U3': []}
+    dataTime = []
+
+    for key in historyRegions.keys():
+        historyRegion = historyRegions[key]
+
+        # Traitement pour RF1, RF2, RF3
+        for rf_key in dataRF.keys():
+            try:
+                rf_data = historyRegion.historyOutputs[rf_key].data
+                if not dataRF[rf_key]:  # Si la liste est vide
+                    dataRF[rf_key] = [value for _, value in rf_data]
+                else:
+                    for i, (_, value) in enumerate(rf_data):
+                        dataRF[rf_key][i] += value
+            except KeyError:
+                pass
+
+        # Traitement pour U1, U2, U3
+        for u_key in dataU.keys():
+            try:
+                u_data = historyRegion.historyOutputs[u_key].data
+                if not dataU[u_key]:  # Si la liste est vide
+                    dataU[u_key] = [value for _, value in u_data]
+                    if u_key == 'U1':  # Assurer que dataTime est seulement rempli une fois
+                        dataTime = [time for time, _ in u_data]
+            except KeyError:
+                pass
+
+    return dataRF, dataU, dataTime
+
+
+
+def save_result(Lattice_Type, number_cell, AnalysisType, MethodSim, dataRF, dataU, dataTime):
+    filename = Type_lattice(Lattice_Type)+"_"+str(number_cell)+str(AnalysisType)+str(MethodSim)+".txt"
+
+    with open(filename, "w") as f:
+        for rf_key in ['RF1', 'RF2', 'RF3']:
+            rf_data_str = np.array2string(np.array(dataRF[rf_key]), separator=',')
+            f.write(rf_data_str + "\n")
+
+        for u_key in ['U1', 'U2', 'U3']:
+            u_data_str = np.array2string(np.array(dataU[u_key]), separator=',')
+            f.write(u_data_str + "\n")
+
+        time_data_str = np.array2string(np.array(dataTime), separator=',')
+        f.write(time_data_str + "\n")
 
 def CreateSurface(name_model,name_set_RF):
     # Create Rectangle Surface
@@ -576,238 +567,6 @@ def delete_all_models():
 #*******************************************************************************************************************
 #*******************************************************************************************************************
 
-                                    #Fonction for
-
-#*******************************************************************************************************************
-#*******************************************************************************************************************
-
-def Lattice_geometry_solid(Lattice,Radius_geom): #Tricks -0.0001 and 1.0001 for trigger cutting part outside cell
-    BCC = [(-0.0001, -0.0001, -0.0001, 0.5, 0.5, 0.5, Radius_geom),
-        (0.5, 0.5, 0.5, 1.0001, 1.0001, 1.0001, Radius_geom),
-        (0.5, 0.5, 0.5, 1.0001, 1.0001, -0.0001, Radius_geom),
-        (0.5, 0.5, 0.5, -0.0001, -0.0001, 1.0001, Radius_geom),
-        (0.5, 0.5, 0.5, -0.0001, 1.0001, -0.0001, Radius_geom),
-        (0.5, 0.5, 0.5, -0.0001, 1.0001, 1.0001, Radius_geom),
-        (1.0001, -0.0001, 1.0001, 0.5, 0.5, 0.5, Radius_geom),
-        (0.5, 0.5, 0.5, 1.0001, -0.0001, -0.0001, Radius_geom)]
-    Octet = [(-0.0001, -0.0001, -0.0001, 0.5, -0.0001, 0.5, Radius_geom),
-        (1.0001, -0.0001, 1.0001, 0.5, -0.0001, 0.5, Radius_geom),
-        (-0.0001, -0.0001, 1.0001, 0.5, -0.0001, 0.5, Radius_geom),
-        (1.0001, -0.0001, -0.0001, 0.5, -0.0001, 0.5, Radius_geom),
-        (-0.0001, -0.0001, -0.0001, -0.0001, 0.5, 0.5, Radius_geom),
-        (-0.0001, 1.0001, 1.0001, -0.0001, 0.5, 0.5, Radius_geom),
-        (-0.0001, -0.0001, 1.0001, -0.0001, 0.5, 0.5, Radius_geom),
-        (-0.0001, 1.0001, -0.0001, -0.0001, 0.5, 0.5, Radius_geom),
-        (-0.0001, -0.0001, -0.0001, 0.5, 0.5, -0.0001, Radius_geom),
-        (1.0001, 1.0001, -0.0001, 0.5, 0.5, -0.0001, Radius_geom),
-        (1.0001, -0.0001, -0.0001, 0.5, 0.5, -0.0001, Radius_geom),
-        (-0.0001, 1.0001, -0.0001, 0.5, 0.5, -0.0001, Radius_geom),
-        (-0.0001, -0.0001, 1.0001, 0.5, 0.5, 1.0001, Radius_geom),
-        (1.0001, 1.0001, 1.0001, 0.5, 0.5, 1.0001, Radius_geom),
-        (1.0001, -0.0001, 1.0001, 0.5, 0.5, 1.0001, Radius_geom),
-        (-0.0001, 1.0001, 1.0001, 0.5, 0.5, 1.0001, Radius_geom),
-        (1.0001, 0.5, 0.5, 1.0001, 1.0001, 1.0001, Radius_geom),
-        (1.0001, -0.0001, -0.0001, 1.0001, 0.5, 0.5, Radius_geom),
-        (1.0001, 0.5, 0.5, 1.0001, 1.0001, -0.0001, Radius_geom),
-        (1.0001, -0.0001, 1.0001, 1.0001, 0.5, 0.5, Radius_geom),
-        (0.5, 1.0001, 0.5, 1.0001, 1.0001, 1.0001, Radius_geom),
-        (-0.0001, 1.0001, -0.0001, 0.5, 1.0001, 0.5, Radius_geom),
-        (0.5, 1.0001, 0.5, 1.0001, 1.0001, -0.0001, Radius_geom),
-        (-0.0001, 1.0001, 1.0001, 0.5, 1.0001, 0.5, Radius_geom),
-        (0.5, -0.0001, 0.5, 0.5, 0.5, -0.0001, Radius_geom),
-        (0.5, -0.0001, 0.5, -0.0001, 0.5, 0.5, Radius_geom),
-        (0.5, -0.0001, 0.5, 1.0001, 0.5, 0.5, Radius_geom),
-        (0.5, -0.0001, 0.5, 0.5, 0.5, 1.0001, Radius_geom),
-        (0.5, 1.0001, 0.5, 0.5, 0.5, -0.0001, Radius_geom),
-        (0.5, 1.0001, 0.5, -0.0001, 0.5, 0.5, Radius_geom),
-        (0.5, 1.0001, 0.5, 1.0001, 0.5, 0.5, Radius_geom),
-        (0.5, 1.0001, 0.5, 0.5, 0.5, 1.0001, Radius_geom),
-        (1.0001, 0.5, 0.5, 0.5, 0.5, -0.0001, Radius_geom),
-        (0.5, 0.5, -0.0001, -0.0001, 0.5, 0.5, Radius_geom),
-        (0.5, 0.5, 1.0001, -0.0001, 0.5, 0.5, Radius_geom),
-        (0.5, 0.5, 1.0001, 1.0001, 0.5, 0.5, Radius_geom)]
-    OctetExt = [(-0.0001, -0.0001, -0.0001, 0.5, -0.0001, 0.5, Radius_geom),
-        (1.0001, -0.0001, 1.0001, 0.5, -0.0001, 0.5, Radius_geom),
-        (-0.0001, -0.0001, 1.0001, 0.5, -0.0001, 0.5, Radius_geom),
-        (1.0001, -0.0001, -0.0001, 0.5, -0.0001, 0.5, Radius_geom),
-        (-0.0001, -0.0001, -0.0001, -0.0001, 0.5, 0.5, Radius_geom),
-        (-0.0001, 1.0001, 1.0001, -0.0001, 0.5, 0.5, Radius_geom),
-        (-0.0001, -0.0001, 1.0001, -0.0001, 0.5, 0.5, Radius_geom),
-        (-0.0001, 1.0001, -0.0001, -0.0001, 0.5, 0.5, Radius_geom),
-        (-0.0001, -0.0001, -0.0001, 0.5, 0.5, -0.0001, Radius_geom),
-        (1.0001, 1.0001, -0.0001, 0.5, 0.5, -0.0001, Radius_geom),
-        (1.0001, -0.0001, -0.0001, 0.5, 0.5, -0.0001, Radius_geom),
-        (-0.0001, 1.0001, -0.0001, 0.5, 0.5, -0.0001, Radius_geom),
-        (-0.0001, -0.0001, 1.0001, 0.5, 0.5, 1.0001, Radius_geom),
-        (1.0001, 1.0001, 1.0001, 0.5, 0.5, 1.0001, Radius_geom),
-        (1.0001, -0.0001, 1.0001, 0.5, 0.5, 1.0001, Radius_geom),
-        (-0.0001, 1.0001, 1.0001, 0.5, 0.5, 1.0001, Radius_geom),
-        (1.0001, 0.5, 0.5, 1.0001, 1.0001, 1.0001, Radius_geom),
-        (1.0001, -0.0001, -0.0001, 1.0001, 0.5, 0.5, Radius_geom),
-        (1.0001, 0.5, 0.5, 1.0001, 1.0001, -0.0001, Radius_geom),
-        (1.0001, -0.0001, 1.0001, 1.0001, 0.5, 0.5, Radius_geom),
-        (0.5, 1.0001, 0.5, 1.0001, 1.0001, 1.0001, Radius_geom),
-        (-0.0001, 1.0001, -0.0001, 0.5, 1.0001, 0.5, Radius_geom),
-        (0.5, 1.0001, 0.5, 1.0001, 1.0001, -0.0001, Radius_geom),
-        (-0.0001, 1.0001, 1.0001, 0.5, 1.0001, 0.5, Radius_geom)]
-    OctetInt = [(0.5, -0.0001, 0.5, 0.5, 0.5, -0.0001, Radius_geom),
-        (0.5, -0.0001, 0.5, -0.0001, 0.5, 0.5, Radius_geom),
-        (0.5, -0.0001, 0.5, 1.0001, 0.5, 0.5, Radius_geom),
-        (0.5, -0.0001, 0.5, 0.5, 0.5, 1.0001, Radius_geom),
-        (0.5, 1.0001, 0.5, 0.5, 0.5, -0.0001, Radius_geom),
-        (0.5, 1.0001, 0.5, -0.0001, 0.5, 0.5, Radius_geom),
-        (0.5, 1.0001, 0.5, 1.0001, 0.5, 0.5, Radius_geom),
-        (0.5, 1.0001, 0.5, 0.5, 0.5, 1.0001, Radius_geom),
-        (1.0001, 0.5, 0.5, 0.5, 0.5, -0.0001, Radius_geom),
-        (0.5, 0.5, -0.0001, -0.0001, 0.5, 0.5, Radius_geom),
-        (0.5, 0.5, 1.0001, -0.0001, 0.5, 0.5, Radius_geom),
-        (0.5, 0.5, 1.0001, 1.0001, 0.5, 0.5, Radius_geom)]
-    BCCZ = [(0.5, 0.5, 0.5, 1.0001, 1.0001, 1.0001, Radius_geom),
-        (-0.0001, -0.0001, -0.0001, 0.5, 0.5, 0.5, Radius_geom),
-        (0.5, 0.5, 0.5, 1.0001, 1.0001, -0.0001, Radius_geom),
-        (-0.0001, -0.0001, 1.0001, 0.5, 0.5, 0.5, Radius_geom),
-        (0.5, 0.5, 0.5, -0.0001, 1.0001, -0.0001, Radius_geom),
-        (1.0001, -0.0001, 1.0001, 0.5, 0.5, 0.5, Radius_geom),
-        (0.5, 0.5, 0.5, -0.0001, 1.0001, 1.0001, Radius_geom),
-        (1.0001, -0.0001, -0.0001, 0.5, 0.5, 0.5, Radius_geom),
-        (0.5, 0.5, -0.0001, 0.5, 0.5, 0.5, Radius_geom),
-        (0.5, 0.5, 0.5, 0.5, 0.5, 1.0001, Radius_geom)]
-    Cubic = [(-0.0001, -0.0001, -0.0001, -0.0001, -0.0001, 1.0001, Radius_geom),
-          (1.0001, -0.0001, -0.0001, 1.0001, -0.0001, 1.0001, Radius_geom),
-          (-0.0001, 1.0001, -0.0001, -0.0001, 1.0001, 1.0001, Radius_geom),
-          (1.0001, 1.0001, -0.0001, 1.0001, 1.0001, 1.0001, Radius_geom),
-          (-0.0001, -0.0001, -0.0001, 1.0001, -0.0001, -0.0001, Radius_geom),
-          (-0.0001, -0.0001, -0.0001, -0.0001, 1.0001, -0.0001, Radius_geom),
-          (1.0001, 1.0001, -0.0001, -0.0001, 1.0001, -0.0001, Radius_geom),
-          (1.0001, 1.0001, -0.0001, 1.0001, -0.0001, -0.0001, Radius_geom),
-          (-0.0001, -0.0001, 1.0001, 1.0001, -0.0001, 1.0001, Radius_geom),
-          (-0.0001, -0.0001, 1.0001, -0.0001, 1.0001, 1.0001, Radius_geom),
-          (1.0001, 1.0001, 1.0001, -0.0001, 1.0001, 1.0001, Radius_geom),
-          (1.0001, 1.0001, 1.0001, 1.0001, -0.0001, 1.0001, Radius_geom)]
-    OctahedronZ = [(0.5, -0.0001, 0.5, 0.5, 0.5, -0.0001, Radius_geom),
-        (0.5, -0.0001, 0.5, -0.0001, 0.5, 0.5, Radius_geom),
-        (0.5, -0.0001, 0.5, 1.0001, 0.5, 0.5, Radius_geom),
-        (0.5, -0.0001, 0.5, 0.5, 0.5, 1.0001, Radius_geom),
-        (0.5, 1.0001, 0.5, 0.5, 0.5, -0.0001, Radius_geom),
-        (0.5, 1.0001, 0.5, -0.0001, 0.5, 0.5, Radius_geom),
-        (0.5, 1.0001, 0.5, 1.0001, 0.5, 0.5, Radius_geom),
-        (0.5, 1.0001, 0.5, 0.5, 0.5, 1.0001, Radius_geom),
-        (1.0001, 0.5, 0.5, 0.5, 0.5, -0.0001, Radius_geom),
-        (0.5, 0.5, -0.0001, -0.0001, 0.5, 0.5, Radius_geom),
-        (0.5, 0.5, 1.0001, -0.0001, 0.5, 0.5, Radius_geom),
-        (0.5, 0.5, 1.0001, 1.0001, 0.5, 0.5, Radius_geom),
-        (0.5, 0.5, -0.0001, 0.5, 0.5, 1.0001, Radius_geom)]
-    OctahedronZcross = [(0.5, -0.0001, 0.5, 0.5, 0.5, -0.0001, Radius_geom),
-        (0.5, -0.0001, 0.5, -0.0001, 0.5, 0.5, Radius_geom),
-        (0.5, -0.0001, 0.5, 1.0001, 0.5, 0.5, Radius_geom),
-        (0.5, -0.0001, 0.5, 0.5, 0.5, 1.0001, Radius_geom),
-        (0.5, 1.0001, 0.5, 0.5, 0.5, -0.0001, Radius_geom),
-        (0.5, 1.0001, 0.5, -0.0001, 0.5, 0.5, Radius_geom),
-        (0.5, 1.0001, 0.5, 1.0001, 0.5, 0.5, Radius_geom),
-        (0.5, 1.0001, 0.5, 0.5, 0.5, 1.0001, Radius_geom),
-        (1.0001, 0.5, 0.5, 0.5, 0.5, -0.0001, Radius_geom),
-        (0.5, 0.5, -0.0001, -0.0001, 0.5, 0.5, Radius_geom),
-        (0.5, 0.5, 1.0001, -0.0001, 0.5, 0.5, Radius_geom),
-        (0.5, 0.5, 1.0001, 1.0001, 0.5, 0.5, Radius_geom),
-        (0.5, 0.5, -0.0001, 0.5, 0.5, 0.5, Radius_geom),
-        (0.5, 0.5, 1.0001, 0.5, 0.5, 0.5, Radius_geom),
-        (0.5, -0.0001, 0.5, 0.5, 0.5, 0.5, Radius_geom),
-        (-0.0001, 0.5, 0.5, 0.5, 0.5, 0.5, Radius_geom),
-        (1.0001, 0.5, 0.5, 0.5, 0.5, 0.5, Radius_geom),
-        (0.5, 1.0001, 0.5, 0.5, 0.5, 0.5, Radius_geom)]
-    Kelvin = [(0.5, 0.25, -0.0001, 0.25, 0.5, -0.0001, Radius_geom),
-              (0.5, 0.25, -0.0001, 0.75, 0.5, -0.0001, Radius_geom),
-              (0.5, 0.75, -0.0001, 0.25, 0.5, -0.0001, Radius_geom),
-              (0.5, 0.75, -0.0001, 0.75, 0.5, -0.0001, Radius_geom),
-              (0.5, 0.25, 1.0001, 0.25, 0.5, 1.0001, Radius_geom),
-              (0.5, 0.25, 1.0001, 0.75, 0.5, 1.0001, Radius_geom),
-              (0.5, 0.75, 1.0001, 0.25, 0.5, 1.0001, Radius_geom),
-              (0.5, 0.75, 1.0001, 0.75, 0.5, 1.0001, Radius_geom),
-              (0.5, -0.0001, 0.25, 0.25, -0.0001, 0.5, Radius_geom),
-              (0.5, -0.0001, 0.25, 0.75, -0.0001, 0.5, Radius_geom),
-              (0.5, -0.0001, 0.75, 0.25, -0.0001, 0.5, Radius_geom),
-              (0.5, -0.0001, 0.75, 0.75, -0.0001, 0.5, Radius_geom),
-              (0.5, 1.0001, 0.25, 0.25, 1.0001, 0.5, Radius_geom),
-              (0.5, 1.0001, 0.25, 0.75, 1.0001, 0.5, Radius_geom),
-              (0.5, 1.0001, 0.75, 0.25, 1.0001, 0.5, Radius_geom),
-              (0.5, 1.0001, 0.75, 0.75, 1.0001, 0.5, Radius_geom),
-              (-0.0001, 0.5, 0.25, -0.0001, 0.25, 0.5, Radius_geom),
-              (-0.0001, 0.5, 0.25, -0.0001, 0.75, 0.5, Radius_geom),
-              (-0.0001, 0.5, 0.75, -0.0001, 0.25, 0.5, Radius_geom),
-              (-0.0001, 0.5, 0.75, -0.0001, 0.75, 0.5, Radius_geom),
-              (1, 0.5, 0.25, 1.0001, 0.25, 0.5, Radius_geom),
-              (1, 0.5, 0.25, 1.0001, 0.75, 0.5, Radius_geom),
-              (1, 0.5, 0.75, 1.0001, 0.25, 0.5, Radius_geom),
-              (1, 0.5, 0.75, 1.0001, 0.75, 0.5, Radius_geom),
-              (0.5, 0.25, -0.0001, 0.5, -0.0001, 0.25, Radius_geom),
-              (0.25, 0.5, -0.0001, -0.0001, 0.5, 0.25, Radius_geom),
-              (0.75, 0.5, -0.0001, 1.0001, 0.5, 0.25, Radius_geom),
-              (0.5, 0.75, -0.0001, 0.5, 1.0001, 0.25, Radius_geom),
-              (0.25, -0.0001, 0.5, -0.0001, 0.25, 0.5, Radius_geom),
-              (0.75, -0.0001, 0.5, 1.0001, 0.25, 0.5, Radius_geom),
-              (0.75, 1.0001, 0.5, 1.0001, 0.75, 0.5, Radius_geom),
-              (0.25, 1.0001, 0.5, -0.0001, 0.75, 0.5, Radius_geom),
-              (0.5, -0.0001, 0.75, 0.5, 0.25, 1.0001, Radius_geom),
-              (-0.0001, 0.5, 0.75, 0.25, 0.5, 1.0001, Radius_geom),
-              (0.5, 1.0001, 0.75, 0.5, 0.75, 1.0001, Radius_geom),
-              (1, 0.5, 0.75, 0.75, 0.5, 1.0001, Radius_geom)]
-    CubicV2 = [(0.5, -0.0001, 0.5, 0.5, 0.5, 0.5, Radius_geom), #Tricks -0.0001 and 1.0001 for trigger cutting part outside cell
-               (-0.0001, 0.5, 0.5, 0.5, 0.5, 0.5, Radius_geom),
-               (0.5, 1.0001, 0.5, 0.5, 0.5, 0.5, Radius_geom),
-               (1.0001, 0.5, 0.5, 0.5, 0.5, 0.5, Radius_geom),
-               (0.5, 0.5, -0.0001, 0.5, 0.5, 0.5, Radius_geom),
-               (0.5, 0.5, 1.0001, 0.5, 0.5, 0.5, Radius_geom)]
-    if (Lattice == 0):
-        return BCC
-    if (Lattice == 1):
-        return Octet
-    if (Lattice == 2):
-        return OctetExt
-    if (Lattice == 3):
-        return OctetInt
-    if (Lattice == 4):
-        return BCCZ
-    if (Lattice == 5):
-        return Cubic
-    if (Lattice == 6):
-        return OctahedronZ
-    if (Lattice == 7):
-        return OctahedronZcross
-    if (Lattice == 8):
-        return Kelvin
-    if (Lattice == 9):
-        return CubicV2
-
-def Type_lattice(Lattice):
-    if (Lattice == 0):
-        Type = 'BCC'
-    if (Lattice == 1):
-        Type = 'Octet'
-    if (Lattice == 2):
-        Type = 'OctetExt'
-    if (Lattice == 3):
-        Type = 'OctetInt'
-    if (Lattice == 4):
-        Type = 'BCCZ'
-    if (Lattice == 5):
-        Type = 'Cubic'
-    if (Lattice == 6):
-        Type = 'OctahedronZ'
-    if (Lattice == 7):
-        Type = 'OctahedronZcross'
-    if (Lattice == 8):
-        Type = 'Kelvin'
-    if (Lattice == 9):
-        Type = 'CubicV2'
-    if (Lattice == 10):
-        Type = 'CubicV3'
-    if (Lattice == 11):
-        Type = 'CubicV4'
-    return Type
-
-#*******************************************************************************************************************
-#*******************************************************************************************************************
-
                                     #Variables
 
 #*******************************************************************************************************************
@@ -817,16 +576,16 @@ name_model = 'BCC_test'
 name_Job = 'Job_1'
 name_Part = 'Lattice_Part'
 name_Assembly = 'Lattice_assembly'
-VectorOrientation = [0,0,-1]
+
 Radius = 0.5
 cell_size = 7.5
 cell_size_X = cell_size
 cell_size_Y = cell_size
 cell_size_Z = cell_size
-number_cell = 5
+number_cell = 3
 number_cell_X = number_cell
 number_cell_Y = number_cell
-number_cell_Z = 8
+number_cell_Z = number_cell
 
 Lattice_Type = 0
 # 0 => BCC
@@ -872,6 +631,7 @@ MethodSim = 1
 # 0 No modification
 # 1 Node Modification
 
+
 # delete_all_models()
 #*******************************************************************************************************************
 #*******************************************************************************************************************
@@ -888,6 +648,9 @@ gradMat = gradMaterialSetting(Multimat,GradMaterialDirection,number_cell_X,numbe
 
 #Generate data from lattice
 lattice = Lattice(cell_size_X,cell_size_Y,cell_size_Z, number_cell_X,number_cell_Y,number_cell_Z,Lattice_Type, Radius,gradRadius,gradDim,gradMat,MethodSim)
+# Load vector
+displacementCompression = (lattice.zMax-lattice.zMin)*compressionPourcent/100
+load_vector = [0,-displacementCompression/4,-displacementCompression]
 
 if AnalysisType != 3:
     #Generate lattice on abaqus
@@ -907,15 +670,15 @@ if AnalysisType == 1:
     name_step = 'Step-1'
     Create_Step(name_model,name_step,'Initial',AnalysisType)
     Create_BC_Fixed(name_model,'Initial','Fixed_nodes')
-    displacementCompression = (lattice.zMax-lattice.zMin)*compressionPourcent/100
-    Create_Loads(name_model,name_step,'loaded_nodes','Load_1',[0,0,-displacementCompression])
+    Create_Loads(name_model,name_step,'loaded_nodes','Load_1',load_vector)
     Create_GetDisplacement(name_model,name_step,'loaded_nodes')
     Create_GetReactionForce(name_model,name_step,'Fixed_nodes')
     Delete_output_default(name_model)
     Submit_Job(name_Job,name_model)
     visualizationSimulation(name_Job)
-    dataRF3, dataU3, dataTime = get_result(name_Job,name_step)
-    save_result(Lattice_Type, number_cell, AnalysisType, MethodSim, dataRF3, dataU3, dataTime)
+    # dataRF3, dataU3, dataTime = get_result(name_Job,name_step)
+    dataRF, dataU, dataTime = get_result(name_Job,name_step)
+    save_result(Lattice_Type, number_cell, AnalysisType, MethodSim, dataRF, dataU, dataTime)
 elif AnalysisType == 2:
     # Create superior surface to create compression on lattice
     name_set_RF = 'Set-RF'
@@ -927,8 +690,7 @@ elif AnalysisType == 2:
     Create_BC_Fixed(name_model,'Initial','Fixed_nodes')
     createContactProperty(name_model,'contact_prop','contact_surface_beam','Initial')
     Create_Step(name_model,'Step-1','Initial',AnalysisType)
-    displacementCompression = (lattice.zMax-lattice.zMin)*compressionPourcent/100
-    Create_Loads_Surface(name_model,'Step-1',name_surface_Assembly,'Displacement_surface',[0,0,-displacementCompression])
+    Create_Loads_Surface(name_model,'Step-1',name_surface_Assembly,'Displacement_surface',load_vector)
     Submit_Job(name_Job,name_model)
     visualizationSimulation()
 elif AnalysisType == 3:

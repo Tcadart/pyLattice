@@ -1,3 +1,5 @@
+import random
+
 from Lattice import *
 import matplotlib.pyplot as plt
 import math
@@ -84,7 +86,8 @@ def gradMaterialSetting(Multimat,direction,number_cell_X,number_cell_Y, number_c
     #         return 0
     #     else:
     #         return 1
-        
+    if Multimat == -1: #Random
+        gradMat = [[[random.randint(1,3) for X in range(number_cell_X)] for Y in range(number_cell_Y)] for Z in range(number_cell_Z)]
     if Multimat == 0: # Mono material
         gradMat = [[[1 for X in range(number_cell_X)] for Y in range(number_cell_Y)] for Z in range(number_cell_Z)]
     elif Multimat == 1: # Graded material
@@ -123,26 +126,31 @@ name_Assembly = 'Lattice_assembly'
 VectorOrientation = [0,0,-1]
 Radius = 0.5
 cell_size = 1
-cell_size_X = 5
-cell_size_Y = 5
-cell_size_Z = 5
-number_cell = 1
-number_cell_X = 1
-number_cell_Y = 1
-number_cell_Z = 1
+cell_size_X = cell_size
+cell_size_Y = cell_size
+cell_size_Z = cell_size
+number_cell = 3
+number_cell_X = number_cell
+number_cell_Y = number_cell
+number_cell_Z = number_cell
 
-Lattice_Type = 0
+Lattice_Type = -1
+# -1 => Full random
 # 0 => BCC
-# 1 => Octet 
-# 2 => OctetExt 
-# 3 => OctetInt 
-# 4 => BCCZ 
-# 5 => Cubic 
-# 6 => OctahedronZ 
-# 7 => OctahedronZcross 
+# 1 => Octet
+# 2 => OctetExt
+# 3 => OctetInt
+# 4 => BCCZ
+# 5 => Cubic
+# 6 => OctahedronZ
+# 7 => OctahedronZcross
 # 8 => Kelvin
 # 9 => Cubic formulation 2 (centered)
-# 10 => Auxetic
+# 10 => Cubic V3
+# 11 => Cubic V4
+# 12 => New lattice (non connu) GPT generated
+# 13 => Diamond
+# 14 => Auxetic
 
 # Gradient on cell dimensions
 GradDimRule = 'constant'
@@ -159,7 +167,8 @@ GradRadParameters = [1.0,0.0,2.0]
 # - sinusoide
 # - exponential
 
-Multimat = 0
+Multimat = -1
+# -1 => Full random
 # 0 -> materiaux
 # 1 -> multimat par couche
 GradMaterialDirection = 3 # 1:X / 2:Y / 3:Z
@@ -187,5 +196,5 @@ gradMat = gradMaterialSetting(Multimat,GradMaterialDirection,number_cell_X,numbe
 
 #Generate data from lattice
 lattice = Lattice(cell_size_X,cell_size_Y,cell_size_Z, number_cell_X,number_cell_Y,number_cell_Z,Lattice_Type, Radius,gradRadius,gradDim,gradMat,MethodSim)
-print(lattice.Getangle())
+
 display_only_lattice()
