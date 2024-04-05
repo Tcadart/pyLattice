@@ -135,8 +135,8 @@ def plotDataExperience(number_cell, length_cell):
 
 
 
-number_cell = 3
-length_cell = 7.5
+number_cell = 6
+length_cell = 10
 
 Lattice_Type = 0
 # 0 => BCC

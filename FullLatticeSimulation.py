@@ -262,7 +262,7 @@ def Submit_Job(name_Job,name_model):
     #Submit and wait
     job1 = mdb.Job(name=name_Job,model=name_model)
     job1.submit()
-    job1.waitForCompletion()
+    # job1.waitForCompletion()
 
 def Create_Step(name_model,name_step,name_previous_step,AnalysisType):
     if AnalysisType == 1:
@@ -572,20 +572,20 @@ def delete_all_models():
 #*******************************************************************************************************************
 #*******************************************************************************************************************
 
-name_model = 'BCC_test'
+name_model = 'BCC_test_beamsansmod'
 name_Job = 'Job_1'
 name_Part = 'Lattice_Part'
 name_Assembly = 'Lattice_assembly'
 
 Radius = 0.5
-cell_size = 7.5
+cell_size = 10
 cell_size_X = cell_size
 cell_size_Y = cell_size
 cell_size_Z = cell_size
 number_cell = 3
-number_cell_X = number_cell
-number_cell_Y = number_cell
-number_cell_Z = number_cell
+number_cell_X = 6
+number_cell_Y = 6
+number_cell_Z = 6
 
 Lattice_Type = 0
 # 0 => BCC
@@ -627,7 +627,7 @@ AnalysisType = 1
 # 3 Compression BCC Solid Plastic Static
 compressionPourcent = 20
 
-MethodSim = 1
+MethodSim = 0
 # 0 No modification
 # 1 Node Modification
 
@@ -647,10 +647,10 @@ gradMat = gradMaterialSetting(Multimat,GradMaterialDirection,number_cell_X,numbe
 
 
 #Generate data from lattice
-lattice = Lattice(cell_size_X,cell_size_Y,cell_size_Z, number_cell_X,number_cell_Y,number_cell_Z,Lattice_Type, Radius,gradRadius,gradDim,gradMat,MethodSim)
+lattice = Lattice(cell_size_X,cell_size_Y,cell_size_Z, number_cell_X,number_cell_Y,number_cell_Z,Lattice_Type, Radius,gradRadius,gradDim,gradMat,MethodSim,False)
 # Load vector
 displacementCompression = (lattice.zMax-lattice.zMin)*compressionPourcent/100
-load_vector = [0,-displacementCompression/4,-displacementCompression]
+load_vector = [0,0,-displacementCompression]
 
 if AnalysisType != 3:
     #Generate lattice on abaqus
@@ -674,11 +674,11 @@ if AnalysisType == 1:
     Create_GetDisplacement(name_model,name_step,'loaded_nodes')
     Create_GetReactionForce(name_model,name_step,'Fixed_nodes')
     Delete_output_default(name_model)
-    Submit_Job(name_Job,name_model)
-    visualizationSimulation(name_Job)
-    # dataRF3, dataU3, dataTime = get_result(name_Job,name_step)
-    dataRF, dataU, dataTime = get_result(name_Job,name_step)
-    save_result(Lattice_Type, number_cell, AnalysisType, MethodSim, dataRF, dataU, dataTime)
+    # Submit_Job(name_Job,name_model)
+    # visualizationSimulation(name_Job)
+    # # dataRF3, dataU3, dataTime = get_result(name_Job,name_step)
+    # dataRF, dataU, dataTime = get_result(name_Job,name_step)
+    # save_result(Lattice_Type, number_cell, AnalysisType, MethodSim, dataRF, dataU, dataTime)
 elif AnalysisType == 2:
     # Create superior surface to create compression on lattice
     name_set_RF = 'Set-RF'

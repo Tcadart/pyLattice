@@ -1,12 +1,14 @@
 from Cellule import *
 import math
+import random
+
 
 
 class Lattice:
     """
     Represents a lattice of cells.
     """
-    def __init__(self, cell_size_x, cell_size_y, cell_size_z, num_cells_x, num_cells_y, num_cells_z, Lattice_Type, Radius,gradRadius,gradDim,gradMat,simMethod):
+    def __init__(self, cell_size_x, cell_size_y, cell_size_z, num_cells_x, num_cells_y, num_cells_z, Lattice_Type, Radius,gradRadius,gradDim,gradMat,simMethod,uncertaintyNode):
         """
         Constructor for the Lattice class.
 
@@ -38,6 +40,7 @@ class Lattice:
         self.size_x = self.getSize(0)
         self.size_y = self.getSize(1)
         self.size_z = self.getSize(2)
+        self.uncertaintyNode = uncertaintyNode
 
         self.cells = []
         self.angles = []
@@ -470,3 +473,92 @@ class Lattice:
         Lat = self.cells[0].Lattice_geometry(self.Lattice_Type)
         self.lenghtLat = len(Lat)
         return self.lenghtLat
+
+
+# def add_gaussian_noise(value, mu=0, sigma=1):
+#     """
+#     Adds Gaussian noise to a scalar value.
+#
+#     :param value: The value to which noise will be added.
+#     :param mu: The mean of the Gaussian distribution.
+#     :param sigma: The standard deviation of the Gaussian distribution.
+#     :return: The new value with added Gaussian noise.
+#     """
+#     noise = random.normal(mu, sigma)
+#     return value + noise
+
+    def findMinimumBeamLength(self):
+        minLength = 1000
+        for index, beam in enumerate(self.beams_obj):
+            if beam.get_length()<minLength:
+                minLength = beam.get_length()
+        return minLength
+
+    def tagPoint(self, point):
+        tags = []
+
+        # Faces
+        if point.x == self.xMin and (point.y > self.yMin and point.y < self.yMax) and (
+                point.z > self.zMin and point.z < self.zMax):
+            tags.append(12)  # Face 1
+        elif point.x == self.xMax and (point.y > self.yMin and point.y < self.yMax) and (
+                point.z > self.zMin and point.z < self.zMax):
+            tags.append(13)  # Face 2
+        elif (point.x > self.xMin and point.x < self.xMax) and point.y == self.yMin and (
+                point.z > self.zMin and point.z < self.zMax):
+            tags.append(11)  # Face 3
+        elif (point.x > self.xMin and point.x < self.xMax) and point.y == self.yMax and (
+                point.z > self.zMin and point.z < self.zMax):
+            tags.append(14)  # Face 4
+        elif (point.x > self.xMin and point.x < self.xMax) and (
+                point.y > self.yMin and point.y < self.yMax) and point.z == self.zMin:
+            tags.append(10)  # Face 5
+        elif (point.x > self.xMin and point.x < self.xMax) and (
+                point.y > self.yMin and point.y < self.yMax) and point.z == self.zMax:
+            tags.append(15)  # Face 6
+
+        # Edge
+        if point.x == self.xMin and point.y == self.yMin and (point.z > self.zMin and point.z < self.zMax):
+            tags.append(102)  # Edge 0
+        elif (point.x > self.xMin and point.x < self.xMax) and point.y == self.yMin and point.z == self.zMin:
+            tags.append(100)  # Edge 1
+        elif point.x == self.xMax and point.y == self.yMin and (point.z > self.zMin and point.z < self.zMax):
+            tags.append(104)  # Edge 2
+        elif (point.x > self.xMin and point.x < self.xMax) and point.y == self.yMin and point.z == self.zMax:
+            tags.append(108)  # Edge 3
+        elif point.x == self.xMin and (point.y > self.yMin and point.y < self.yMax) and point.z == self.zMin:
+            tags.append(101)  # Edge 4
+        elif point.x == self.xMax and (point.y > self.yMin and point.y < self.yMax) and point.z == self.zMin:
+            tags.append(103)  # Edge 5
+        elif point.x == self.xMin and point.y == self.yMax and (point.z > self.zMin and point.z < self.zMax):
+            tags.append(106)  # Edge 6
+        elif (point.x > self.xMin and point.x < self.xMax) and point.y == self.yMax and point.z == self.zMin:
+            tags.append(105)  # Edge 7
+        elif point.x == self.xMax and point.y == self.yMax and (point.z > self.zMin and point.z < self.zMax):
+            tags.append(107)  # Edge 8
+        elif (point.x > self.xMin and point.x < self.xMax) and point.y == self.yMax and point.z == self.zMax:
+            tags.append(111)  # Edge 9
+        elif point.x == self.xMin and (point.y > self.yMin and point.y < self.yMax) and point.z == self.zMax:
+            tags.append(109)  # Edge 10
+        elif point.x == self.xMax and (point.y > self.yMin and point.y < self.yMax) and point.z == self.zMax:
+            tags.append(110)  # Edge 11
+
+        # Corner
+        if point.x == self.xMin and point.y == self.yMin and point.z == self.zMin:
+            tags.append(1000)  # Corner 0
+        elif point.x == self.xMax and point.y == self.yMin and point.z == self.zMin:
+            tags.append(1001)  # Corner 1
+        elif point.x == self.xMin and point.y == self.yMax and point.z == self.zMin:
+            tags.append(1002)  # Corner 2
+        elif point.x == self.xMax and point.y == self.yMax and point.z == self.zMin:
+            tags.append(1003)  # Corner 3
+        elif point.x == self.xMin and point.y == self.yMin and point.z == self.zMax:
+            tags.append(1004)  # Corner 4
+        elif point.x == self.xMax and point.y == self.yMin and point.z == self.zMax:
+            tags.append(1005)  # Corner 5
+        elif point.x == self.xMin and point.y == self.yMax and point.z == self.zMax:
+            tags.append(1006)  # Corner 6
+        elif point.x == self.xMax and point.y == self.yMax and point.z == self.zMax:
+            tags.append(1007)  # Corner 7
+
+        return tags

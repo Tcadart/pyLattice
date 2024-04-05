@@ -129,12 +129,12 @@ cell_size = 1
 cell_size_X = cell_size
 cell_size_Y = cell_size
 cell_size_Z = cell_size
-number_cell = 3
+number_cell = 1
 number_cell_X = number_cell
 number_cell_Y = number_cell
 number_cell_Z = number_cell
 
-Lattice_Type = -1
+Lattice_Type = 0
 # -1 => Full random
 # 0 => BCC
 # 1 => Octet
@@ -167,7 +167,7 @@ GradRadParameters = [1.0,0.0,2.0]
 # - sinusoide
 # - exponential
 
-Multimat = -1
+Multimat = 0
 # -1 => Full random
 # 0 -> materiaux
 # 1 -> multimat par couche
@@ -180,6 +180,8 @@ AnalysisType = 0
 MethodSim = 0
 # 0 No modification
 # 1 Node Modification
+
+uncertaintyNode = True
 
 #*******************************************************************************************************************
 #*******************************************************************************************************************
@@ -195,6 +197,7 @@ gradMat = gradMaterialSetting(Multimat,GradMaterialDirection,number_cell_X,numbe
 
 
 #Generate data from lattice
-lattice = Lattice(cell_size_X,cell_size_Y,cell_size_Z, number_cell_X,number_cell_Y,number_cell_Z,Lattice_Type, Radius,gradRadius,gradDim,gradMat,MethodSim)
-
+lattice = Lattice(cell_size_X,cell_size_Y,cell_size_Z, number_cell_X,number_cell_Y,number_cell_Z,Lattice_Type, Radius,gradRadius,gradDim,gradMat,MethodSim,uncertaintyNode)
+print(lattice.nodes)
+print(lattice.beams_obj)
 display_only_lattice()
