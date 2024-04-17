@@ -6,9 +6,9 @@ import random
 
 class Lattice:
     """
-    Represents a lattice of cells.
+    Represents a lattice structures with a lot of different types of properties.
     """
-    def __init__(self, cell_size_x, cell_size_y, cell_size_z, num_cells_x, num_cells_y, num_cells_z, Lattice_Type, Radius,gradRadius,gradDim,gradMat,simMethod,uncertaintyNode):
+    def __init__(self, cell_size_x, cell_size_y, cell_size_z, num_cells_x, num_cells_y, num_cells_z, Lattice_Type, Radius,gradRadiusProperty,gradDimProperty,gradMatProperty,simMethod,uncertaintyNode):
         """
         Constructor for the Lattice class.
 
@@ -20,22 +20,22 @@ class Lattice:
         :param num_cells_z: integer
         :param Lattice_Type: string
         :param Radius: float
-        :param gradRadius: list of integer
-        :param gradDim: list of integer
-        :param gradMat: list of integer
+        :param gradRadiusProperty: list of data
+        :param gradDimProperty: list of data
+        :param gradMatProperty: list of data
         :param simMethod: integer
         """        
-        self.cell_size_x = cell_size_x
-        self.cell_size_y = cell_size_y
-        self.cell_size_z = cell_size_z
+        self.cellSizeX = cell_size_x
+        self.cellSizeY = cell_size_y
+        self.cellSizeZ = cell_size_z
         self.num_cells_x = num_cells_x
         self.num_cells_y = num_cells_y
         self.num_cells_z = num_cells_z
         self.Lattice_Type = Lattice_Type
         self.Radius = Radius
-        self.gradRadius = gradRadius
-        self.gradDim = gradDim
-        self.gradMat = gradMat
+        self.gradRadius = self.gradSettings(gradRadiusProperty)
+        self.gradDim = self.gradSettings(gradDimProperty)
+        self.gradMat = self.gradMaterialSetting(gradMatProperty)
         self.simMethod = simMethod
         self.size_x = self.getSize(0)
         self.size_y = self.getSize(1)
@@ -52,10 +52,14 @@ class Lattice:
         self.nodes_obj = []
         self.beams_obj = []
         self.posCell = []
-        self.generate_custom_lattice()
+        self.toucanModifier = []
+        if Lattice_Type != -2:
+            self.generate_custom_lattice()
+        else:
+            self.generate_random_lattice()
         self.getNodesObj()
         self.getBeamsObj()
-        self.Getangle()
+        # self.Getangle()
         if simMethod == 1:
             self.getBeamNodeMod()
         self.getNodeData()
@@ -65,6 +69,8 @@ class Lattice:
         self.extremumFunction()
         self.getCenterCells()
         self.getNumberBeamCell()
+        if self.uncertaintyNode == 2:
+            self.toucanLatticeModifier()
 
     @property
     def nodes(self):
@@ -99,7 +105,7 @@ class Lattice:
     #     :param padding: float
     #     :return: Cellule object
     #     """        
-    #     cell = Cellule(self.cell_size_x, self.cell_size_y, self.cell_size_z, 0, 0, 0)
+    #     cell = Cellule(self.cellSizeX, self.cellSizeY, self.cellSizeZ, 0, 0, 0)
     #     cell.generate_nodes(Tmin, Tmax, padding)
     #     time.sleep(1)
     #     cell.merge_nodes()
@@ -117,40 +123,159 @@ class Lattice:
         length = 0
         if direction == 0:
             for dim in self.gradDim:
-                length += dim[0] * self.cell_size_x
+                length += dim[0] * self.cellSizeX
         elif direction == 1:
             for dim in self.gradDim:
-                length += dim[1] * self.cell_size_y
+                length += dim[1] * self.cellSizeY
         elif direction == 2:
             for dim in self.gradDim:
-                length += dim[2] * self.cell_size_z
+                length += dim[2] * self.cellSizeZ
         return length
 
-    # def generate_random_lattice(self, Tmin, Tmax, padding):
-    #     """
-    #     Generates a random lattice.
+    def gradSettings(self, gradProperties):
+        """
+        Generate gradient settings based on the provided rule, direction, and parameters.
 
-    #     :param Tmin: float
-    #     :param Tmax: float
-    #     :param padding: float
-    #     :return: list of Cellule objects
-    #     """        
-    #     self.cells = []
-    #     random_cell = self.generate_random_cells(Tmin, Tmax, padding)
+        Parameters:
+        -----------
+        Properties: list[Rule, Direction, Parameters]
+            All types of properties for gradient definition
 
-    #     for i in range(self.num_cells_x):
-    #         for j in range(self.num_cells_y):
-    #             for k in range(self.num_cells_z):
-    #                 new_cell = copy.deepcopy(random_cell)
-    #                 new_nodes = new_cell.nodes
-    #                 new_cell.nodes = new_nodes
-    #                 new_cell.merge_nodes()
-    #                 new_beams = new_cell.beams
-    #                 new_cell.beams = new_beams
-    #                 new_cell.remove_unused_nodes()
-    #                 new_cell.translate((i, j, k))
-    #                 self.cells.append(new_cell)
-    #     return self.cells
+        Return:
+        ---------
+        gradientData: list[integer]
+        Generated gradient settings (list of lists)
+        """
+
+        def applyRule(i, numberCell, dirValue, paramValue, rule):
+            if i < numberCell:
+                if i >= 1 and dirValue == 1:
+                    if rule == 'constant':
+                        return 1.0
+                    elif rule == 'linear':
+                        return i * paramValue
+                    elif rule == 'parabolic':
+                        return i * paramValue if i < numberCell / 2 else (numberCell - i - 1) * paramValue
+                    elif rule == 'sinusoide':
+                        if i < numberCell / 4:
+                            return i * parameters
+                        elif i < numberCell / 2:
+                            return (numberCell / 2 - i) * parameters
+                        elif i == numberCell / 2:
+                            return 1.0
+                        elif i < 3 / 4 * numberCell:
+                            return (3 / 4 * numberCell - i) * (1 / parameters)
+                    elif rule == 'exponential':
+                        return math.exp(i * paramValue)
+                return 1.0
+            return 0.0
+
+        # Extract gradient properties
+        rule = gradProperties[0]
+        direction = gradProperties[1]
+        parameters = gradProperties[2]
+
+        # Initialization matrix
+        maxCells = max(self.num_cells_x, self.num_cells_y, self.num_cells_z)
+        gradientData = [[0.0, 0.0, 0.0] for _ in range(maxCells)]
+
+        # Processing multiple rules
+        for i in range(maxCells):
+            numberCells = [self.num_cells_x, self.num_cells_y, self.num_cells_z]
+            for dimIndex in range(3):
+                gradientData[i][dimIndex] = applyRule(i, numberCells[dimIndex], direction[dimIndex], parameters[dimIndex],
+                                                  rule)
+        return gradientData
+
+    def gradMaterialSetting(self, gradMatProperty):
+        """
+        Define gradient material settings
+
+        Parameters:
+        ------------
+        gradMatProperty: list[Multimat, GradMaterialDirection]
+            Set of properties for material gradient
+
+        Returns:
+        --------
+        gradMat: list of integer
+            list of material type in the structure
+        """
+
+        # Extract properties
+        multimat = gradMatProperty[0]
+        direction = gradMatProperty[1]
+
+        # def calculatePositionPointOnPlane(CoeffPlan, PositionPlan , x, y, z):
+        #     value = CoeffPlan[0]*x + CoeffPlan[1]*y + CoeffPlan[2]*z + PositionPlan
+        #     if value > 0:
+        #         return 0
+        #     else:
+        #         return 1
+        if multimat == -1:  # Random
+            gradMat = [[[random.randint(1, 3) for X in range(self.num_cells_x)] for Y in range(self.num_cells_y)] for Z in
+                       range(self.num_cells_z)]
+        if multimat == 0:  # Mono material
+            gradMat = [[[1 for X in range(self.num_cells_x)] for Y in range(self.num_cells_y)] for Z in range(self.num_cells_z)]
+        elif multimat == 1:  # Graded material
+            if direction == 1:
+                gradMat = [[[X for X in range(self.num_cells_x)] for Y in range(self.num_cells_y)] for Z in
+                           range(self.num_cells_z)]
+            if direction == 2:
+                gradMat = [[[Y for X in range(self.num_cells_x)] for Y in range(self.num_cells_y)] for Z in
+                           range(self.num_cells_z)]
+            if direction == 3:
+                gradMat = [[[Z for X in range(self.num_cells_x)] for Y in range(self.num_cells_y)] for Z in
+                           range(self.num_cells_z)]
+        # elif Multimat == 2:
+        #     gradMat = [[[0 for X in range(number_cell_X)] for Y in range(number_cell_Y)] for Z in range(number_cell_Z)]
+        #     centerCell = []
+        #     for x in range(number_cell_X):
+        #         for y in range(number_cell_Y):
+        #             for z in range(number_cell_Z):
+        #                 centerCell.append([0.5+x,0.5+y,0.5+z])
+        #     for PositionPlan in range(number_cell_Z):
+        #         IdxMat = PositionPlan%2
+        #         for IdxCenterCells in range(len(lattice.centerCell)):
+        #             if calculatePositionPointOnPlane([1,0,0], PositionPlan , lattice.centerCell[IdxCenterCells,0], lattice.centerCell[IdxCenterCells,1], lattice.centerCell[IdxCenterCells,2]):
+        #                 gradMat[lattice.centerCell[IdxCenterCells,3]][lattice.centerCell[IdxCenterCells,4]][lattice.centerCell[IdxCenterCells,5]] = IdxMat
+        return gradMat
+
+
+    def generate_random_lattice(self):
+        """
+        Generates a random lattice.
+        """
+        xCellStart = 0
+        yCellStart = 0
+        zCellStart = 0
+        self.cells = []
+        for i in range(self.num_cells_x):
+            if i != 0:
+                xCellStart += self.cellSizeX * self.gradDim[posCell[0]][0]
+            else:
+                xCellStart = 0
+            for j in range(self.num_cells_y):
+                if j != 0:
+                    yCellStart += self.cellSizeY * self.gradDim[posCell[1]][1]
+                else:
+                    yCellStart = 0
+                for k in range(self.num_cells_z):
+                    if k != 0:
+                        zCellStart += self.cellSizeZ * self.gradDim[posCell[2]][2]
+                    else:
+                        zCellStart = 0
+                    posCell = [i,j,k]
+                    cellSizeX = self.cellSizeX * self.gradDim[posCell[0]][0]
+                    cellSizeY = self.cellSizeY * self.gradDim[posCell[1]][1]
+                    cellSizeZ = self.cellSizeZ * self.gradDim[posCell[2]][2]
+                    new_cell = Cellule(cellSizeX, cellSizeY, cellSizeZ, xCellStart, yCellStart, zCellStart)
+                    new_cell.generate_beams_random(self.Radius, self.gradRadius, self.gradDim, self.gradMat, posCell)
+                    self.cells.append(new_cell)
+                    self.posCell.append([i,j,k])
+        print(self.cells)
+        print(self.posCell)
+        return self.cells, self.posCell
     
     def generate_custom_lattice(self):
         """
@@ -164,23 +289,23 @@ class Lattice:
         self.cells = []
         for i in range(self.num_cells_x):
             if i != 0:
-                xCellStart += self.cell_size_x*self.gradDim[posCell[0]][0]
+                xCellStart += self.cellSizeX * self.gradDim[posCell[0]][0]
             else:
                 xCellStart = 0
             for j in range(self.num_cells_y):
                 if j != 0:
-                    yCellStart += self.cell_size_y*self.gradDim[posCell[1]][1]
+                    yCellStart += self.cellSizeY * self.gradDim[posCell[1]][1]
                 else:
                     yCellStart = 0
                 for k in range(self.num_cells_z):
                     if k != 0:
-                        zCellStart += self.cell_size_z*self.gradDim[posCell[2]][2]
+                        zCellStart += self.cellSizeZ * self.gradDim[posCell[2]][2]
                     else:
                         zCellStart = 0
                     posCell = [i,j,k]
-                    cellSizeX = self.cell_size_x*self.gradDim[posCell[0]][0]
-                    cellSizeY = self.cell_size_y*self.gradDim[posCell[1]][1]
-                    cellSizeZ = self.cell_size_z*self.gradDim[posCell[2]][2]
+                    cellSizeX = self.cellSizeX * self.gradDim[posCell[0]][0]
+                    cellSizeY = self.cellSizeY * self.gradDim[posCell[1]][1]
+                    cellSizeZ = self.cellSizeZ * self.gradDim[posCell[2]][2]
                     new_cell = Cellule(cellSizeX, cellSizeY, cellSizeZ, xCellStart, yCellStart, zCellStart)
                     new_cell.generate_beams_from_given_point_list(self.Lattice_Type, self.Radius, self.gradRadius, self.gradDim, self.gradMat, posCell)
                     self.cells.append(new_cell)
@@ -277,6 +402,37 @@ class Lattice:
         for point in self.nodes_obj:
             x, y, z = point.x, point.y, point.z
             ax.scatter(x, y, z, c='black', s=5)
+        color = ['blue','green','red','yellow','orange']
+        for beam in self.beams_obj:
+            point1 = beam.point1
+            point2 = beam.point2
+            ax.plot([point1.x, point2.x], [point1.y, point2.y], [point1.z, point2.z], color=color[beam.material], markersize=10)
+        ax.set_xlabel('X')
+        ax.set_ylabel('Y')
+        ax.set_zlabel('Z')
+        ax.set_xlim3d(0, self.xMax)
+        ax.set_ylim3d(0, self.yMax)
+        ax.set_zlim3d(0, self.zMax)
+
+    def find_color_point(self, x, y, z):
+        # Coin
+        if (x in [0, 1] and y in [0, 1] and z in [0, 1]):
+            return 'red'
+        elif x > 0 and x < 1 and y > 0 and y < 1 and z > 0 and z < 1:
+            return 'black'
+        else:
+            return 'blue'
+
+    def visualize_3d_random(self, ax):
+        """
+        Visualizes the lattice in 3D using matplotlib.
+
+        :param ax: Axes3D object
+        """
+        for point in self.nodes_obj:
+            x, y, z = point.x, point.y, point.z
+            color_point = self.find_color_point(x, y, z)
+            ax.scatter(x, y, z, c=color_point, s=5)
         color = ['blue','green','red','yellow','orange']
         for beam in self.beams_obj:
             point1 = beam.point1
@@ -415,9 +571,9 @@ class Lattice:
             pointExt2 = [p1 + p2 for p1, p2 in zip(pointExt2, factor2)]
             pointExt1Obj = Point(pointExt1[0],pointExt1[1],pointExt1[2])
             pointExt2Obj = Point(pointExt2[0],pointExt2[1],pointExt2[2])
-            beamExt1 = Beam(beam.point1,pointExt1Obj,self.Radius*1.5,self.cell_size_x, self.cell_size_y, self.cell_size_z, self.gradRadius, self.gradMat, self.posCell[indexCell],1)
-            beamCenter = Beam(pointExt1Obj,pointExt2Obj,self.Radius,self.cell_size_x, self.cell_size_y, self.cell_size_z, self.gradRadius, self.gradMat, self.posCell[indexCell],0)
-            beamExt2 = Beam(pointExt2Obj,beam.point2,self.Radius*1.5,self.cell_size_x, self.cell_size_y, self.cell_size_z, self.gradRadius, self.gradMat, self.posCell[indexCell],1)
+            beamExt1 = Beam(beam.point1, pointExt1Obj, self.Radius * 1.5, self.cellSizeX, self.cellSizeY, self.cellSizeZ, self.gradRadius, self.gradMat, self.posCell[indexCell], 1)
+            beamCenter = Beam(pointExt1Obj, pointExt2Obj, self.Radius, self.cellSizeX, self.cellSizeY, self.cellSizeZ, self.gradRadius, self.gradMat, self.posCell[indexCell], 0)
+            beamExt2 = Beam(pointExt2Obj, beam.point2, self.Radius * 1.5, self.cellSizeX, self.cellSizeY, self.cellSizeZ, self.gradRadius, self.gradMat, self.posCell[indexCell], 1)
 
             self.nodes_obj.append(pointExt1Obj)
             self.nodes_obj.append(pointExt2Obj)
@@ -470,8 +626,9 @@ class Lattice:
         return self._centerCell
 
     def getNumberBeamCell(self):
-        Lat = self.cells[0].Lattice_geometry(self.Lattice_Type)
-        self.lenghtLat = len(Lat)
+        cell = self.cells[0]
+        self.lenghtLat = len(cell.beams)
+        print(self.lenghtLat)
         return self.lenghtLat
 
 
@@ -562,3 +719,24 @@ class Lattice:
             tags.append(1007)  # Corner 7
 
         return tags
+
+    def getConnectedNode(self, node):
+        connectedNode = []
+        for beam in self.beams_obj:
+            if beam.point1 == node:
+                connectedNode.append(beam.point2)
+            if beam.point2 == node:
+                connectedNode.append(beam.point1)
+        return connectedNode
+
+    def toucanLatticeModifier(self):
+        toucanPourcent = 10
+        for i in range(int(math.ceil(len(self.beams_obj)*toucanPourcent/100))):
+            nodeInit = random.choice(self.nodes_obj)
+            node1 = random.choice(self.getConnectedNode(nodeInit))
+            node2 = node1
+            while(node2 == node1):
+                node2 = random.choice(self.getConnectedNode(node1))
+            self.toucanModifier.append([[nodeInit.x,nodeInit.y,nodeInit.z],[node1.x,node1.y,node1.z],[node2.x,node2.y,node2.z]])
+        return self.toucanModifier
+

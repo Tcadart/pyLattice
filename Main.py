@@ -30,6 +30,12 @@ def display_only_lattice():
     visu_lattice(ax)
     plt.show()
 
+def display_only_cell_random():
+    fig = plt.figure()
+    ax = fig.add_subplot(111, projection='3d')
+    lattice.visualize_3d_random(ax)
+    plt.show()
+
 def gradSettings(rule,direction,parameters,number_cell_X,number_cell_Y, number_cell_Z):
     """
     Generate gradient settings based on the provided rule, direction, and parameters.
@@ -134,7 +140,8 @@ number_cell_X = number_cell
 number_cell_Y = number_cell
 number_cell_Z = number_cell
 
-Lattice_Type = 0
+Lattice_Type = -2
+# -2 => Method random cell
 # -1 => Full random
 # 0 => BCC
 # 1 => Octet
@@ -181,7 +188,7 @@ MethodSim = 0
 # 0 No modification
 # 1 Node Modification
 
-uncertaintyNode = True
+uncertaintyNode = 0
 
 #*******************************************************************************************************************
 #*******************************************************************************************************************
@@ -198,6 +205,6 @@ gradMat = gradMaterialSetting(Multimat,GradMaterialDirection,number_cell_X,numbe
 
 #Generate data from lattice
 lattice = Lattice(cell_size_X,cell_size_Y,cell_size_Z, number_cell_X,number_cell_Y,number_cell_Z,Lattice_Type, Radius,gradRadius,gradDim,gradMat,MethodSim,uncertaintyNode)
-print(lattice.nodes)
-print(lattice.beams_obj)
-display_only_lattice()
+
+display_only_cell_random()
+# display_only_lattice()

@@ -215,13 +215,13 @@ def selectBeamRegion(name_region):
     else: # Traitement couche par couche ################## Probleme lors de poutres qui apparraisent dans 2 couche differentes Il faut un traitement different
         couche_number = int(re.search(r'\d+', name_region).group())
         if 'X' in name_region:
-            edges = e.getByBoundingBox(xMin=lattice.xMax-((lattice.num_cells_x+1-couche_number)*lattice.cell_size_x),yMin=lattice.yMin,zMin=lattice.zMin,xMax=lattice.xMax-((lattice.num_cells_x-couche_number)*lattice.cell_size_x),yMax=lattice.yMax,zMax=lattice.zMax)
+            edges = e.getByBoundingBox(xMin=lattice.xMax-((lattice.num_cells_x+1-couche_number) * lattice.cellSizeX), yMin=lattice.yMin, zMin=lattice.zMin, xMax=lattice.xMax - ((lattice.num_cells_x - couche_number) * lattice.cellSizeX), yMax=lattice.yMax, zMax=lattice.zMax)
             Region = p.Set(edges=edges, name=name_region)
         if 'Y' in name_region:
-            edges = e.getByBoundingBox(xMin=lattice.xMin,yMin=lattice.yMax-((lattice.num_cells_y+1-couche_number)*lattice.cell_size_y),zMin=lattice.zMin,xMax=lattice.xMax,yMax=lattice.yMax-((lattice.num_cells_y-couche_number)*lattice.cell_size_y),zMax=lattice.zMax)        
+            edges = e.getByBoundingBox(xMin=lattice.xMin, yMin=lattice.yMax-((lattice.num_cells_y+1-couche_number) * lattice.cellSizeY), zMin=lattice.zMin, xMax=lattice.xMax, yMax=lattice.yMax - ((lattice.num_cells_y - couche_number) * lattice.cellSizeY), zMax=lattice.zMax)
             Region = p.Set(edges=edges, name=name_region)
         if 'Z' in name_region:
-            edges = e.getByBoundingBox(xMin=lattice.xMin,yMin=lattice.yMin,zMin=lattice.zMax-((lattice.num_cells_z+1-couche_number)*lattice.cell_size_z),xMax=lattice.xMax,yMax=lattice.yMax,zMax=lattice.zMax-((lattice.num_cells_z-couche_number)*lattice.cell_size_z))
+            edges = e.getByBoundingBox(xMin=lattice.xMin, yMin=lattice.yMin, zMin=lattice.zMax-((lattice.num_cells_z+1-couche_number) * lattice.cellSizeZ), xMax=lattice.xMax, yMax=lattice.yMax, zMax=lattice.zMax - ((lattice.num_cells_z - couche_number) * lattice.cellSizeZ))
             Region = p.Set(edges=edges, name=name_region)
     return Region
 

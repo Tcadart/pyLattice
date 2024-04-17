@@ -4,17 +4,12 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="e3dc1a1d-8b4b-4101-aad1-b4f2b4f8d3a5" name="Changes" comment="Modiff récuperation result">
-      <change afterPath="$PROJECT_DIR$/Save_result.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/Lattice.iml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/Lattice.iml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/misc.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/misc.xml" afterDir="false" />
+    <list default="true" id="e3dc1a1d-8b4b-4101-aad1-b4f2b4f8d3a5" name="Changes" comment="Add normalized tag">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Beam.py" beforeDir="false" afterPath="$PROJECT_DIR$/Beam.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Cellule.py" beforeDir="false" afterPath="$PROJECT_DIR$/Cellule.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/FullLatticeSimulation.py" beforeDir="false" afterPath="$PROJECT_DIR$/FullLatticeSimulation.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Lattice.py" beforeDir="false" afterPath="$PROJECT_DIR$/Lattice.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Main.py" beforeDir="false" afterPath="$PROJECT_DIR$/Main.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/plot_result.py" beforeDir="false" afterPath="$PROJECT_DIR$/plot_result.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -106,7 +101,9 @@
       <workItem from="1710508059516" duration="34000" />
       <workItem from="1710508422372" duration="595000" />
       <workItem from="1710752433740" duration="12630000" />
-      <workItem from="1711439742810" duration="5618000" />
+      <workItem from="1711439742810" duration="9315000" />
+      <workItem from="1712656725413" duration="22232000" />
+      <workItem from="1713181029000" duration="2679000" />
     </task>
     <task id="LOCAL-00001" summary="Modiff récuperation result">
       <option name="closed" value="true" />
@@ -116,7 +113,15 @@
       <option name="project" value="LOCAL" />
       <updated>1707138144405</updated>
     </task>
-    <option name="localTasksCounter" value="2" />
+    <task id="LOCAL-00002" summary="Add normalized tag">
+      <option name="closed" value="true" />
+      <created>1712327045125</created>
+      <option name="number" value="00002" />
+      <option name="presentableId" value="LOCAL-00002" />
+      <option name="project" value="LOCAL" />
+      <updated>1712327045125</updated>
+    </task>
+    <option name="localTasksCounter" value="3" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -155,10 +160,15 @@
   </component>
   <component name="VcsManagerConfiguration">
     <MESSAGE value="Modiff récuperation result" />
-    <option name="LAST_COMMIT_MESSAGE" value="Modiff récuperation result" />
+    <MESSAGE value="Add normalized tag" />
+    <option name="LAST_COMMIT_MESSAGE" value="Add normalized tag" />
   </component>
   <component name="WfRunsListSearchHistory"><![CDATA[{
   "history": [
+    {
+    },
+    {
+    },
     {
     },
     {
@@ -218,9 +228,10 @@
   }
 }]]></component>
   <component name="com.intellij.coverage.CoverageDataManagerImpl">
-    <SUITE FILE_PATH="coverage/Lattice$Lattice.coverage" NAME="Lattice Coverage Results" MODIFIED="1707142707536" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
-    <SUITE FILE_PATH="coverage/Lattice$Main.coverage" NAME="Main Coverage Results" MODIFIED="1709757527628" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
+    <SUITE FILE_PATH="coverage/Lattice$Lattice.coverage" NAME="Lattice Coverage Results" MODIFIED="1712742551074" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
+    <SUITE FILE_PATH="coverage/Lattice$Main.coverage" NAME="Main Coverage Results" MODIFIED="1712835190351" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
     <SUITE FILE_PATH="coverage/Lattice$plot_result.coverage" NAME="plot_result Coverage Results" MODIFIED="1710757782517" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
+    <SUITE FILE_PATH="coverage/Lattice$Cellule.coverage" NAME="Cellule Coverage Results" MODIFIED="1712818355371" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
     <SUITE FILE_PATH="coverage/Lattice$Save_result.coverage" NAME="Save_result Coverage Results" MODIFIED="1710757236865" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
   </component>
 </project>
