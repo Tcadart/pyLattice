@@ -140,7 +140,7 @@ number_cell_X = number_cell
 number_cell_Y = number_cell
 number_cell_Z = number_cell
 
-Lattice_Type = -2
+Lattice_Type = 1
 # -2 => Method random cell
 # -1 => Full random
 # 0 => BCC
@@ -184,7 +184,7 @@ AnalysisType = 0
 # 0 Modelisation lattice only
 # 1 Compression Z
 
-MethodSim = 0
+MethodSim = 1
 # 0 No modification
 # 1 Node Modification
 
@@ -198,13 +198,13 @@ uncertaintyNode = 0
 #*******************************************************************************************************************
 #*******************************************************************************************************************
 # Gradient properties
-gradDim = gradSettings(GradDimRule,GradDimDirection,GradDimParameters,number_cell_X,number_cell_Y, number_cell_Z) 
-gradRadius = gradSettings(GradRadRule,GradRadDirection,GradRadParameters,number_cell_X,number_cell_Y, number_cell_Z) 
-gradMat = gradMaterialSetting(Multimat,GradMaterialDirection,number_cell_X,number_cell_Y, number_cell_Z)
+gradDimProperty = [GradDimRule,GradDimDirection,GradDimParameters]
+gradRadiusProperty = [GradRadRule,GradRadDirection,GradRadParameters]
+gradMatProperty = [Multimat,GradMaterialDirection]
 
 
 #Generate data from lattice
-lattice = Lattice(cell_size_X,cell_size_Y,cell_size_Z, number_cell_X,number_cell_Y,number_cell_Z,Lattice_Type, Radius,gradRadius,gradDim,gradMat,MethodSim,uncertaintyNode)
+lattice = Lattice(cell_size_X,cell_size_Y,cell_size_Z, number_cell_X,number_cell_Y,number_cell_Z,Lattice_Type, Radius,gradRadiusProperty,gradDimProperty,gradMatProperty,MethodSim,uncertaintyNode)
 
-display_only_cell_random()
-# display_only_lattice()
+# display_only_cell_random()
+display_only_lattice()

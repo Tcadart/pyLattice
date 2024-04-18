@@ -164,7 +164,7 @@ MethodSim = 1
 
 # Beam
 # MethodSim = 0
-# dataRF,dataU,dataTime = openFile(Lattice_Type,number_cell,AnalysisType,MethodSim)
+# dataRF,dataU,dataTime = openFile(latticeType,number_cell,AnalysisType,MethodSim)
 # dataRF, dataU = processDataStressStrain(dataRF, dataU,number_cell)
 # plotData(dataRF, dataU, 'Beam')
 

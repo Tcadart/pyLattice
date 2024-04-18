@@ -28,18 +28,18 @@ class Lattice:
         self.cellSizeX = cell_size_x
         self.cellSizeY = cell_size_y
         self.cellSizeZ = cell_size_z
-        self.num_cells_x = num_cells_x
-        self.num_cells_y = num_cells_y
-        self.num_cells_z = num_cells_z
-        self.Lattice_Type = Lattice_Type
+        self.numCellsX = num_cells_x
+        self.numCellsY = num_cells_y
+        self.numCellsZ = num_cells_z
+        self.latticeType = Lattice_Type
         self.Radius = Radius
         self.gradRadius = self.gradSettings(gradRadiusProperty)
         self.gradDim = self.gradSettings(gradDimProperty)
         self.gradMat = self.gradMaterialSetting(gradMatProperty)
         self.simMethod = simMethod
-        self.size_x = self.getSize(0)
-        self.size_y = self.getSize(1)
-        self.size_z = self.getSize(2)
+        self.sizeX = self.getSize(0)
+        self.sizeY = self.getSize(1)
+        self.sizeZ = self.getSize(2)
         self.uncertaintyNode = uncertaintyNode
 
         self.cells = []
@@ -53,14 +53,14 @@ class Lattice:
         self.beams_obj = []
         self.posCell = []
         self.toucanModifier = []
-        if Lattice_Type != -2:
+        if self.latticeType != -2:
             self.generate_custom_lattice()
         else:
             self.generate_random_lattice()
         self.getNodesObj()
         self.getBeamsObj()
-        # self.Getangle()
-        if simMethod == 1:
+        self.Getangle()
+        if self.simMethod == 1:
             self.getBeamNodeMod()
         self.getNodeData()
         self.getBeamData()
@@ -176,12 +176,12 @@ class Lattice:
         parameters = gradProperties[2]
 
         # Initialization matrix
-        maxCells = max(self.num_cells_x, self.num_cells_y, self.num_cells_z)
+        maxCells = max(self.numCellsX, self.numCellsY, self.numCellsZ)
         gradientData = [[0.0, 0.0, 0.0] for _ in range(maxCells)]
 
         # Processing multiple rules
         for i in range(maxCells):
-            numberCells = [self.num_cells_x, self.num_cells_y, self.num_cells_z]
+            numberCells = [self.numCellsX, self.numCellsY, self.numCellsZ]
             for dimIndex in range(3):
                 gradientData[i][dimIndex] = applyRule(i, numberCells[dimIndex], direction[dimIndex], parameters[dimIndex],
                                                   rule)
@@ -213,20 +213,20 @@ class Lattice:
         #     else:
         #         return 1
         if multimat == -1:  # Random
-            gradMat = [[[random.randint(1, 3) for X in range(self.num_cells_x)] for Y in range(self.num_cells_y)] for Z in
-                       range(self.num_cells_z)]
+            gradMat = [[[random.randint(1, 3) for X in range(self.numCellsX)] for Y in range(self.numCellsY)] for Z in
+                       range(self.numCellsZ)]
         if multimat == 0:  # Mono material
-            gradMat = [[[1 for X in range(self.num_cells_x)] for Y in range(self.num_cells_y)] for Z in range(self.num_cells_z)]
+            gradMat = [[[1 for X in range(self.numCellsX)] for Y in range(self.numCellsY)] for Z in range(self.numCellsZ)]
         elif multimat == 1:  # Graded material
             if direction == 1:
-                gradMat = [[[X for X in range(self.num_cells_x)] for Y in range(self.num_cells_y)] for Z in
-                           range(self.num_cells_z)]
+                gradMat = [[[X for X in range(self.numCellsX)] for Y in range(self.numCellsY)] for Z in
+                           range(self.numCellsZ)]
             if direction == 2:
-                gradMat = [[[Y for X in range(self.num_cells_x)] for Y in range(self.num_cells_y)] for Z in
-                           range(self.num_cells_z)]
+                gradMat = [[[Y for X in range(self.numCellsX)] for Y in range(self.numCellsY)] for Z in
+                           range(self.numCellsZ)]
             if direction == 3:
-                gradMat = [[[Z for X in range(self.num_cells_x)] for Y in range(self.num_cells_y)] for Z in
-                           range(self.num_cells_z)]
+                gradMat = [[[Z for X in range(self.numCellsX)] for Y in range(self.numCellsY)] for Z in
+                           range(self.numCellsZ)]
         # elif Multimat == 2:
         #     gradMat = [[[0 for X in range(number_cell_X)] for Y in range(number_cell_Y)] for Z in range(number_cell_Z)]
         #     centerCell = []
@@ -250,17 +250,17 @@ class Lattice:
         yCellStart = 0
         zCellStart = 0
         self.cells = []
-        for i in range(self.num_cells_x):
+        for i in range(self.numCellsX):
             if i != 0:
                 xCellStart += self.cellSizeX * self.gradDim[posCell[0]][0]
             else:
                 xCellStart = 0
-            for j in range(self.num_cells_y):
+            for j in range(self.numCellsY):
                 if j != 0:
                     yCellStart += self.cellSizeY * self.gradDim[posCell[1]][1]
                 else:
                     yCellStart = 0
-                for k in range(self.num_cells_z):
+                for k in range(self.numCellsZ):
                     if k != 0:
                         zCellStart += self.cellSizeZ * self.gradDim[posCell[2]][2]
                     else:
@@ -287,17 +287,17 @@ class Lattice:
         yCellStart = 0
         zCellStart = 0
         self.cells = []
-        for i in range(self.num_cells_x):
+        for i in range(self.numCellsX):
             if i != 0:
                 xCellStart += self.cellSizeX * self.gradDim[posCell[0]][0]
             else:
                 xCellStart = 0
-            for j in range(self.num_cells_y):
+            for j in range(self.numCellsY):
                 if j != 0:
                     yCellStart += self.cellSizeY * self.gradDim[posCell[1]][1]
                 else:
                     yCellStart = 0
-                for k in range(self.num_cells_z):
+                for k in range(self.numCellsZ):
                     if k != 0:
                         zCellStart += self.cellSizeZ * self.gradDim[posCell[2]][2]
                     else:
@@ -307,7 +307,7 @@ class Lattice:
                     cellSizeY = self.cellSizeY * self.gradDim[posCell[1]][1]
                     cellSizeZ = self.cellSizeZ * self.gradDim[posCell[2]][2]
                     new_cell = Cellule(cellSizeX, cellSizeY, cellSizeZ, xCellStart, yCellStart, zCellStart)
-                    new_cell.generate_beams_from_given_point_list(self.Lattice_Type, self.Radius, self.gradRadius, self.gradDim, self.gradMat, posCell)
+                    new_cell.generate_beams_from_given_point_list(self.latticeType, self.Radius, self.gradRadius, self.gradDim, self.gradMat, posCell)
                     self.cells.append(new_cell)
                     self.posCell.append([i,j,k])
         return self.cells, self.posCell
@@ -559,7 +559,7 @@ class Lattice:
         beamMod = []
         indexCell = -1
         for index, beam in enumerate(self.beams_obj):
-            if index%(self.getNbBeamCell(self.Lattice_Type)) == 0:
+            if index%(self.getNbBeamCell(self.latticeType)) == 0:
                 indexCell = indexCell+1
             DR = [x / math.sqrt(sum([(beam.point2.x-beam.point1.x)**2, (beam.point2.y-beam.point1.y)**2, (beam.point2.z-beam.point1.z)**2])) for x in [beam.point2.x-beam.point1.x, beam.point2.y-beam.point1.y, beam.point2.z-beam.point1.z]]
             factor1 = [dr * lengthMod[index][1] for dr in DR]
@@ -590,20 +590,24 @@ class Lattice:
         :return: list of tuples ((beam_index,Lmod point1,Lmod point2))
         """
         lengthMod = []
+        print("angles", self.angles)
         for index, angle1, radius1, angle2, radius2 in self.angles:
             if angle1 > 170:
                 L1 = 0.0001
             else:
-                a = radius1/math.sin(math.radians(angle1))
-                b = radius1/math.sin(math.radians(angle1))
-                L1 = math.sqrt(math.pow(a,2)+math.pow(b,2)-2*a*b*math.cos(math.pi-math.radians(angle1)))
+                L1 = radius1 / math.tan(math.radians(angle1) / 2)
+                # a = radius1/math.sin(math.radians(angle1))
+                # b = radius1/math.sin(math.radians(angle1))
+                # L1 = math.sqrt(math.pow(a,2)+math.pow(b,2)-2*a*b*math.cos(math.pi-math.radians(angle1)))
             if angle2 > 170:
                 L2 = 0.0001
             else:
-                a = radius2/math.sin(math.radians(angle2))
-                b = radius2/math.sin(math.radians(angle2))
-                L2 = math.sqrt(math.pow(a,2)+math.pow(b,2)-2*a*b*math.cos(math.pi-math.radians(angle2)))
+                L2 = radius2 / math.tan(math.radians(angle2) / 2)
+                # a = radius2/math.sin(math.radians(angle2))
+                # b = radius2/math.sin(math.radians(angle2))
+                # L2 = math.sqrt(math.pow(a,2)+math.pow(b,2)-2*a*b*math.cos(math.pi-math.radians(angle2)))
             lengthMod.append((index,L1,L2))
+        print("lenghtMod", lengthMod)
         return lengthMod
 
 

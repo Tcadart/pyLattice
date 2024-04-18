@@ -215,13 +215,13 @@ def selectBeamRegion(name_region):
     else: # Traitement couche par couche ################## Probleme lors de poutres qui apparraisent dans 2 couche differentes Il faut un traitement different
         couche_number = int(re.search(r'\d+', name_region).group())
         if 'X' in name_region:
-            edges = e.getByBoundingBox(xMin=lattice.xMax-((lattice.num_cells_x+1-couche_number) * lattice.cellSizeX), yMin=lattice.yMin, zMin=lattice.zMin, xMax=lattice.xMax - ((lattice.num_cells_x - couche_number) * lattice.cellSizeX), yMax=lattice.yMax, zMax=lattice.zMax)
+            edges = e.getByBoundingBox(xMin=lattice.xMax-((lattice.numCellsX + 1 - couche_number) * lattice.cellSizeX), yMin=lattice.yMin, zMin=lattice.zMin, xMax=lattice.xMax - ((lattice.numCellsX - couche_number) * lattice.cellSizeX), yMax=lattice.yMax, zMax=lattice.zMax)
             Region = p.Set(edges=edges, name=name_region)
         if 'Y' in name_region:
-            edges = e.getByBoundingBox(xMin=lattice.xMin, yMin=lattice.yMax-((lattice.num_cells_y+1-couche_number) * lattice.cellSizeY), zMin=lattice.zMin, xMax=lattice.xMax, yMax=lattice.yMax - ((lattice.num_cells_y - couche_number) * lattice.cellSizeY), zMax=lattice.zMax)
+            edges = e.getByBoundingBox(xMin=lattice.xMin, yMin=lattice.yMax-((lattice.numCellsY + 1 - couche_number) * lattice.cellSizeY), zMin=lattice.zMin, xMax=lattice.xMax, yMax=lattice.yMax - ((lattice.numCellsY - couche_number) * lattice.cellSizeY), zMax=lattice.zMax)
             Region = p.Set(edges=edges, name=name_region)
         if 'Z' in name_region:
-            edges = e.getByBoundingBox(xMin=lattice.xMin, yMin=lattice.yMin, zMin=lattice.zMax-((lattice.num_cells_z+1-couche_number) * lattice.cellSizeZ), xMax=lattice.xMax, yMax=lattice.yMax, zMax=lattice.zMax - ((lattice.num_cells_z - couche_number) * lattice.cellSizeZ))
+            edges = e.getByBoundingBox(xMin=lattice.xMin, yMin=lattice.yMin, zMin=lattice.zMax-((lattice.numCellsZ + 1 - couche_number) * lattice.cellSizeZ), xMax=lattice.xMax, yMax=lattice.yMax, zMax=lattice.zMax - ((lattice.numCellsZ - couche_number) * lattice.cellSizeZ))
             Region = p.Set(edges=edges, name=name_region)
     return Region
 
@@ -345,7 +345,7 @@ def constructLatticeAbaqus(name_model,name_Part,name_Assembly,Lattice_Type,Metho
     elif MethodSim == 0:
         Create_Beam_Section(name_model,'CircBeam',name_material,name_Beam_Profile[0],AllBeam)
 
-# def constructLatticeAbaqusMultiMat(name_model,name_Part,name_Assembly,node_data,Beam_data,Radius,Lattice_Type):
+# def constructLatticeAbaqusMultiMat(name_model,name_Part,name_Assembly,node_data,Beam_data,Radius,latticeType):
 #     CreateModel(name_model)
 #     CreatePart(name_model,name_Part)
 #     CreateNodes(name_model,name_Part)
@@ -354,9 +354,9 @@ def constructLatticeAbaqus(name_model,name_Part,name_Assembly,Lattice_Type,Metho
 #     name_region = ['Couche _Z1','Couche _Z2','Couche _Z3','Couche _Z4']
 #     Material_type = [0,1,2,0]
 #     Radius = [0.5,0.055,0.2,0.01]
-#     for i in range(lattice.num_cells_z):
+#     for i in range(lattice.numCellsZ):
 #         name_Beam_Profile = 'Circ'+str(i)
-#         #region = Create_Beam_Profile(name_model,name_Part,getVectorOrientation(Lattice_Type),name_region[i],name_Beam_Profile)
+#         #region = Create_Beam_Profile(name_model,name_Part,getVectorOrientation(latticeType),name_region[i],name_Beam_Profile)
 #         name_material = create_material(name_model,Material_type[i],0)
 #         Create_Beam_Section(name_model,'CircBeam_'+str(i),name_material,name_Beam_Profile,region)
 #     Assembly_beam(name_model,name_Part,name_Assembly)
@@ -657,7 +657,7 @@ if AnalysisType != 3:
     if Multimat == 0:
         constructLatticeAbaqus(name_model,name_Part,name_Assembly,Lattice_Type,MethodSim)
     # else:
-        # constructLatticeAbaqusMultiMat(name_model,name_Part,name_Assembly,lattice.nodes,lattice.beams,Radius,Lattice_Type)
+        # constructLatticeAbaqusMultiMat(name_model,name_Part,name_Assembly,lattice.nodes,lattice.beams,Radius,latticeType)
 
 
 if AnalysisType == 1:
@@ -678,7 +678,7 @@ if AnalysisType == 1:
     # visualizationSimulation(name_Job)
     # # dataRF3, dataU3, dataTime = get_result(name_Job,name_step)
     # dataRF, dataU, dataTime = get_result(name_Job,name_step)
-    # save_result(Lattice_Type, number_cell, AnalysisType, MethodSim, dataRF, dataU, dataTime)
+    # save_result(latticeType, number_cell, AnalysisType, MethodSim, dataRF, dataU, dataTime)
 elif AnalysisType == 2:
     # Create superior surface to create compression on lattice
     name_set_RF = 'Set-RF'
