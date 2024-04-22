@@ -1,6 +1,7 @@
 from Point import *
 from Beam import *
 import math
+import random
 
 
 class Cellule:
@@ -73,26 +74,26 @@ class Cellule:
     #     nodes_border = []
     #     nodes_corner = []
     #     for _ in range(pointinterieur):
-    #         x = round(random.uniform(0 + padding, self.cell_size_x - padding), 2)
-    #         y = round(random.uniform(0 + padding, self.cell_size_y - padding), 2)
-    #         z = round(random.uniform(0 + padding, self.cell_size_z - padding), 2)
+    #         x = round(random.uniform(0 + padding, self.cellSizeX - padding), 2)
+    #         y = round(random.uniform(0 + padding, self.cellSizeY - padding), 2)
+    #         z = round(random.uniform(0 + padding, self.cellSizeZ - padding), 2)
     #         point = Point(x, y, z)
     #         nodes_interior.append(point)
     #     for _ in range(pointcoin):
-    #         x = random.choice([0, self.cell_size_x])
-    #         y = random.choice([0, self.cell_size_y])
-    #         z = random.choice([0, self.cell_size_z])
+    #         x = random.choice([0, self.cellSizeX])
+    #         y = random.choice([0, self.cellSizeY])
+    #         z = random.choice([0, self.cellSizeZ])
     #         point = Point(x, y, z)
     #         nodes_corner.append(point)
     #     for _ in range(pointbord):
     #         if random.random() < 0.5:
-    #             x = random.choice([0, self.cell_size_x])
-    #             y = random.uniform(0, self.cell_size_y)
-    #             z = random.uniform(0, self.cell_size_z)
+    #             x = random.choice([0, self.cellSizeX])
+    #             y = random.uniform(0, self.cellSizeY)
+    #             z = random.uniform(0, self.cellSizeZ)
     #         else:
-    #             x = random.uniform(0, self.cell_size_x)
-    #             y = random.choice([0, self.cell_size_y])
-    #             z = random.uniform(0, self.cell_size_z)
+    #             x = random.uniform(0, self.cellSizeX)
+    #             y = random.choice([0, self.cellSizeY])
+    #             z = random.uniform(0, self.cellSizeZ)
     #         point = Point(round(x, 2), round(y, 2), round(z, 2))
     #         nodes_border.append(point)
     #     self.nodes = nodes_interior + nodes_border + nodes_corner
@@ -124,9 +125,9 @@ class Cellule:
     #     for _ in range(pointinterieur):
     #         x, y, z = None, None, None
     #         while True:
-    #             x = round(random.uniform(0 + padding, self.cell_size_x - padding), 2)
-    #             y = round(random.uniform(0 + padding, self.cell_size_y - padding), 2)
-    #             z = round(random.uniform(0 + padding, self.cell_size_z - padding), 2)
+    #             x = round(random.uniform(0 + padding, self.cellSizeX - padding), 2)
+    #             y = round(random.uniform(0 + padding, self.cellSizeY - padding), 2)
+    #             z = round(random.uniform(0 + padding, self.cellSizeZ - padding), 2)
     #             if check_min_distance(x, y, z, nodes_interior):
     #                 break
     #         point = Point(x, y, z)
@@ -135,9 +136,9 @@ class Cellule:
     #     for _ in range(pointcoin):
     #         x, y, z = None, None, None
     #         while True:
-    #             x = random.choice([0, self.cell_size_x])
-    #             y = random.choice([0, self.cell_size_y])
-    #             z = random.choice([0, self.cell_size_z])
+    #             x = random.choice([0, self.cellSizeX])
+    #             y = random.choice([0, self.cellSizeY])
+    #             z = random.choice([0, self.cellSizeZ])
     #             if check_min_distance(x, y, z, nodes_corner):
     #                 break
     #         point = Point(x, y, z)
@@ -147,13 +148,13 @@ class Cellule:
     #         x, y, z = None, None, None
     #         while True:
     #             if random.random() < 0.5:
-    #                 x = random.choice([0, self.cell_size_x])
-    #                 y = random.uniform(0, self.cell_size_y)
-    #                 z = random.uniform(0, self.cell_size_z)
+    #                 x = random.choice([0, self.cellSizeX])
+    #                 y = random.uniform(0, self.cellSizeY)
+    #                 z = random.uniform(0, self.cellSizeZ)
     #             else:
-    #                 x = random.uniform(0, self.cell_size_x)
-    #                 y = random.choice([0, self.cell_size_y])
-    #                 z = random.uniform(0, self.cell_size_z)
+    #                 x = random.uniform(0, self.cellSizeX)
+    #                 y = random.choice([0, self.cellSizeY])
+    #                 z = random.uniform(0, self.cellSizeZ)
     #             if check_min_distance(x, y, z, nodes_border):
     #                 break
     #         point = Point(round(x, 2), round(y, 2), round(z, 2))
@@ -397,6 +398,95 @@ class Cellule:
                    (1.0, 0.5, 0.5, 0.5, 0.5, 0.5),
                    (0.5, 0.5, 0.0, 0.5, 0.5, 0.5),
                    (0.5, 0.5, 1.0, 0.5, 0.5, 0.5)]
+        CubicV3 = [(0.0, 0.0, 0.0, 0.5, 0.0, 0.0),
+                   (0.5, 0.0, 0.0, 1.0, 0.0, 0.0),
+                   (0.0, 1.0, 0.0, 0.5, 1.0, 0.0),
+                   (0.5, 1.0, 0.0, 1.0, 1.0, 0.0),
+                   (0.5, 0.0, 0.0, 0.5, 1.0, 0.0),
+                   (0.0, 0.0, 1.0, 0.5, 0.0, 1.0),
+                   (0.5, 0.0, 1.0, 1.0, 0.0, 1.0),
+                   (0.0, 1.0, 1.0, 0.5, 1.0, 1.0),
+                   (0.5, 1.0, 1.0, 1.0, 1.0, 1.0),
+                   (0.5, 0.0, 1.0, 0.5, 1.0, 1.0),
+                   (0.5, 0.0, 0.0, 0.5, 0.0, 1.0),
+                   (0.5, 1.0, 0.0, 0.5, 1.0, 1.0)]
+        CubicV4 = [(0.5, 0.0, 0.0, 0.5, 0.5, 0.0),
+                   (0.0, 0.5, 0.0, 0.5, 0.5, 0.0),
+                   (0.5, 1.0, 0.0, 0.5, 0.5, 0.0),
+                   (1.0, 0.5, 0.0, 0.5, 0.5, 0.0),
+                   (0.5, 0.0, 1.0, 0.5, 0.5, 1.0),
+                   (0.0, 0.5, 1.0, 0.5, 0.5, 1.0),
+                   (0.5, 1.0, 1.0, 0.5, 0.5, 1.0),
+                   (1.0, 0.5, 1.0, 0.5, 0.5, 1.0),
+                   (0.5, 0.5, 0.0, 0.5, 0.5, 1.0)]
+        Newlattice = [
+            (0.0, 0.0, 0.0, 0.25, 0.25, 0.25),
+            (0.25, 0.25, 0.25, 0.5, 0.0, 0.0),
+            (0.25, 0.25, 0.25, 0.0, 0.0, 0.5),
+            (0.25, 0.25, 0.25, 0.0, 0.5, 0.0),
+            (1.0, 0.0, 0.0, 0.75, 0.25, 0.25),
+            (0.75, 0.25, 0.25, 0.5, 0.0, 0.0),
+            (0.75, 0.25, 0.25, 1.0, 0.5, 0.0),
+            (0.75, 0.25, 0.25, 1.0, 0.0, 0.5),
+            (0.0, 1.0, 0.0, 0.25, 0.75, 0.25),
+            (0.25, 0.75, 0.25, 0.0, 0.5, 0.0),
+            (0.25, 0.75, 0.25, 0.5, 1.0, 0.0),
+            (0.25, 0.75, 0.25, 0.0, 1.0, 0.5),
+            (1.0, 1.0, 0.0, 0.75, 0.75, 0.25),
+            (0.75, 0.75, 0.25, 1.0, 0.5, 0.0),
+            (0.75, 0.75, 0.25, 0.5, 1.0, 0.0),
+            (0.75, 0.75, 0.25, 1.0, 1.0, 0.5),
+            (0.0, 0.0, 1.0, 0.25, 0.25, 0.75),
+            (0.25, 0.25, 0.75, 0.0, 0.5, 1.0),
+            (0.25, 0.25, 0.75, 0.5, 0.0, 1.0),
+            (0.25, 0.25, 0.75, 0.0, 0.0, 0.5),
+            (1.0, 0.0, 1.0, 0.75, 0.25, 0.75),
+            (0.75, 0.25, 0.75, 1.0, 0.0, 0.5),
+            (0.75, 0.25, 0.75, 0.5, 0.0, 1.0),
+            (0.75, 0.25, 0.75, 1.0, 0.5, 1.0),
+            (0.0, 1.0, 1.0, 0.25, 0.75, 0.75),
+            (0.25, 0.75, 0.75, 0.0, 1.0, 0.5),
+            (0.25, 0.75, 0.75, 0.5, 1.0, 1.0),
+            (0.25, 0.75, 0.75, 0.0, 0.5, 1.0),
+            (1.0, 1.0, 1.0, 0.75, 0.75, 0.75),
+            (0.75, 0.75, 0.75, 1.0, 1.0, 0.5),
+            (0.75, 0.75, 0.75, 0.5, 1.0, 1.0),
+            (0.75, 0.75, 0.75, 1.0, 0.5, 1.0),
+        ]
+        Diamond = [
+            (0.0, 0.0, 0.0, 0.25, 0.25, 0.25),
+            (0.25, 0.25, 0.25, 0.5, 0.5, 0.0),
+            (0.25, 0.25, 0.25, 0.0, 0.5, 0.5),
+            (0.25, 0.25, 0.25, 0.5, 0.0, 0.5),
+            (1.0, 0.0, 0.0, 0.75, 0.25, 0.25),
+            (0.75, 0.25, 0.25, 0.5, 0.5, 0.0),
+            (0.75, 0.25, 0.25, 1.0, 0.5, 0.5),
+            (0.75, 0.25, 0.25, 0.5, 0.0, 0.5),
+            (1.0, 1.0, 0.0, 0.75, 0.75, 0.25),
+            (0.75, 0.75, 0.25, 0.5, 0.5, 0.0),
+            (0.75, 0.75, 0.25, 1.0, 0.5, 0.5),
+            (0.75, 0.75, 0.25, 0.5, 1.0, 0.5),
+            (0.0, 1.0, 0.0, 0.25, 0.75, 0.25),
+            (0.25, 0.75, 0.25, 0.5, 0.5, 0.0),
+            (0.25, 0.75, 0.25, 0.0, 0.5, 0.5),
+            (0.25, 0.75, 0.25, 0.5, 1.0, 0.5),
+            (0.0, 0.0, 1.0, 0.25, 0.25, 0.75),
+            (0.25, 0.25, 0.75, 0.5, 0.5, 1.0),
+            (0.25, 0.25, 0.75, 0.0, 0.5, 0.5),
+            (0.25, 0.25, 0.75, 0.5, 0.0, 0.5),
+            (1.0, 0.0, 1.0, 0.75, 0.25, 0.75),
+            (0.75, 0.25, 0.75, 0.5, 0.5, 1.0),
+            (0.75, 0.25, 0.75, 1.0, 0.5, 0.5),
+            (0.75, 0.25, 0.75, 0.5, 0.0, 0.5),
+            (1.0, 1.0, 1.0, 0.75, 0.75, 0.75),
+            (0.75, 0.75, 0.75, 0.5, 0.5, 1.0),
+            (0.75, 0.75, 0.75, 1.0, 0.5, 0.5),
+            (0.75, 0.75, 0.75, 0.5, 1.0, 0.5),
+            (0.0, 1.0, 1.0, 0.25, 0.75, 0.75),
+            (0.25, 0.75, 0.75, 0.5, 0.5, 1.0),
+            (0.25, 0.75, 0.75, 0.0, 0.5, 0.5),
+            (0.25, 0.75, 0.75, 0.5, 1.0, 0.5)
+        ]
         angleGeom = 20 #Angle en degres
         hGeom = 0.35
         valGeom = hGeom-math.tan(angleGeom*math.pi/180)/2
@@ -428,6 +518,65 @@ class Cellule:
                    (0.0, 0.5, 1-hGeom, 0.0, 1.0, 1-valGeom),
                    (0.0, 0.5, 1-hGeom, 0.0, 0.0, 1-valGeom),
                    (0.0, 0.5, 1-hGeom, 0.0, 0.5, 1.0)]
+        Hichem = [(0.0, 0.0, 0.0, 0.5, 0.5, 0.5),
+                   (0.5, 0.5, 0.5, 1.0, 1.0, 1.0),
+                   (0.5, 0.5, 0.5, 1.0, 1.0, 0.0),
+                   (0.5, 0.5, 0.5, 0.0, 0.0, 1.0),
+                   (0.5, 0.5, 0.5, 0.0, 1.0, 0.0),
+                   (0.5, 0.5, 0.5, 0.0, 1.0, 1.0),
+                   (1.0, 0.0, 1.0, 0.5, 0.5, 0.5),
+                   (0.5, 0.5, 0.5, 1.0, 0.0, 0.0),
+                  (0.0, 0.0, 0.0, 0.5, 0.0, 0.5),
+                  (0.5, 0.0, 0.0, 0.5, 0.0, 0.5),
+                  (1.0, 0.0, 0.0, 0.5, 0.0, 0.5),
+                  (1.0, 0.0, 0.5, 0.5, 0.0, 0.5),
+                  (1.0, 0.0, 1.0, 0.5, 0.0, 0.5),
+                  (0.5, 0.0, 1.0, 0.5, 0.0, 0.5),
+                  (0.0, 0.0, 1.0, 0.5, 0.0, 0.5),
+                  (0.0, 0.0, 0.5, 0.5, 0.0, 0.5),
+                  (0.0, 1.0, 0.0, 0.5, 1.0, 0.5),
+                  (0.5, 1.0, 0.0, 0.5, 1.0, 0.5),
+                  (1.0, 1.0, 0.0, 0.5, 1.0, 0.5),
+                  (1.0, 1.0, 0.5, 0.5, 1.0, 0.5),
+                  (1.0, 1.0, 1.0, 0.5, 1.0, 0.5),
+                  (0.5, 1.0, 1.0, 0.5, 1.0, 0.5),
+                  (0.0, 1.0, 1.0, 0.5, 1.0, 0.5),
+                  (0.0, 1.0, 0.5, 0.5, 1.0, 0.5),
+                  (1.0, 0.0, 0.0, 1.0, 0.5, 0.5),
+                  (1.0, 0.5, 0.0, 1.0, 0.5, 0.5),
+                  (1.0, 1.0, 0.0, 1.0, 0.5, 0.5),
+                  (1.0, 1.0, 0.5, 1.0, 0.5, 0.5),
+                  (1.0, 1.0, 1.0, 1.0, 0.5, 0.5),
+                  (1.0, 0.5, 1.0, 1.0, 0.5, 0.5),
+                  (1.0, 0.0, 1.0, 1.0, 0.5, 0.5),
+                  (1.0, 0.0, 0.5, 1.0, 0.5, 0.5),
+                  (0.0, 0.0, 0.0, 0.0, 0.5, 0.5),
+                  (0.0, 0.5, 0.0, 0.0, 0.5, 0.5),
+                  (0.0, 1.0, 0.0, 0.0, 0.5, 0.5),
+                  (0.0, 1.0, 0.5, 0.0, 0.5, 0.5),
+                  (0.0, 1.0, 1.0, 0.0, 0.5, 0.5),
+                  (0.0, 0.5, 1.0, 0.0, 0.5, 0.5),
+                  (0.0, 0.0, 1.0, 0.0, 0.5, 0.5),
+                  (0.0, 0.0, 0.5, 0.0, 0.5, 0.5),
+                  (0.0, 0.0, 0.0, 0.5, 0.5, 0.0),
+                  (0.5, 0.0, 0.0, 0.5, 0.5, 0.0),
+                  (1.0, 0.0, 0.0, 0.5, 0.5, 0.0),
+                  (1.0, 0.5, 0.0, 0.5, 0.5, 0.0),
+                  (1.0, 1.0, 0.0, 0.5, 0.5, 0.0),
+                  (0.5, 1.0, 0.0, 0.5, 0.5, 0.0),
+                  (0.0, 1.0, 0.0, 0.5, 0.5, 0.0),
+                  (0.0, 0.5, 0.0, 0.5, 0.5, 0.0),
+                  (0.0, 0.0, 1.0, 0.5, 0.5, 1.0),
+                  (0.5, 0.0, 1.0, 0.5, 0.5, 1.0),
+                  (1.0, 0.0, 1.0, 0.5, 0.5, 1.0),
+                  (1.0, 0.5, 1.0, 0.5, 0.5, 1.0),
+                  (1.0, 1.0, 1.0, 0.5, 0.5, 1.0),
+                  (0.5, 1.0, 1.0, 0.5, 0.5, 1.0),
+                  (0.0, 1.0, 1.0, 0.5, 0.5, 1.0),
+                  (0.0, 0.5, 1.0, 0.5, 0.5, 1.0),
+                  ]
+        if (Lattice == -1):
+            Lattice = random.randint(0, 10)
         if (Lattice == 0):
             return BCC
         if (Lattice == 1):
@@ -449,7 +598,18 @@ class Cellule:
         if (Lattice == 9):
             return CubicV2
         if (Lattice == 10):
+            return CubicV3
+        if (Lattice == 11):
+            return CubicV4
+        if (Lattice == 12):
+            return Newlattice
+        if (Lattice == 13):
+            return Diamond
+        if (Lattice == 14):
             return Auxetic
+        if (Lattice == 15):
+            return Hichem
+        
 
 
     def generate_beams_from_given_point_list(self, latticeType, Radius, gradRadius, gradDim, gradMat, posCell):
@@ -476,7 +636,207 @@ class Cellule:
             self.beams.append(beam)
         return self.nodes, self.beams
 
-    
+    def random_coordinate(self,coord, mu, sigma):
+        mod_coord = []
+        for pos in coord:
+            # mod_coord.append(pos + random.uniform(0, 0.5) - 0.25)
+            mod_coord.append(pos + random.gauss(mu, sigma))
+        return mod_coord
+
+    def add_point(self, point):
+        x, y, z = map(float, point)
+        point_obj = Point((x) * self.cell_size_x + self.x, (y) * self.cell_size_y + self.y,
+                      (z) * self.cell_size_z + self.z)
+        self.nodes.append(point_obj)
+
+    def generate_beams_random(self, Radius, gradRadius, gradDim, gradMat, posCell):
+        self.beams = []
+        self.nodes = []
+        # Corner node
+        corner_node = random.randint(0,1)
+        if corner_node == 1: # Corner nodes
+            map_corner = [(0.0, 0.0, 0.0),
+                   (1.0, 1.0, 1.0),
+                   (1.0, 1.0, 0.0),
+                   (0.0, 0.0, 1.0),
+                   (0.0, 1.0, 0.0),
+                   (0.0, 1.0, 1.0),
+                   (1.0, 0.0, 1.0),
+                   (1.0, 0.0, 0.0)]
+            for idx, point_corner in enumerate(map_corner):
+                self.add_point(point_corner)
+        # Edge
+        map_edge = [(0.0, 0.0), (0.0, 1.0), (1.0, 0.0), (1.0, 1.0)]
+        for i in range(3): # 3 direction of edge node
+            Edge_node = random.randint(0,1)
+            if Edge_node == 1:
+                point_mod = 0.5 + random.uniform(0, 0.5) - 0.25
+                for idx, point_edge in enumerate(map_edge):
+                    point = list(point_edge)
+                    point.insert(i, point_mod)
+                    self.add_point(point)
+        # Face
+        map_face = [(0.25, 0.25), (0.75, 0.25), (0.5, 0.5), (0.25, 0.75), (0.75, 0.75)]
+        for i in range(3):  # 3 direction of face node
+            Face_node = [random.randint(0,1) for _ in range(5)]
+            for idx, point_face in enumerate(map_face):
+                if Face_node[idx] == 1:
+                    point = list(self.random_coordinate(map_face[idx], 0, 0.25))
+                    point_sym = list(point)
+                    point.insert(i, 0.0)
+                    point_sym.insert(i, 1.0)
+                    self.add_point(point)
+                    self.add_point(point_sym)
+        # Interior
+        map_interior = [(0.25, 0.25, 0.25), (0.5, 0.25, 0.25), (0.75, 0.25, 0.25),
+                        (0.25, 0.5, 0.25), (0.5, 0.5, 0.25), (0.75, 0.5, 0.25),
+                        (0.25, 0.75, 0.25), (0.5, 0.75, 0.25), (0.75, 0.75, 0.25),
+
+                        (0.25, 0.25, 0.5), (0.5, 0.25, 0.5), (0.75, 0.25, 0.5),
+                        (0.25, 0.5, 0.5), (0.5, 0.5, 0.5), (0.75, 0.5, 0.5),
+                        (0.25, 0.75, 0.5), (0.5, 0.75, 0.5), (0.75, 0.75, 0.5),
+
+                        (0.25, 0.25, 0.75), (0.5, 0.25, 0.75), (0.75, 0.25, 0.75),
+                        (0.25, 0.5, 0.75), (0.5, 0.5, 0.75), (0.75, 0.5, 0.75),
+                        (0.25, 0.75, 0.75), (0.5, 0.75, 0.75), (0.75, 0.75, 0.75)]
+        interior_node = [random.randint(0, 1) for _ in range(len(map_interior))]
+        for idx, point_interior in enumerate(map_interior):
+            if interior_node[idx] == 1:
+                point = list(self.random_coordinate(map_interior[idx], 0, 0.1))
+                self.add_point(point)
+
+        self.remove_nodes_outside_unit_cube()
+        print(len(self.nodes))
+
+        self.remove_nodes_too_close_advanced()
+        print(len(self.nodes))
+
+
+
+        # Generate beam at least 2 beams per node
+        for beam in range(1):
+            beam = Beam(self.nodes[random.randint(0, len(self.nodes)-1)], self.nodes[random.randint(0, len(self.nodes)-1)], Radius,
+                        self.cell_size_x, self.cell_size_y, self.cell_size_z, gradRadius, gradMat,
+                        posCell, 0)
+            if self.beam_already_exist(beam):
+                self.beams.append(beam)
+        return self.nodes, self.beams
+
+    def beam_already_exist(self, beam_test):
+        # print(beam_test.point1, beam_test.point2)
+        for beam in self.beams:
+            if beam.point1 == beam_test.point1:
+                if beam.point2 == beam_test.point2:
+                    # print(beam.point1,beam.point2)
+                    # print(False)
+                    return False
+            if beam.point1 == beam_test.point2:
+                if beam.point2 == beam_test.point1:
+                    # print(beam.point1,beam.point2)
+                    # print(False)
+                    return False
+        # print(True)
+        return True
+
+    def remove_nodes_outside_unit_cube(self):
+        """
+        Remove nodes that are outside of the unit cube defined by the cell dimensions.
+        """
+        inside_nodes = []
+        for point in self.nodes:
+            if 0 <= point.x <= self.cell_size_x and 0 <= point.y <= self.cell_size_y and 0 <= point.z <= self.cell_size_z:
+                inside_nodes.append(point)
+        self.nodes = inside_nodes
+
+    def is_node_in_corner(self, node):
+        """
+        Check if a node is in a corner of the unit cube.
+
+        :param node: The node to check.
+        :return: True if the node is in a corner, False otherwise.
+        """
+        return ((node.x in [0, self.cell_size_x]) and
+                (node.y in [0, self.cell_size_y]) and
+                (node.z in [0, self.cell_size_z]))
+
+    def remove_nodes_too_close_advanced(self, min_distance=0.1):
+        """
+        Remove nodes that are too close together with a refined decision process.
+        """
+        to_remove = set()
+
+
+        def is_surface_not_corner(node):
+            return self.is_node_on_surface(node) and not self.is_node_in_corner(node)
+
+        for i, node_i in enumerate(self.nodes):
+            if i in to_remove:
+                continue
+
+            for j, node_j in enumerate(self.nodes[i + 1:], start=i + 1):
+                if j in to_remove:
+                    continue
+
+                # Calculate Euclidean distance
+                distance = math.sqrt((node_i.x - node_j.x) ** 2 +
+                                     (node_i.y - node_j.y) ** 2 +
+                                     (node_i.z - node_j.z) ** 2)
+
+                if distance < min_distance:
+
+                    if self.is_node_in_corner(node_i):
+                        to_remove.add(j)
+                        continue
+                    elif self.is_node_in_corner(node_j):
+                        to_remove.add(i)
+                        continue
+
+
+                    if self.is_node_on_surface(node_i) and not self.is_node_on_surface(node_j):
+                        to_remove.add(i)
+                    elif not self.is_node_on_surface(node_i) and self.is_node_on_surface(node_j):
+                        to_remove.add(j)
+                    else:
+
+                        to_remove.add(j)  # Choix arbitraire pour supprimer
+                        if is_surface_not_corner(node_j):
+                            symmetric_node = self.find_symmetric_node(node_j)
+                            if symmetric_node and not self.is_node_in_corner(symmetric_node):
+                                symmetric_index = self.nodes.index(symmetric_node)
+                                to_remove.add(symmetric_index)
+
+        self.nodes = [node for index, node in enumerate(self.nodes) if index not in to_remove]
+
+    def is_node_on_surface(self, node):
+        """
+        Check if a node is on the surface of the unit cube.
+
+        :param node: The node to check.
+        :return: True if the node is on the surface, False otherwise.
+        """
+        return (node.x in [0, self.cell_size_x] or
+                node.y in [0, self.cell_size_y] or
+                node.z in [0, self.cell_size_z])
+
+    def find_symmetric_node(self, node):
+        """
+        Find a symmetric node to a given node, based on the cube's faces. If a node is on the face X=0,
+        its symmetric is on the face X=cellSizeX, and analogously for Y and Z axes.
+
+        :param node: The node for which to find a symmetric counterpart.
+        :return: The symmetric node, if found.
+        """
+
+        symmetric_x = self.cell_size_x - node.x if node.x in [0, self.cell_size_x] else node.x
+        symmetric_y = self.cell_size_y - node.y if node.y in [0, self.cell_size_y] else node.y
+        symmetric_z = self.cell_size_z - node.z if node.z in [0, self.cell_size_z] else node.z
+
+
+        for n in self.nodes:
+            if n.x == symmetric_x and n.y == symmetric_y and n.z == symmetric_z:
+                return n
+        return None
+
     def calculate_connections(self):
         """
         Calculate the number of connections for each node.

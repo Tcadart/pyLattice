@@ -1,35 +1,8 @@
 import numpy as np
 from numpy import linalg as LA
 import matplotlib.pyplot as plt
-
-def Type_lattice(Lattice):
-    if (Lattice == 0):
-        Type = 'BCC'
-    if (Lattice == 1):
-        Type = 'Octet'
-    if (Lattice == 2):
-        Type = 'OctetExt'
-    if (Lattice == 3):
-        Type = 'OctetInt'
-    if (Lattice == 4):
-        Type = 'BCCZ'
-    if (Lattice == 5):
-        Type = 'Cubic'
-    if (Lattice == 6):
-        Type = 'OctetInt_without'
-    if (Lattice == 7):
-        Type = 'Octet_without'
-    if (Lattice == 8):
-        Type = 'OctahedronZ'
-    if (Lattice == 9):
-        Type = 'OctahedronZcross'
-    if (Lattice == 10):
-        Type = 'Kelvin'
-    if (Lattice == 11):
-        Type = 'CubicV2'
-    if (Lattice == 12):
-        Type = 'Octet_corr'
-    return Type
+import pandas as pd
+from Lattice_description import *
 
 
 def openFile(Lattice_Type,number_cell,AnalysisType,MethodSim):
@@ -51,25 +24,62 @@ def openFile(Lattice_Type,number_cell,AnalysisType,MethodSim):
                 idx+=1
     return np.concatenate(dataRF),np.concatenate(dataU),np.concatenate(dataTime)
 
-def processDataStressStrain(dataRF, dataU,Number_cell):
+def openFile_all_data(Lattice_Type, number_cell, AnalysisType, MethodSim):
+    file_path = f"D:/travail_Abaqus/Lattice/{Type_lattice(Lattice_Type)}_{number_cell}{AnalysisType}{MethodSim}.txt"
+    dataRF = {'RF1': [], 'RF2': [], 'RF3': []}
+    dataU = {'U1': [], 'U2': [], 'U3': []}
+    dataTime = []
+    current_data_list = []
+
+    # Déterminer l'ordre dans lequel les données apparaissent
+    data_order = ['RF1', 'RF2', 'RF3', 'U1', 'U2', 'U3', 'dataTime']
+    current_index = 0
+
+    with open(file_path, 'r') as file:
+        for line in file:
+            # Accumuler les données numériques
+            current_data_list.extend(np.fromstring(line.strip('[]\n'), sep=','))
+            if ']' in line:  # Vérifier la fin de la catégorie actuelle
+                # Attribuer les données accumulées à la catégorie correspondante
+                if current_index < 3:  # RF1, RF2, RF3
+                    dataRF[data_order[current_index]] = np.array(current_data_list)
+                elif current_index < 6:  # U1, U2, U3
+                    dataU[data_order[current_index]] = np.array(current_data_list)
+                else:  # dataTime
+                    dataTime = np.array(current_data_list)
+                # Réinitialiser pour la prochaine catégorie de données
+                current_data_list = []
+                current_index += 1
+
+    return dataRF, dataU, dataTime
+
+
+
+def processDataStressStrain(dataRF, dataU,Number_cell,length_cell):
     # Modifier les valeurs RF en les divisant par la surface
-    dataRF = [rf / (Number_cell * Number_cell) for rf in dataRF]
+    dataRF = [rf / (Number_cell * length_cell * Number_cell * length_cell) for rf in dataRF]
     
     # Modifier les valeurs U en les multipliant par la longueur du lattice selon Z
-    dataU = [-u / (Number_cell) for u in dataU]
+    dataU = [-u / (Number_cell * length_cell) for u in dataU]
     return dataRF, dataU
+
+
+def processDataStressStrain_all_data(dataRF, dataU, Number_cell, length_cell):
+    surface = (Number_cell * length_cell) ** 2
+    length = Number_cell * length_cell
+
+    for key in dataRF:
+        dataRF[key] = dataRF[key] / surface
+
+    for key in dataU:
+        dataU[key] = -dataU[key] / length
+
+    return dataRF, dataU
+
 
 def plotData(dataRF, dataU,legend):
     
-    plt.plot(dataU, dataRF,'--', label = legend) 
-
-    # Ajoutez des titres et des étiquettes
-    plt.title('Graphique des Contrainte-Déformation', fontsize=20)
-    plt.xlabel('Déformation macroscopique', fontsize=20)
-    plt.ylabel('Contrainte macroscopique', fontsize=20)
-    
-    # Affichez le tracé
-    plt.grid(True)
+    plt.plot(dataU, dataRF,'--', label = legend)
 
 
 def open_solid_file(chemin_fichier):
@@ -114,8 +124,19 @@ def open_solid_file(chemin_fichier):
     return x_array, xydata_1_array, xydata_2_array
 
 
+def plotDataExperience(number_cell, length_cell):
+    number_cell = 8
+    liste_feuille = ['BCC_1','BCC_2','BCC_3']
+    df = pd.read_excel('D:/Fichiers/4_Experimentation/Compression lattice/compression_lattice.xlsx', sheet_name=liste_feuille[0])
+    Force = df.iloc[:, 1]
+    Displacement = df.iloc[:, 2]
+    dataRF, dataU = processDataStressStrain(Force, -Displacement, number_cell, length_cell)
+    plotData(dataRF, dataU, 'Experiments')
 
-number_cell = 4
+
+
+number_cell = 6
+length_cell = 10
 
 Lattice_Type = 0
 # 0 => BCC
@@ -136,25 +157,39 @@ AnalysisType = 1
 # 2 Compression Z Implicit
 # 3 Compression BCC Solid Plastic Static
 
-MethodSim = 0
+MethodSim = 1
 # 0 No modification
 # 1 Node Modification
 
 
 # Beam
-MethodSim = 0
-dataRF,dataU,dataTime = openFile(Lattice_Type,number_cell,AnalysisType,MethodSim)
-dataRF, dataU = processDataStressStrain(dataRF, dataU,number_cell)
-plotData(dataRF, dataU, 'Beam')
+# MethodSim = 0
+# dataRF,dataU,dataTime = openFile(latticeType,number_cell,AnalysisType,MethodSim)
+# dataRF, dataU = processDataStressStrain(dataRF, dataU,number_cell)
+# plotData(dataRF, dataU, 'Beam')
 
-MethodSim = 1
-dataRF,dataU,dataTime = openFile(Lattice_Type,number_cell,AnalysisType,MethodSim)
-dataRF, dataU = processDataStressStrain(dataRF, dataU,number_cell)
-plotData(dataRF, dataU,'BeamMod')
+dataRF,dataU,dataTime = openFile_all_data(Lattice_Type,number_cell,AnalysisType,MethodSim)
+print(dataRF)
+print(dataU)
+dataRF, dataU = processDataStressStrain_all_data(dataRF, dataU,number_cell, length_cell)
 
-dataTimeSolid, dataRF3Solid, dataU3Solid = open_solid_file("D:/Fichiers/70_Projet_1_Homogeneisation_Abaqus/Plasticity/result_solid_"+str(number_cell)+".txt")
-dataRF3Solid, dataU3Solid = processDataStressStrain(dataRF3Solid, dataU3Solid,number_cell)
-plotData(dataRF3Solid, dataU3Solid,'Solid')
+plotData(dataRF['RF1'], dataU['U3'],'RF1')
+plotData(dataRF['RF2'], dataU['U3'],'RF2')
+plotData(dataRF['RF3'], dataU['U3'],'RF3')
 
+
+# dataTimeSolid, dataRF3Solid, dataU3Solid = open_solid_file("D:/Fichiers/70_Projet_1_Homogeneisation_Abaqus/Plasticity/result_solid_"+str(number_cell)+".txt")
+# dataRF3Solid, dataU3Solid = processDataStressStrain(dataRF3Solid, dataU3Solid,number_cell)
+# plotData(dataRF3Solid, dataU3Solid,'Solid')
+
+# plotDataExperience(number_cell, length_cell)
+
+# Ajoutez des titres et des étiquettes
+plt.title('Graphique des Contrainte-Déformation', fontsize=20)
+plt.xlabel('Déformation macroscopique', fontsize=20)
+plt.ylabel('Contrainte macroscopique', fontsize=20)
+
+# Affichez le tracé
+plt.grid(True)
 plt.legend(fontsize=15)
 plt.show()

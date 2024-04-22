@@ -1,3 +1,5 @@
+import random
+
 from Lattice import *
 import matplotlib.pyplot as plt
 import math
@@ -26,6 +28,12 @@ def display_only_lattice():
     fig = plt.figure()
     ax = fig.add_subplot(111, projection='3d')
     visu_lattice(ax)
+    plt.show()
+
+def display_only_cell_random():
+    fig = plt.figure()
+    ax = fig.add_subplot(111, projection='3d')
+    lattice.visualize_3d_random(ax)
     plt.show()
 
 def gradSettings(rule,direction,parameters,number_cell_X,number_cell_Y, number_cell_Z):
@@ -84,7 +92,8 @@ def gradMaterialSetting(Multimat,direction,number_cell_X,number_cell_Y, number_c
     #         return 0
     #     else:
     #         return 1
-        
+    if Multimat == -1: #Random
+        gradMat = [[[random.randint(1,3) for X in range(number_cell_X)] for Y in range(number_cell_Y)] for Z in range(number_cell_Z)]
     if Multimat == 0: # Mono material
         gradMat = [[[1 for X in range(number_cell_X)] for Y in range(number_cell_Y)] for Z in range(number_cell_Z)]
     elif Multimat == 1: # Graded material
@@ -123,26 +132,32 @@ name_Assembly = 'Lattice_assembly'
 VectorOrientation = [0,0,-1]
 Radius = 0.05
 cell_size = 1
-cell_size_X = 1
-cell_size_Y = 1
+cell_size_X = cell_size
+cell_size_Y = cell_size
 cell_size_Z = cell_size
 number_cell = 1
-number_cell_X = 5
-number_cell_Y = 5
-number_cell_Z = 5
+number_cell_X = number_cell
+number_cell_Y = number_cell
+number_cell_Z = number_cell
 
 Lattice_Type = 0
+# -2 => Method random cell
+# -1 => Full random
 # 0 => BCC
-# 1 => Octet 
-# 2 => OctetExt 
-# 3 => OctetInt 
-# 4 => BCCZ 
-# 5 => Cubic 
-# 6 => OctahedronZ 
-# 7 => OctahedronZcross 
+# 1 => Octet
+# 2 => OctetExt
+# 3 => OctetInt
+# 4 => BCCZ
+# 5 => Cubic
+# 6 => OctahedronZ
+# 7 => OctahedronZcross
 # 8 => Kelvin
 # 9 => Cubic formulation 2 (centered)
-# 10 => Auxetic
+# 10 => Cubic V3
+# 11 => Cubic V4
+# 12 => New lattice (non connu) GPT generated
+# 13 => Diamond
+# 14 => Auxetic
 
 # Gradient on cell dimensions
 GradDimRule = 'constant'
@@ -160,6 +175,7 @@ GradRadParameters = [1.0,0.0,2.0]
 # - exponential
 
 Multimat = 0
+# -1 => Full random
 # 0 -> materiaux
 # 1 -> multimat par couche
 GradMaterialDirection = 3 # 1:X / 2:Y / 3:Z
@@ -168,9 +184,11 @@ AnalysisType = 0
 # 0 Modelisation lattice only
 # 1 Compression Z
 
-MethodSim = 0
+MethodSim = 1
 # 0 No modification
 # 1 Node Modification
+
+uncertaintyNode = 0
 
 #*******************************************************************************************************************
 #*******************************************************************************************************************
@@ -180,11 +198,13 @@ MethodSim = 0
 #*******************************************************************************************************************
 #*******************************************************************************************************************
 # Gradient properties
-gradDim = gradSettings(GradDimRule,GradDimDirection,GradDimParameters,number_cell_X,number_cell_Y, number_cell_Z) 
-gradRadius = gradSettings(GradRadRule,GradRadDirection,GradRadParameters,number_cell_X,number_cell_Y, number_cell_Z) 
-gradMat = gradMaterialSetting(Multimat,GradMaterialDirection,number_cell_X,number_cell_Y, number_cell_Z)
+gradDimProperty = [GradDimRule,GradDimDirection,GradDimParameters]
+gradRadiusProperty = [GradRadRule,GradRadDirection,GradRadParameters]
+gradMatProperty = [Multimat,GradMaterialDirection]
 
 
 #Generate data from lattice
-lattice = Lattice(cell_size_X,cell_size_Y,cell_size_Z, number_cell_X,number_cell_Y,number_cell_Z,Lattice_Type, Radius,gradRadius,gradDim,gradMat,MethodSim)
+lattice = Lattice(cell_size_X,cell_size_Y,cell_size_Z, number_cell_X,number_cell_Y,number_cell_Z,Lattice_Type, Radius,gradRadiusProperty,gradDimProperty,gradMatProperty,MethodSim,uncertaintyNode)
+
+# display_only_cell_random()
 display_only_lattice()

@@ -4,16 +4,30 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="e3dc1a1d-8b4b-4101-aad1-b4f2b4f8d3a5" name="Changes" comment="">
+    <list default="true" id="e3dc1a1d-8b4b-4101-aad1-b4f2b4f8d3a5" name="Changes" comment="Bug angle">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/FullLatticeSimulation.py" beforeDir="false" afterPath="$PROJECT_DIR$/FullLatticeSimulation.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Beam.py" beforeDir="false" afterPath="$PROJECT_DIR$/Beam.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Lattice.py" beforeDir="false" afterPath="$PROJECT_DIR$/Lattice.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Main.py" beforeDir="false" afterPath="$PROJECT_DIR$/Main.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
     <option name="LAST_RESOLUTION" value="IGNORE" />
   </component>
+  <component name="FileTemplateManagerImpl">
+    <option name="RECENT_TEMPLATES">
+      <list>
+        <option value="Python Script" />
+      </list>
+    </option>
+  </component>
   <component name="Git.Settings">
+    <option name="RECENT_BRANCH_BY_REPOSITORY">
+      <map>
+        <entry key="$PROJECT_DIR$" value="master" />
+      </map>
+    </option>
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
   </component>
   <component name="ProjectColorInfo">{
@@ -24,26 +38,52 @@
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
-  <component name="PropertiesComponent"><![CDATA[{
-  "keyToString": {
-    "RunOnceActivity.OpenProjectViewOnStart": "true",
-    "RunOnceActivity.ShowReadmeOnStart": "true",
-    "WebServerToolWindowFactoryState": "false",
-    "git-widget-placeholder": "Rebasing LatticeWIP",
-    "ignore.virus.scanning.warn.message": "true",
-    "last_opened_file_path": "D:/travail_Abaqus/Lattice",
-    "node.js.detected.package.eslint": "true",
-    "node.js.detected.package.tslint": "true",
-    "node.js.selected.package.eslint": "(autodetect)",
-    "node.js.selected.package.tslint": "(autodetect)",
-    "settings.editor.selected.configurable": "preferences.pluginManager",
-    "vue.rearranger.settings.migration": "true"
+  <component name="PropertiesComponent">{
+  &quot;keyToString&quot;: {
+    &quot;RunOnceActivity.OpenProjectViewOnStart&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
+    &quot;WebServerToolWindowFactoryState&quot;: &quot;false&quot;,
+    &quot;git-widget-placeholder&quot;: &quot;LatticeWIP&quot;,
+    &quot;ignore.virus.scanning.warn.message&quot;: &quot;true&quot;,
+    &quot;last_opened_file_path&quot;: &quot;//wsl$/Ubuntu/home/thomas/ProjetFenics&quot;,
+    &quot;node.js.detected.package.eslint&quot;: &quot;true&quot;,
+    &quot;node.js.detected.package.tslint&quot;: &quot;true&quot;,
+    &quot;node.js.selected.package.eslint&quot;: &quot;(autodetect)&quot;,
+    &quot;node.js.selected.package.tslint&quot;: &quot;(autodetect)&quot;,
+    &quot;settings.editor.selected.configurable&quot;: &quot;com.jetbrains.python.configuration.PyActiveSdkModuleConfigurable&quot;,
+    &quot;vue.rearranger.settings.migration&quot;: &quot;true&quot;
   }
-}]]></component>
+}</component>
   <component name="RecentsManager">
     <key name="CopyFile.RECENT_KEYS">
       <recent name="D:\travail_Abaqus\Lattice" />
     </key>
+  </component>
+  <component name="RunManager">
+    <configuration name="Main" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
+      <module name="Lattice" />
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <option name="SDK_HOME" value="" />
+      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$" />
+      <option name="IS_MODULE_SDK" value="true" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <EXTENSION ID="PythonCoverageRunConfigurationExtension" runner="coverage.py" />
+      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/Main.py" />
+      <option name="PARAMETERS" value="" />
+      <option name="SHOW_COMMAND_LINE" value="false" />
+      <option name="EMULATE_TERMINAL" value="false" />
+      <option name="MODULE_MODE" value="false" />
+      <option name="REDIRECT_INPUT" value="false" />
+      <option name="INPUT_FILE" value="" />
+      <method v="2" />
+    </configuration>
+    <recent_temporary>
+      <list>
+        <item itemvalue="Python.Main" />
+      </list>
+    </recent_temporary>
   </component>
   <component name="SpellCheckerSettings" RuntimeDictionaries="0" Folders="0" CustomDictionaries="0" DefaultDictionary="application-level" UseSingleDictionary="true" transferred="true" />
   <component name="TaskManager">
@@ -58,13 +98,97 @@
       <workItem from="1700585613200" duration="283000" />
       <workItem from="1700585905004" duration="35000" />
       <workItem from="1700641883424" duration="1594000" />
+      <workItem from="1701002614184" duration="234000" />
+      <workItem from="1701003341464" duration="2812000" />
+      <workItem from="1701442970589" duration="23000" />
+      <workItem from="1701775958588" duration="25000" />
+      <workItem from="1702464116504" duration="10204000" />
+      <workItem from="1702888033393" duration="2714000" />
+      <workItem from="1704704022705" duration="18000" />
+      <workItem from="1706606022101" duration="1396000" />
+      <workItem from="1706714399820" duration="17216000" />
+      <workItem from="1707137425250" duration="327000" />
+      <workItem from="1707138046365" duration="605000" />
+      <workItem from="1707139224177" duration="266000" />
+      <workItem from="1707139504507" duration="27000" />
+      <workItem from="1707139543297" duration="197000" />
+      <workItem from="1707139750338" duration="27000" />
+      <workItem from="1707142128998" duration="1905000" />
+      <workItem from="1707205778723" duration="128000" />
+      <workItem from="1707382220209" duration="14000" />
+      <workItem from="1707731119625" duration="1261000" />
+      <workItem from="1708594620765" duration="1559000" />
+      <workItem from="1708937276654" duration="2467000" />
+      <workItem from="1709756545335" duration="2485000" />
+      <workItem from="1710101403127" duration="594000" />
+      <workItem from="1710148566335" duration="5584000" />
+      <workItem from="1710406470882" duration="594000" />
+      <workItem from="1710508059516" duration="34000" />
+      <workItem from="1710508422372" duration="595000" />
+      <workItem from="1710752433740" duration="12630000" />
+      <workItem from="1711439742810" duration="9315000" />
+      <workItem from="1712656725413" duration="22232000" />
+      <workItem from="1713181029000" duration="15375000" />
     </task>
+    <task id="LOCAL-00001" summary="Modiff récuperation result">
+      <option name="closed" value="true" />
+      <created>1707138144405</created>
+      <option name="number" value="00001" />
+      <option name="presentableId" value="LOCAL-00001" />
+      <option name="project" value="LOCAL" />
+      <updated>1707138144405</updated>
+    </task>
+    <task id="LOCAL-00002" summary="Add normalized tag">
+      <option name="closed" value="true" />
+      <created>1712327045125</created>
+      <option name="number" value="00002" />
+      <option name="presentableId" value="LOCAL-00002" />
+      <option name="project" value="LOCAL" />
+      <updated>1712327045125</updated>
+    </task>
+    <task id="LOCAL-00003" summary="Add gradient inside lattice class">
+      <option name="closed" value="true" />
+      <created>1713348160152</created>
+      <option name="number" value="00003" />
+      <option name="presentableId" value="LOCAL-00003" />
+      <option name="project" value="LOCAL" />
+      <updated>1713348160152</updated>
+    </task>
+    <task id="LOCAL-00004" summary="Bug angle">
+      <option name="closed" value="true" />
+      <created>1713425715682</created>
+      <option name="number" value="00004" />
+      <option name="presentableId" value="LOCAL-00004" />
+      <option name="project" value="LOCAL" />
+      <updated>1713425715682</updated>
+    </task>
+    <option name="localTasksCounter" value="5" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
     <option name="version" value="3" />
   </component>
   <component name="Vcs.Log.Tabs.Properties">
+    <option name="RECENT_FILTERS">
+      <map>
+        <entry key="Branch">
+          <value>
+            <list>
+              <RecentGroup>
+                <option name="FILTER_VALUES">
+                  <option value="master" />
+                </option>
+              </RecentGroup>
+              <RecentGroup>
+                <option name="FILTER_VALUES">
+                  <option value="origin/master" />
+                </option>
+              </RecentGroup>
+            </list>
+          </value>
+        </entry>
+      </map>
+    </option>
     <option name="TAB_STATES">
       <map>
         <entry key="MAIN">
@@ -75,7 +199,82 @@
       </map>
     </option>
   </component>
+  <component name="VcsManagerConfiguration">
+    <MESSAGE value="Modiff récuperation result" />
+    <MESSAGE value="Add normalized tag" />
+    <MESSAGE value="Add gradient inside lattice class" />
+    <MESSAGE value="Bug angle" />
+    <option name="LAST_COMMIT_MESSAGE" value="Bug angle" />
+  </component>
+  <component name="WfRunsListSearchHistory"><![CDATA[{
+  "history": [
+    {
+    },
+    {
+    },
+    {
+    },
+    {
+    },
+    {
+    },
+    {
+    },
+    {
+    },
+    {
+    },
+    {
+    },
+    {
+    },
+    {
+    },
+    {
+    },
+    {
+    },
+    {
+    },
+    {
+    },
+    {
+    },
+    {
+    },
+    {
+    },
+    {
+    },
+    {
+    },
+    {
+    },
+    {
+    },
+    {
+    },
+    {
+    },
+    {
+    },
+    {
+    },
+    {
+    },
+    {
+    },
+    {
+    }
+  ],
+  "lastFilter": {
+  }
+}]]></component>
   <component name="com.intellij.coverage.CoverageDataManagerImpl">
-    <SUITE FILE_PATH="coverage/Lattice$plot_result.coverage" NAME="plot_result Coverage Results" MODIFIED="1700584521027" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
+    <SUITE FILE_PATH="coverage/Lattice$Lattice.coverage" NAME="Lattice Coverage Results" MODIFIED="1713426426220" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
+    <SUITE FILE_PATH="coverage/Lattice$Main.coverage" NAME="Main Coverage Results" MODIFIED="1713432672108" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
+    <SUITE FILE_PATH="coverage/Lattice$plot_result.coverage" NAME="plot_result Coverage Results" MODIFIED="1710757782517" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
+    <SUITE FILE_PATH="coverage/Lattice$Cellule.coverage" NAME="Cellule Coverage Results" MODIFIED="1712818355371" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
+    <SUITE FILE_PATH="coverage/Lattice$Save_result.coverage" NAME="Save_result Coverage Results" MODIFIED="1710757236865" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
   </component>
 </project>
