@@ -130,7 +130,7 @@ name_Job = 'Job_1'
 name_Part = 'Lattice_Part'
 name_Assembly = 'Lattice_assembly'
 VectorOrientation = [0,0,-1]
-Radius = 0.5
+Radius = 0.05
 cell_size = 1
 cell_size_X = cell_size
 cell_size_Y = cell_size
@@ -140,7 +140,7 @@ number_cell_X = number_cell
 number_cell_Y = number_cell
 number_cell_Z = number_cell
 
-Lattice_Type = 1
+Lattice_Type = 0
 # -2 => Method random cell
 # -1 => Full random
 # 0 => BCC

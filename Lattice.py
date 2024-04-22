@@ -62,15 +62,20 @@ class Lattice:
         self.Getangle()
         if self.simMethod == 1:
             self.getBeamNodeMod()
+
+        self.extremumFunction()
+        self.findBoundaryBeams()
+
+        # Get some data about lattice structures
         self.getNodeData()
         self.getBeamData()
         self.getRadiusData()
         self.getMaterialData()
-        self.extremumFunction()
+
         self.getCenterCells()
-        self.getNumberBeamCell()
-        if self.uncertaintyNode == 2:
-            self.toucanLatticeModifier()
+        # self.getNumberBeamCell()
+        # if self.uncertaintyNode == 2:
+        #     self.toucanLatticeModifier()
 
     @property
     def nodes(self):
@@ -273,8 +278,6 @@ class Lattice:
                     new_cell.generate_beams_random(self.Radius, self.gradRadius, self.gradDim, self.gradMat, posCell)
                     self.cells.append(new_cell)
                     self.posCell.append([i,j,k])
-        print(self.cells)
-        print(self.posCell)
         return self.cells, self.posCell
     
     def generate_custom_lattice(self):
@@ -555,22 +558,23 @@ class Lattice:
         def distance(point1, point2):
             return math.sqrt((point2.x - point1.x)**2 + (point2.y - point1.y)**2 + (point2.z - point1.z)**2)
 
+        def findPointMod(point1, point2, lengthMod):
+            DR = [(point2.x - point1.x)/distance(point1,point2), (point2.y - point1.y)/distance(point1,point2), (point2.z - point1.z)/distance(point1,point2)]
+            factor = [dr * lengthMod for dr in DR]
+            pointMod = [point1.x, point1.y, point1.z]
+            pointMod = [p1 + p2 for p1, p2 in zip(pointMod, factor)]
+            pointModObj = Point(pointMod[0], pointMod[1], pointMod[2])
+            return pointModObj
+
         lengthMod = self.getLengthMod()
         beamMod = []
         indexCell = -1
         for index, beam in enumerate(self.beams_obj):
             if index%(self.getNbBeamCell(self.latticeType)) == 0:
                 indexCell = indexCell+1
-            DR = [x / math.sqrt(sum([(beam.point2.x-beam.point1.x)**2, (beam.point2.y-beam.point1.y)**2, (beam.point2.z-beam.point1.z)**2])) for x in [beam.point2.x-beam.point1.x, beam.point2.y-beam.point1.y, beam.point2.z-beam.point1.z]]
-            factor1 = [dr * lengthMod[index][1] for dr in DR]
-            pointExt1 = [beam.point1.x, beam.point1.y, beam.point1.z]
-            pointExt1 = [p1 + p2 for p1, p2 in zip(pointExt1, factor1)]
-            DR = [x / math.sqrt(sum([(beam.point2.x-beam.point1.x)**2, (beam.point2.y-beam.point1.y)**2, (beam.point2.z-beam.point1.z)**2])) for x in [beam.point1.x-beam.point2.x, beam.point1.y-beam.point2.y, beam.point1.z-beam.point2.z]]
-            factor2 = [dr * lengthMod[index][2] for dr in DR]
-            pointExt2 = [beam.point2.x, beam.point2.y, beam.point2.z]
-            pointExt2 = [p1 + p2 for p1, p2 in zip(pointExt2, factor2)]
-            pointExt1Obj = Point(pointExt1[0],pointExt1[1],pointExt1[2])
-            pointExt2Obj = Point(pointExt2[0],pointExt2[1],pointExt2[2])
+            pointExt1Obj = findPointMod(beam.point1,beam.point2, lengthMod[index][1])
+            pointExt2Obj = findPointMod(beam.point2,beam.point1, lengthMod[index][2])
+
             beamExt1 = Beam(beam.point1, pointExt1Obj, self.Radius * 1.5, self.cellSizeX, self.cellSizeY, self.cellSizeZ, self.gradRadius, self.gradMat, self.posCell[indexCell], 1)
             beamCenter = Beam(pointExt1Obj, pointExt2Obj, self.Radius, self.cellSizeX, self.cellSizeY, self.cellSizeZ, self.gradRadius, self.gradMat, self.posCell[indexCell], 0)
             beamExt2 = Beam(pointExt2Obj, beam.point2, self.Radius * 1.5, self.cellSizeX, self.cellSizeY, self.cellSizeZ, self.gradRadius, self.gradMat, self.posCell[indexCell], 1)
@@ -589,25 +593,18 @@ class Lattice:
 
         :return: list of tuples ((beam_index,Lmod point1,Lmod point2))
         """
+        def getlength(angle, radius):
+            if angle > 170:
+                L = 0.0001
+            else:
+                L = radius / math.tan(math.radians(angle) / 2)
+            return L
+
         lengthMod = []
-        print("angles", self.angles)
         for index, angle1, radius1, angle2, radius2 in self.angles:
-            if angle1 > 170:
-                L1 = 0.0001
-            else:
-                L1 = radius1 / math.tan(math.radians(angle1) / 2)
-                # a = radius1/math.sin(math.radians(angle1))
-                # b = radius1/math.sin(math.radians(angle1))
-                # L1 = math.sqrt(math.pow(a,2)+math.pow(b,2)-2*a*b*math.cos(math.pi-math.radians(angle1)))
-            if angle2 > 170:
-                L2 = 0.0001
-            else:
-                L2 = radius2 / math.tan(math.radians(angle2) / 2)
-                # a = radius2/math.sin(math.radians(angle2))
-                # b = radius2/math.sin(math.radians(angle2))
-                # L2 = math.sqrt(math.pow(a,2)+math.pow(b,2)-2*a*b*math.cos(math.pi-math.radians(angle2)))
+            L1 = getlength(angle1,radius1)
+            L2 = getlength(angle2,radius2)
             lengthMod.append((index,L1,L2))
-        print("lenghtMod", lengthMod)
         return lengthMod
 
 
@@ -744,3 +741,18 @@ class Lattice:
             self.toucanModifier.append([[nodeInit.x,nodeInit.y,nodeInit.z],[node1.x,node1.y,node1.z],[node2.x,node2.y,node2.z]])
         return self.toucanModifier
 
+    def findBoundaryBeams(self):
+        boundaryNodes = self.findBoundaryNodes()
+        boundaryBeams = []
+        for beam in self.beams_obj:
+            if beam.point1 in boundaryNodes or beam.point2 in boundaryNodes:
+                beam.changeBeamType(2)
+                boundaryBeams.append(beam)
+        return boundaryBeams
+
+    def findBoundaryNodes(self):
+        boundaryNodes = []
+        for node in self.nodes_obj:
+            if node.x == self.xMin or node.x == self.xMax or node.y == self.yMin or node.y == self.yMax or node.z == self.zMin or node.z == self.zMax:
+                boundaryNodes.append(node)
+        return boundaryNodes

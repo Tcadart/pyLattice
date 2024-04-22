@@ -26,6 +26,9 @@ class Beam:
         self.gradRadius = gradRadius
         self.gradMat = gradMat
         self.posCell = posCell
+        # type = 0 => no mod
+        # type = 1 => beam mod
+        # type = 2 => beam on boundary
         self.type = Type
         self.radius = self.setBeamRadius()
         self.length = self.get_length()
@@ -76,3 +79,6 @@ class Beam:
         """
         Mat = self.gradMat[self.posCell[2]][self.posCell[1]][self.posCell[0]]
         return Mat
+
+    def changeBeamType(self, newType):
+        self.type = newType
