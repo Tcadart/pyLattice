@@ -232,6 +232,8 @@ def create_material(name_model,Material_Type,Material_Carac):
     mdb.models[name_model].materials[m.name].Elastic(table=((m.elastic[0], m.elastic[1]), ))
     if Material_Carac == 1 and Material_Type == 0:
         mdb.models[name_model].materials[m.name].Plastic(scaleStress=None, table=m.plastic)
+    elif Material_Carac == 1 and Material_Type == 4:
+        mdb.models[name_model].materials[m.name].Plastic(scaleStress=None, table=m.plastic)
     elif Material_Carac == 1 and Material_Type == 3:
         mdb.models[name_model].materials[m.name].Plastic(hardening=JOHNSON_COOK, 
             scaleStress=None, table=(m.plastic, ))
@@ -499,63 +501,7 @@ def createContactProperty(name_model,name_contact_prop,name_contact,name_step):
         stepName=name_step, assignments=((GLOBAL, SELF, name_contact_prop), ))
     #: The interaction "Surface to beam" has been created.
 
-def gradSettings(rule,direction,parameters,number_cell_X,number_cell_Y, number_cell_Z):
-    """
-    Generate gradient settings based on the provided rule, direction, and parameters.
 
-    :param rule: Gradient rule ('constant', 'linear', 'parabolic', 'sinusoide', 'exponential')
-    :param direction: Direction of gradient for each axis (list of 3 integers [X,Y,Z])
-    :param parameters: Gradient parameters for each axis (list of 3 floats [X,Y,Z])
-    :param number_cell_X: Number of cells along X axis (int)
-    :param number_cell_Y: Number of cells along Y axis (int)
-    :param number_cell_Z: Number of cells along Z axis (int)
-    :return: Generated gradient settings (list of lists)
-    """
-    def apply_rule(i, number_cell, dir_value, param_value, rule):
-        if i < number_cell:
-            if i >= 1 and dir_value == 1:
-                if rule == 'constant':
-                    return 1.0
-                elif rule == 'linear':
-                    return i * param_value
-                elif rule == 'parabolic':
-                    return i * param_value if i < number_cell / 2 else (number_cell - i - 1) * param_value
-                elif rule == 'sinusoide':
-                    if i < number_cell / 4:
-                        return i * parameters
-                    elif i < number_cell / 2:
-                        return (number_cell / 2 - i) * parameters
-                    elif i == number_cell / 2:
-                        return 1.0
-                    elif i < 3 / 4 * number_cell:
-                        return (3 / 4 * number_cell - i) * (1 / parameters)
-                elif rule == 'exponential':
-                    return math.exp(i * param_value)
-            return 1.0
-        return 0.0  
-
-    # Initialization matrix
-    max_cells = max(number_cell_X, number_cell_Y, number_cell_Z)
-    gradient = [[0.0, 0.0, 0.0] for _ in range(max_cells)]
-
-    # Processing multiple rules
-    for i in range(max_cells):
-        number_cells = [number_cell_X, number_cell_Y, number_cell_Z]
-        for dim_index in range(3):
-            gradient[i][dim_index] = apply_rule(i, number_cells[dim_index], direction[dim_index], parameters[dim_index], rule)
-    return gradient
-
-def gradMaterialSetting(Multimat,direction,number_cell_X,number_cell_Y, number_cell_Z):
-    if Multimat == 0: # Mono material
-        gradMat = [[[1 for X in range(number_cell_X)] for Y in range(number_cell_Y)] for Z in range(number_cell_Z)]
-    elif Multimat == 1: # Graded material
-        if direction == 1:
-            gradMat = [[[X for X in range(number_cell_X)] for Y in range(number_cell_Y)] for Z in range(number_cell_Z)]
-        if direction == 2:
-            gradMat = [[[Y for X in range(number_cell_X)] for Y in range(number_cell_Y)] for Z in range(number_cell_Z)]
-        if direction == 3:
-            gradMat = [[[Z for X in range(number_cell_X)] for Y in range(number_cell_Y)] for Z in range(number_cell_Z)]
-    return gradMat
 
 def delete_all_models():
     model_names = list(mdb.models.keys())
@@ -572,12 +518,12 @@ def delete_all_models():
 #*******************************************************************************************************************
 #*******************************************************************************************************************
 
-name_model = 'BCC_test_beamsansmod'
+name_model = 'BCC_beammod'
 name_Job = 'Job_1'
 name_Part = 'Lattice_Part'
 name_Assembly = 'Lattice_assembly'
 
-Radius = 0.5
+Radius = 1.5
 cell_size = 10
 cell_size_X = cell_size
 cell_size_Y = cell_size
@@ -627,7 +573,7 @@ AnalysisType = 1
 # 3 Compression BCC Solid Plastic Static
 compressionPourcent = 20
 
-MethodSim = 0
+MethodSim = 1
 # 0 No modification
 # 1 Node Modification
 
@@ -641,13 +587,14 @@ MethodSim = 0
 #*******************************************************************************************************************
 #*******************************************************************************************************************
 # Gradient properties
-gradDim = gradSettings(GradDimRule,GradDimDirection,GradDimParameters,number_cell_X,number_cell_Y, number_cell_Z) # sortir des floats
-gradRadius = gradSettings(GradRadRule,GradRadDirection,GradRadParameters,number_cell_X,number_cell_Y, number_cell_Z) # sortir des floats
-gradMat = gradMaterialSetting(Multimat,GradMaterialDirection,number_cell_X,number_cell_Y, number_cell_Z)
+gradDimProperty = [GradDimRule,GradDimDirection,GradDimParameters]
+gradRadiusProperty = [GradRadRule,GradRadDirection,GradRadParameters]
+gradMatProperty = [Multimat,GradMaterialDirection]
 
 
 #Generate data from lattice
-lattice = Lattice(cell_size_X,cell_size_Y,cell_size_Z, number_cell_X,number_cell_Y,number_cell_Z,Lattice_Type, Radius,gradRadius,gradDim,gradMat,MethodSim,False)
+lattice = Lattice(cell_size_X,cell_size_Y,cell_size_Z, number_cell_X,number_cell_Y,number_cell_Z,Lattice_Type,
+                  Radius,gradRadiusProperty,gradDimProperty,gradMatProperty,MethodSim,False)
 # Load vector
 displacementCompression = (lattice.zMax-lattice.zMin)*compressionPourcent/100
 load_vector = [0,0,-displacementCompression]

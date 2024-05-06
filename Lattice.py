@@ -648,7 +648,7 @@ class Lattice:
     def findMinimumBeamLength(self):
         minLength = 1000
         for index, beam in enumerate(self.beams_obj):
-            if beam.get_length()<minLength:
+            if beam.get_length()<minLength and beam.get_length()>0.0001 and (beam.type == 0 or beam.type == 2):
                 minLength = beam.get_length()
         return minLength
 
@@ -756,3 +756,33 @@ class Lattice:
             if node.x == self.xMin or node.x == self.xMax or node.y == self.yMin or node.y == self.yMax or node.z == self.zMin or node.z == self.zMax:
                 boundaryNodes.append(node)
         return boundaryNodes
+
+    def getName(self):
+        """
+        Determine name of the lattice
+
+        Returns:
+        ---------
+        name: string
+        """
+        nameList = [
+            "BCC",  # 0
+            "Octet",  # 1
+            "OctetExt",  # 2
+            "OctetInt",  # 3
+            "BCCZ",  # 4
+            "Cubic",  # 5
+            "OctahedronZ",  # 6
+            "OctahedronZcross",  # 7
+            "Kelvin",  # 8
+            "CubicV2",  # 9 (centered)
+            "CubicV3",  # 10
+            "CubicV4",  # 11
+            "NewlatticeUnknown",  # 12 GPT generated
+            "Diamond",  # 13
+            "Auxetic"  # 14
+        ]
+        self.name = nameList[self.latticeType]
+        if self.simMethod == 1:
+            self.name += "Mod"
+        return self.name
