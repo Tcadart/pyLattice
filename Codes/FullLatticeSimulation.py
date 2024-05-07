@@ -15,39 +15,18 @@
 
 # *******************************************************************************************************************
 # *******************************************************************************************************************
-from abaqus import *
+from Codes.abaqus import *
 from abaqusConstants import *
 import regionToolset
-import __main__
-import section
-import regionToolset
-import part
-import material
-import assembly
-import step
-import interaction
-import load
-import mesh
-import job
-import sketch
-import visualization
-import xyPlot
-import connectorBehavior
-import odbAccess
-from operator import add
 import sys
-import os
 
 sys.path.insert(8, r"D:/travail_Abaqus/MicroMechanics_v1.18/MicroMechanics")
-import microMechanics
-from microMechanics.mmpBackend import Interface
 from microMechanics.mmpBackend.mmpInterface.mmpRVEConstants import *
 from microMechanics.mmpBackend.mmpKernel.mmpLibrary import *
 from microMechanics.mmpBackend import mmpKernel as Kernel
 from odbAccess import openOdb
 
 import numpy as np
-import time
 from Lattice import *
 import re
 from Materials import *
@@ -365,7 +344,7 @@ def constructLatticeAbaqus(name_model,name_Part,name_Assembly,Lattice_Type,Metho
 
 def getReactionForce(name_Job):
     # Create file with all reaction force data
-    file_path = 'D:/travail_Abaqus/Lattice/abaqus.rpt'
+    file_path = '/abaqus.rpt'
     odb = session.odbs['D:/travail_Abaqus/Lattice/'+name_Job+'.odb']
     session.writeFieldReport(fileName=file_path, append=OFF, 
     sortItem='Node Label', odb=odb, step=0, frame=1, outputPosition=NODAL, 

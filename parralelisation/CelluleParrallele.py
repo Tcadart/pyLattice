@@ -1,7 +1,5 @@
-import matplotlib.pyplot as plt
-from mpl_toolkits.mplot3d import Axes3D
-from Point import *
-from Beam import *
+from Codes.Point import *
+from Codes.Beam import *
 import random
 import concurrent.futures
 

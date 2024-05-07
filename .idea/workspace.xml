@@ -4,12 +4,22 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="e3dc1a1d-8b4b-4101-aad1-b4f2b4f8d3a5" name="Changes" comment="Correction bug angle">
+    <list default="true" id="e3dc1a1d-8b4b-4101-aad1-b4f2b4f8d3a5" name="Changes" comment="Update">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/FullLatticeSimulation.py" beforeDir="false" afterPath="$PROJECT_DIR$/FullLatticeSimulation.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Lattice.py" beforeDir="false" afterPath="$PROJECT_DIR$/Lattice.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Materials.py" beforeDir="false" afterPath="$PROJECT_DIR$/Materials.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Save_result.py" beforeDir="false" afterPath="$PROJECT_DIR$/Save_result.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Beam.py" beforeDir="false" afterPath="$PROJECT_DIR$/Codes/Beam.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Cellule.py" beforeDir="false" afterPath="$PROJECT_DIR$/Codes/Cellule.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/FullLatticeSimulation.py" beforeDir="false" afterPath="$PROJECT_DIR$/Codes/FullLatticeSimulation.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Lattice.py" beforeDir="false" afterPath="$PROJECT_DIR$/Codes/Lattice.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Lattice_description.py" beforeDir="false" afterPath="$PROJECT_DIR$/Codes/Lattice_description.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Main.py" beforeDir="false" afterPath="$PROJECT_DIR$/Codes/Main.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Materials.py" beforeDir="false" afterPath="$PROJECT_DIR$/Codes/Materials.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Point.py" beforeDir="false" afterPath="$PROJECT_DIR$/Codes/Point.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Save_result.py" beforeDir="false" afterPath="$PROJECT_DIR$/Codes/Save_result.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/abaqus.py" beforeDir="false" afterPath="$PROJECT_DIR$/Codes/abaqus.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/abaqusMacros.py" beforeDir="false" afterPath="$PROJECT_DIR$/abaqusMacros.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/parralelisation/CelluleParrallele.py" beforeDir="false" afterPath="$PROJECT_DIR$/parralelisation/CelluleParrallele.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/parralelisation/latticeParralale.py" beforeDir="false" afterPath="$PROJECT_DIR$/parralelisation/latticeParralale.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/plot_result.py" beforeDir="false" afterPath="$PROJECT_DIR$/Codes/plot_result.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -60,6 +70,9 @@
     <key name="CopyFile.RECENT_KEYS">
       <recent name="D:\travail_Abaqus\Lattice" />
     </key>
+    <key name="MoveFile.RECENT_KEYS">
+      <recent name="D:\travail_Abaqus\Lattice\Codes" />
+    </key>
   </component>
   <component name="RunManager">
     <configuration name="Main" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
@@ -75,7 +88,7 @@
       <option name="ADD_CONTENT_ROOTS" value="true" />
       <option name="ADD_SOURCE_ROOTS" value="true" />
       <EXTENSION ID="PythonCoverageRunConfigurationExtension" runner="coverage.py" />
-      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/Main.py" />
+      <option name="SCRIPT_NAME" value="D:\travail_Abaqus\Lattice\Codes\Main.py" />
       <option name="PARAMETERS" value="" />
       <option name="SHOW_COMMAND_LINE" value="false" />
       <option name="EMULATE_TERMINAL" value="false" />
@@ -138,7 +151,7 @@
       <workItem from="1714054548631" duration="3310000" />
       <workItem from="1714135469000" duration="9751000" />
       <workItem from="1714655380978" duration="1191000" />
-      <workItem from="1714977880642" duration="1784000" />
+      <workItem from="1714977880642" duration="3073000" />
     </task>
     <task id="LOCAL-00001" summary="Modiff récuperation result">
       <option name="closed" value="true" />
@@ -172,7 +185,15 @@
       <option name="project" value="LOCAL" />
       <updated>1713425715682</updated>
     </task>
-    <option name="localTasksCounter" value="5" />
+    <task id="LOCAL-00005" summary="Update">
+      <option name="closed" value="true" />
+      <created>1715002532960</created>
+      <option name="number" value="00005" />
+      <option name="presentableId" value="LOCAL-00005" />
+      <option name="project" value="LOCAL" />
+      <updated>1715002532960</updated>
+    </task>
+    <option name="localTasksCounter" value="6" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -214,7 +235,8 @@
     <MESSAGE value="Add normalized tag" />
     <MESSAGE value="Add gradient inside lattice class" />
     <MESSAGE value="Bug angle" />
-    <option name="LAST_COMMIT_MESSAGE" value="Bug angle" />
+    <MESSAGE value="Update" />
+    <option name="LAST_COMMIT_MESSAGE" value="Update" />
   </component>
   <component name="WfRunsListSearchHistory"><![CDATA[{
   "history": [
