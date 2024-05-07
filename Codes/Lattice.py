@@ -8,7 +8,9 @@ class Lattice:
     """
     Represents a lattice structures with a lot of different types of properties.
     """
-    def __init__(self, cell_size_x, cell_size_y, cell_size_z, num_cells_x, num_cells_y, num_cells_z, Lattice_Type, Radius,gradRadiusProperty,gradDimProperty,gradMatProperty,simMethod,uncertaintyNode):
+    def __init__(self, cell_size_x, cell_size_y, cell_size_z, num_cells_x, num_cells_y, num_cells_z, Lattice_Type,
+                 Radius,gradRadiusProperty,gradDimProperty,gradMatProperty,simMethod,uncertaintyNode,
+                 hybridLatticeData):
         """
         Constructor for the Lattice class.
 
@@ -41,6 +43,7 @@ class Lattice:
         self.sizeY = self.getSize(1)
         self.sizeZ = self.getSize(2)
         self.uncertaintyNode = uncertaintyNode
+        self.hybridLatticeData = hybridLatticeData
 
         self.cells = []
         self.angles = []
@@ -53,12 +56,11 @@ class Lattice:
         self.beams_obj = []
         self.posCell = []
         self.toucanModifier = []
-        if self.latticeType != -2:
-            self.generate_custom_lattice()
-        else:
-            self.generate_random_lattice()
+        self.generate_custom_lattice()
         self.getNodesObj()
         self.getBeamsObj()
+        if self.latticeType == 1000:
+            self.checkHybridCollision()
         self.Getangle()
         if self.simMethod == 1:
             self.getBeamNodeMod()
@@ -247,38 +249,6 @@ class Lattice:
         return gradMat
 
 
-    def generate_random_lattice(self):
-        """
-        Generates a random lattice.
-        """
-        xCellStart = 0
-        yCellStart = 0
-        zCellStart = 0
-        self.cells = []
-        for i in range(self.numCellsX):
-            if i != 0:
-                xCellStart += self.cellSizeX * self.gradDim[posCell[0]][0]
-            else:
-                xCellStart = 0
-            for j in range(self.numCellsY):
-                if j != 0:
-                    yCellStart += self.cellSizeY * self.gradDim[posCell[1]][1]
-                else:
-                    yCellStart = 0
-                for k in range(self.numCellsZ):
-                    if k != 0:
-                        zCellStart += self.cellSizeZ * self.gradDim[posCell[2]][2]
-                    else:
-                        zCellStart = 0
-                    posCell = [i,j,k]
-                    cellSizeX = self.cellSizeX * self.gradDim[posCell[0]][0]
-                    cellSizeY = self.cellSizeY * self.gradDim[posCell[1]][1]
-                    cellSizeZ = self.cellSizeZ * self.gradDim[posCell[2]][2]
-                    new_cell = Cellule(cellSizeX, cellSizeY, cellSizeZ, xCellStart, yCellStart, zCellStart)
-                    new_cell.generate_beams_random(self.Radius, self.gradRadius, self.gradDim, self.gradMat, posCell)
-                    self.cells.append(new_cell)
-                    self.posCell.append([i,j,k])
-        return self.cells, self.posCell
     
     def generate_custom_lattice(self):
         """
@@ -310,7 +280,19 @@ class Lattice:
                     cellSizeY = self.cellSizeY * self.gradDim[posCell[1]][1]
                     cellSizeZ = self.cellSizeZ * self.gradDim[posCell[2]][2]
                     new_cell = Cellule(cellSizeX, cellSizeY, cellSizeZ, xCellStart, yCellStart, zCellStart)
-                    new_cell.generate_beams_from_given_point_list(self.latticeType, self.Radius, self.gradRadius, self.gradDim, self.gradMat, posCell)
+                    if self.latticeType != -2 and self.latticeType < 1000:
+                        new_cell.generate_beams_from_given_point_list(self.latticeType, self.Radius, self.gradRadius, self.gradDim, self.gradMat, posCell)
+                    elif self.latticeType == 1000:
+                        latticeHybridType = [0,16,17]
+                        for idx, radiusHybrid in enumerate(self.hybridLatticeData):
+                            new_cell.generate_beams_from_given_point_list(latticeHybridType[idx], radiusHybrid,
+                                                                          self.gradRadius, self.gradDim, self.gradMat, posCell)
+                            if idx < 2:
+                                self.cells.append(new_cell)
+                                self.posCell.append([i, j, k])
+                                new_cell = Cellule(cellSizeX, cellSizeY, cellSizeZ, xCellStart, yCellStart, zCellStart)
+                    else:
+                        new_cell.generate_beams_random(self.Radius, self.gradRadius, self.gradDim, self.gradMat, posCell)
                     self.cells.append(new_cell)
                     self.posCell.append([i,j,k])
         return self.cells, self.posCell
@@ -608,7 +590,7 @@ class Lattice:
         return lengthMod
 
 
-    def remove_cell(self, index):
+    def removeCell(self, index):
         """
         Removes a cell from the lattice.
 
@@ -619,6 +601,30 @@ class Lattice:
             del self.cells[index]
         else:
             raise IndexError("Invalid cell index.")
+
+    def removeBeam(self, index):
+        """
+        Removes a beam from the lattice.
+
+        :param index: integer
+        :raises IndexError: if index is out of bounds
+        """
+        if 0 <= index < len(self.beams_obj):
+            del self.beams_obj[index]
+        else:
+            raise IndexError("Invalid beam index.")
+
+    def removeNode(self, index):
+        """
+        Removes a node from the lattice.
+
+        :param index: integer
+        :raises IndexError: if index is out of bounds
+        """
+        if 0 <= index < len(self.nodes_obj):
+            del self.nodes_obj[index]
+        else:
+            raise IndexError("Invalid node index.")
 
     def getCenterCells(self):
         self._centerCell = []
@@ -786,3 +792,38 @@ class Lattice:
         if self.simMethod == 1:
             self.name += "Mod"
         return self.name
+
+    def checkHybridCollision(self):
+        for idxnode, node in enumerate(self.nodes_obj):
+            for idxbeam, beam in enumerate(self.beams_obj):
+                if self.isPointOnLine(beam.point1,beam.point2,node):
+                    self.removeBeam(idxbeam)
+                    beam1= Beam(beam.point1, node, self.Radius, self.cellSizeX, self.cellSizeY, self.cellSizeZ,
+                                self.gradRadius, self.gradMat,[0,0,0],0)
+                    self.beams_obj.append(beam1)
+                    beam2 = Beam(beam.point2, node, self.Radius, self.cellSizeX, self.cellSizeY, self.cellSizeZ,
+                                 self.gradRadius, self.gradMat, [0,0,0], 0)
+                    self.beams_obj.append(beam2)
+
+    def isPointOnLine(self, point1, point2, node):
+        # Calcul des vecteurs
+        vector1 = (point2.x - point1.x, point2.y - point1.y, point2.z - point1.z)
+        vector2 = (node.x - point1.x, node.y - point1.y, node.z - point1.z)
+
+        if (node.x == point1.x and node.y == point1.y and node.z == point1.z) or (node.x == point2.x and node.y == point2.y and node.z == point2.z):
+            return False
+        # Calcul du produit vectoriel pour vérifier la colinéarité
+        cross_product = (
+            vector1[1] * vector2[2] - vector1[2] * vector2[1],
+            vector1[2] * vector2[0] - vector1[0] * vector2[2],
+            vector1[0] * vector2[1] - vector1[1] * vector2[0]
+        )
+
+        # Si le produit vectoriel est (0,0,0), les vecteurs sont colinéaires
+        if cross_product == (0, 0, 0):
+            # Vérifie si le point node est entre point1 et point2
+            dot_product = (vector2[0] * vector1[0] + vector2[1] * vector1[1] + vector2[2] * vector1[2])
+            vector1_length_squared = (vector1[0] ** 2 + vector1[1] ** 2 + vector1[2] ** 2)
+            return 0 <= dot_product <= vector1_length_squared
+        else:
+            return False

@@ -1,3 +1,4 @@
+import numpy as np
 class Point:
     def __init__(self, x, y, z):
         self.x = x
@@ -10,3 +11,5 @@ class Point:
     def __hash__(self):
         return hash((self.x, self.y, self.z))
 
+    def __sub__(self, other):
+        return np.array([self.x - other.x, self.y - other.y, self.z - other.z])
