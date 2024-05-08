@@ -184,7 +184,7 @@ AnalysisType = 0
 # 0 Modelisation lattice only
 # 1 Compression Z
 
-MethodSim = 1
+MethodSim = 0
 # 0 No modification
 # 1 Node Modification
 
@@ -202,9 +202,11 @@ gradDimProperty = [GradDimRule,GradDimDirection,GradDimParameters]
 gradRadiusProperty = [GradRadRule,GradRadDirection,GradRadParameters]
 gradMatProperty = [Multimat,GradMaterialDirection]
 
-
+hybridLatticeData = [0.1,0.2,0.3]
 #Generate data from lattice
-lattice = Lattice(cell_size_X,cell_size_Y,cell_size_Z, number_cell_X,number_cell_Y,number_cell_Z,Lattice_Type, Radius,gradRadiusProperty,gradDimProperty,gradMatProperty,MethodSim,uncertaintyNode)
-
+# lattice = Lattice(cell_size_X,cell_size_Y,cell_size_Z, number_cell_X,number_cell_Y,number_cell_Z,Lattice_Type,
+#                   Radius,gradRadiusProperty,gradDimProperty,gradMatProperty,MethodSim,uncertaintyNode,hybridLatticeData)
+lattice = Lattice.hybridgeometry(cell_size_X, cell_size_Y,cell_size_Z, MethodSim,uncertaintyNode,hybridLatticeData)
+# lattice = Lattice.simpleLattice(cell_size_X,cell_size_Y,cell_size_Z, number_cell_X,number_cell_Y,number_cell_Z,Lattice_Type,Radius)
 # display_only_cell_random()
 display_only_lattice()

@@ -43,8 +43,8 @@ def get_result(name_Job, name_step):
                 pass
     return dataRF, dataU, dataTime
 
-def save_result(Lattice_Type, number_cell, AnalysisType, MethodSim, dataRF, dataU, dataTime):
-    Radius = "0_5"
+def save_result(Lattice_Type, number_cell, AnalysisType, MethodSim, dataRF, dataU, dataTime, Radius):
+    Radius = str(Radius).replace('.', '_')
     filename = Type_lattice(Lattice_Type)+"_"+str(number_cell)+str(AnalysisType)+str(MethodSim)+Radius+".txt"
     print(filename)
     with open(filename, "w") as f:
@@ -57,13 +57,13 @@ def save_result(Lattice_Type, number_cell, AnalysisType, MethodSim, dataRF, data
         time_data_str = np.array2string(np.array(dataTime), separator=',')
         f.write(time_data_str + "\n")
 
-name_Job = 'Job-beamsansmod'
-# name_Job = 'Job_1'
+# name_Job = 'Job-beammod'
+name_Job = 'Job-1'
 # name_Job = "Job-1_5"
 # name_Job = "Job-1_5mod"
-name_Job = "Job-0_5"
-# name_Job = "Job-0_5beam"
-name_Job = 'BCC_R1_modMid'
+# name_Job = "Job-0_5"
+# # name_Job = "Job-0_5beam"
+# name_Job = 'BCC_R1_modMid'
 name_step = 'Step-1'
 dataRF, dataU, dataTime = get_result(name_Job,name_step)
-save_result(0, 6, 1, 1, dataRF, dataU, dataTime)
+save_result(0, 6, 1, 1, dataRF, dataU, dataTime, 1.5)
