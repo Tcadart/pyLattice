@@ -129,6 +129,7 @@ class Lattice:
         GradDimDirection = [1, 0, 0]
         GradDimParameters = [0.0, 0.0, 0.0]
         GradRadRule = 'constant'
+        GradRadRule = 'constant'
         GradRadDirection = [1, 0, 0]
         GradRadParameters = [0.0, 0.0, 0.0]
         Multimat = 0
