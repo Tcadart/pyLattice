@@ -653,6 +653,8 @@ class Cellule:
             return Hybrid1
         if (Lattice == 17):
             return Hybrid2
+        if (Lattice == 1000):
+            return np.concatenate((BCC,Hybrid1,Hybrid2))
         
 
 

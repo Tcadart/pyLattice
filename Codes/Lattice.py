@@ -91,6 +91,8 @@ class Lattice:
         if self.latticeType == 1000:
             self.checkHybridCollision()
         self.Getangle()
+
+        # Case of penalization at beam near nodes
         if self.simMethod == 1:
             self.getBeamNodeMod()
 
@@ -328,8 +330,10 @@ class Lattice:
                     cellSizeY = self.cellSizeY * self.gradDim[posCell[1]][1]
                     cellSizeZ = self.cellSizeZ * self.gradDim[posCell[2]][2]
                     new_cell = Cellule(cellSizeX, cellSizeY, cellSizeZ, xCellStart, yCellStart, zCellStart)
+                    # Case for normal lattice structures
                     if self.latticeType != -2 and self.latticeType < 1000:
                         new_cell.generate_beams_from_given_point_list(self.latticeType, self.Radius, self.gradRadius, self.gradDim, self.gradMat, posCell)
+                    # Case for hybrid lattice on 1 cell
                     elif self.latticeType == 1000:
                         latticeHybridType = [0,16,17]
                         for idx, radiusHybrid in enumerate(self.hybridLatticeData):
@@ -341,6 +345,7 @@ class Lattice:
                                 self.cells.append(new_cell)
                                 self.posCell.append([i, j, k])
                                 new_cell = Cellule(cellSizeX, cellSizeY, cellSizeZ, xCellStart, yCellStart, zCellStart)
+                    # Case for randomized lattice
                     else:
                         new_cell.generate_beams_random(self.Radius, self.gradRadius, self.gradDim, self.gradMat, posCell)
                     self.cells.append(new_cell)
@@ -525,10 +530,20 @@ class Lattice:
             non_zero_radiusbeam = [radius for angle, radius in zip(anglebeam, radiusBeam) if angle >= 0.01]
             return non_zero_anglebeam,non_zero_radiusbeam
 
-        def findMinAngle(non_zero_anglebeam,non_zero_radiusbeam):
-            minAngle = min(non_zero_anglebeam)
-            minRad = min(non_zero_radiusbeam)
-            return minAngle,minRad
+        def findMinAngle(angles,radii):
+            """
+            Find Minimum angle between beams and radius connection to this particular beam
+            """
+            LValues = []
+            for radius, angle in zip(radii, angles):
+                L = self.functionPenalizationLzone(radius, angle)
+                LValues.append(L)
+            maxLValue = max(LValues)
+            minLIndex = LValues.index(maxLValue)
+            minAngle = min(angles)
+            radConnexionAngle = angles.index(minAngle)
+            RadConnexionAngleData = radii[radConnexionAngle]
+            return minAngle,RadConnexionAngleData
         
         for index, beam in enumerate(self.beams_obj):
             point1beams = []
@@ -546,11 +561,12 @@ class Lattice:
             # Determine angle for all beams connected at the node
             non_zero_anglebeam1,non_zero_radiusbeam1 = getAngleBeam(pointIdx1,pointIdx2,point1beams)
             non_zero_anglebeam2,non_zero_radiusbeam2 = getAngleBeam(pointIdx2,pointIdx1,point2beams)
-            
             # Find the lowest angle
-            minAngle1,minRad1 = findMinAngle(non_zero_anglebeam1,non_zero_radiusbeam1)
-            minAngle2,minRad2 = findMinAngle(non_zero_anglebeam2,non_zero_radiusbeam2)
-            self.angles.append((index, round(minAngle1,2), minRad1, round(minAngle2,2), minRad2))
+            minAngle1,RadConnexion1 = findMinAngle(non_zero_anglebeam1,non_zero_radiusbeam1)
+            maxRad1 = max([RadConnexion1,beam.radius])
+            minAngle2,RadConnexion2 = findMinAngle(non_zero_anglebeam2,non_zero_radiusbeam2)
+            maxRad2 = max([RadConnexion2, beam.radius])
+            self.angles.append((index, round(minAngle1,2), maxRad1, round(minAngle2,2), maxRad2))
 
         return self.angles
 
@@ -585,8 +601,8 @@ class Lattice:
         nbBeam: integer
             Number of beams in the lattice cell
         """
-        nbBeam = len(Cellule.Lattice_geometry(self.cells[0],self.latticeType))
-        return nbBeam
+        self.nbBeam = len(Cellule.Lattice_geometry(self.cells[0],self.latticeType))
+        return self.nbBeam
     
     def getBeamNodeMod(self):
         """
@@ -609,15 +625,24 @@ class Lattice:
         lengthMod = self.getLengthMod()
         beamMod = []
         indexCell = -1
+        self.getNbBeamCell()
         for index, beam in enumerate(self.beams_obj):
-            if index%(self.getNbBeamCell()) == 0:
+            if index%(self.nbBeam) == 0:
                 indexCell = indexCell+1
             pointExt1Obj = findPointMod(beam.point1,beam.point2, lengthMod[index][1])
             pointExt2Obj = findPointMod(beam.point2,beam.point1, lengthMod[index][2])
 
-            beamExt1 = Beam(beam.point1, pointExt1Obj, self.Radius * 1.5, self.cellSizeX, self.cellSizeY, self.cellSizeZ, self.gradRadius, self.gradMat, self.posCell[indexCell], 1)
-            beamCenter = Beam(pointExt1Obj, pointExt2Obj, self.Radius, self.cellSizeX, self.cellSizeY, self.cellSizeZ, self.gradRadius, self.gradMat, self.posCell[indexCell], 0)
-            beamExt2 = Beam(pointExt2Obj, beam.point2, self.Radius * 1.5, self.cellSizeX, self.cellSizeY, self.cellSizeZ, self.gradRadius, self.gradMat, self.posCell[indexCell], 1)
+            if beam.type == 0:
+                typeBeam = [1,0,1]
+            else:
+                typeBeam = [beam.type+100,beam.type,beam.type+100]
+
+            beamExt1 = Beam(beam.point1, pointExt1Obj, beam.radius * 1.5, self.cellSizeX, self.cellSizeY,
+                            self.cellSizeZ, self.gradRadius, self.gradMat, self.posCell[indexCell], typeBeam[0])
+            beamCenter = Beam(pointExt1Obj, pointExt2Obj, beam.radius, self.cellSizeX, self.cellSizeY,
+                              self.cellSizeZ, self.gradRadius, self.gradMat, self.posCell[indexCell], typeBeam[1])
+            beamExt2 = Beam(pointExt2Obj, beam.point2, beam.radius * 1.5, self.cellSizeX, self.cellSizeY,
+                            self.cellSizeZ, self.gradRadius, self.gradMat, self.posCell[indexCell], typeBeam[2])
 
             self.nodes_obj.append(pointExt1Obj)
             self.nodes_obj.append(pointExt2Obj)
@@ -625,6 +650,10 @@ class Lattice:
             beamMod.append(beamExt2)
             beamMod.append(beamCenter)
         self.beams_obj = beamMod
+
+    def functionPenalizationLzone(self, radius, angle):
+        L = radius / math.tan(math.radians(angle) / 2)
+        return L
 
     def getLengthMod(self):
         """
@@ -638,7 +667,7 @@ class Lattice:
             if angle > 170:
                 L = 0.0001
             else:
-                L = radius / math.tan(math.radians(angle) / 2)
+                L = self.functionPenalizationLzone(radius, angle)
             return L
 
         lengthMod = []
@@ -887,10 +916,10 @@ class Lattice:
                 if self.isPointOnLine(beam.point1,beam.point2,node):
                     typeBeamToRemove = beam.type # Get beam to remove type to apply in new separated beams
                     self.removeBeam(idxbeam)
-                    beam1= Beam(beam.point1, node, self.Radius, self.cellSizeX, self.cellSizeY, self.cellSizeZ,
+                    beam1= Beam(beam.point1, node, beam.radius, self.cellSizeX, self.cellSizeY, self.cellSizeZ,
                                 self.gradRadius, self.gradMat,[0,0,0],typeBeamToRemove)
                     self.beams_obj.append(beam1)
-                    beam2 = Beam(beam.point2, node, self.Radius, self.cellSizeX, self.cellSizeY, self.cellSizeZ,
+                    beam2 = Beam(beam.point2, node, beam.radius, self.cellSizeX, self.cellSizeY, self.cellSizeZ,
                                  self.gradRadius, self.gradMat, [0,0,0], typeBeamToRemove)
                     self.beams_obj.append(beam2)
 
