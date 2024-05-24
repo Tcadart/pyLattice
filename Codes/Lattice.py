@@ -55,7 +55,7 @@ class Lattice:
             Control if adding uncertainties on node position
         hybridLatticeData: array of 3 integer [RadiusOfGeometry1,RadiusOfGeometry2,RadiusOfGeometry3]
             Data of radius of each geometry on the hybrid lattice
-        """        
+        """
         self.cellSizeX = cell_size_x
         self.cellSizeY = cell_size_y
         self.cellSizeZ = cell_size_z
@@ -95,7 +95,7 @@ class Lattice:
             self.getBeamNodeMod()
 
         self.extremumFunction()
-        self.findBoundaryBeams()
+        # self.findBoundaryBeams()
 
         # Get some data about lattice structures
         self.getNodeData()
@@ -335,7 +335,9 @@ class Lattice:
                         for idx, radiusHybrid in enumerate(self.hybridLatticeData):
                             new_cell.generate_beams_from_given_point_list(latticeHybridType[idx], radiusHybrid,
                                                                           self.gradRadius, self.gradDim, self.gradMat, posCell)
-                            if idx < 2:
+                            for beam in new_cell.beams:
+                                beam.changeBeamType(idx+100)
+                            if idx < len(self.hybridLatticeData)-1:
                                 self.cells.append(new_cell)
                                 self.posCell.append([i, j, k])
                                 new_cell = Cellule(cellSizeX, cellSizeY, cellSizeZ, xCellStart, yCellStart, zCellStart)
@@ -883,12 +885,13 @@ class Lattice:
         for idxnode, node in enumerate(self.nodes_obj):
             for idxbeam, beam in enumerate(self.beams_obj):
                 if self.isPointOnLine(beam.point1,beam.point2,node):
+                    typeBeamToRemove = beam.type # Get beam to remove type to apply in new separated beams
                     self.removeBeam(idxbeam)
                     beam1= Beam(beam.point1, node, self.Radius, self.cellSizeX, self.cellSizeY, self.cellSizeZ,
-                                self.gradRadius, self.gradMat,[0,0,0],0)
+                                self.gradRadius, self.gradMat,[0,0,0],typeBeamToRemove)
                     self.beams_obj.append(beam1)
                     beam2 = Beam(beam.point2, node, self.Radius, self.cellSizeX, self.cellSizeY, self.cellSizeZ,
-                                 self.gradRadius, self.gradMat, [0,0,0], 0)
+                                 self.gradRadius, self.gradMat, [0,0,0], typeBeamToRemove)
                     self.beams_obj.append(beam2)
 
     def isPointOnLine(self, point1, point2, node):
