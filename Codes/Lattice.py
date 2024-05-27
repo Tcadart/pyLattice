@@ -1,6 +1,8 @@
 from Cellule import *
 import math
 import random
+import torch
+from torch_geometric.data import Data
 
 
 
@@ -88,8 +90,9 @@ class Lattice:
         self.generate_custom_lattice()
         self.getNodesObj()
         self.getBeamsObj()
-        if self.latticeType == 1000:
+        if self.latticeType == 1000: # case for hybrid lattice structures
             self.checkHybridCollision()
+            self.LatticeToPyGeometricData()
         self.Getangle()
 
         # Case of penalization at beam near nodes
@@ -127,6 +130,29 @@ class Lattice:
     @classmethod
     def hybridgeometry(cls, cell_size_x, cell_size_y, cell_size_z,simMethod,uncertaintyNode,hybridLatticeData):
         # Define Default gradient properties
+        GradDimRule = 'constant'
+        GradDimDirection = [1, 0, 0]
+        GradDimParameters = [0.0, 0.0, 0.0]
+        GradRadRule = 'constant'
+        GradRadDirection = [1, 0, 0]
+        GradRadParameters = [0.0, 0.0, 0.0]
+        Multimat = 0
+        GradMaterialDirection = 1
+        gradDimProperty = [GradDimRule, GradDimDirection, GradDimParameters]
+        gradRadiusProperty = [GradRadRule, GradRadDirection, GradRadParameters]
+        gradMatProperty = [Multimat, GradMaterialDirection]
+        return cls(cell_size_x, cell_size_y, cell_size_z, 1, 1, 1, 1000,
+                 1,gradRadiusProperty,gradDimProperty,gradMatProperty,simMethod,uncertaintyNode,
+                 hybridLatticeData)
+
+    @classmethod
+    def latticeHybridForGraph(cls, hybridLatticeData):
+        # Define Default gradient properties
+        cell_size_x = 1
+        cell_size_y = 1
+        cell_size_z = 1
+        simMethod = 0
+        uncertaintyNode = 0
         GradDimRule = 'constant'
         GradDimDirection = [1, 0, 0]
         GradDimParameters = [0.0, 0.0, 0.0]
@@ -380,6 +406,7 @@ class Lattice:
         Retrieves node data for the lattice.
         data structure : each line represent a node with data [indexNode, X, Y, Z]
         """
+        self._nodes = []
         for index, point in enumerate(self.nodes_obj):
             self._nodes.append([index, point.x, point.y, point.z])
     
@@ -388,6 +415,7 @@ class Lattice:
         Retrieves beam data for the lattice.
         data structure: each line represent a beam with data [beamIndex, IndexPoint1, IndexPoint2, beamType]
         """
+        self._beams = []
         for index, beam in enumerate(self.beams_obj):
             self._beams.append([index, self.getPointIndex(beam.point1), self.getPointIndex(beam.point2),beam.type])
 
@@ -563,10 +591,8 @@ class Lattice:
             non_zero_anglebeam2,non_zero_radiusbeam2 = getAngleBeam(pointIdx2,pointIdx1,point2beams)
             # Find the lowest angle
             minAngle1,RadConnexion1 = findMinAngle(non_zero_anglebeam1,non_zero_radiusbeam1)
-            maxRad1 = max([RadConnexion1,beam.radius])
             minAngle2,RadConnexion2 = findMinAngle(non_zero_anglebeam2,non_zero_radiusbeam2)
-            maxRad2 = max([RadConnexion2, beam.radius])
-            self.angles.append((index, round(minAngle1,2), maxRad1, round(minAngle2,2), maxRad2))
+            self.angles.append((index, round(minAngle1,2), RadConnexion1, round(minAngle2,2), RadConnexion2))
 
         return self.angles
 
@@ -948,3 +974,44 @@ class Lattice:
             return 0 <= dot_product <= vector1_length_squared
         else:
             return False
+
+    def LatticeToPyGeometricData(self):
+        """
+        Convert lattice data to PyTorch Geometric Data
+
+        Return:
+        ---------
+        self.dataPyGeometric: Object Data Pytorch
+            Data(x=x, edge_index=edge_index, edge_attr=edge_attr)
+        """
+        self.getNodeData()
+        self.getBeamData()
+        # Create tensor for pytorch
+        # Node position
+        x = torch.tensor([node[1:] for node in self._nodes], dtype=torch.float)
+        # Beam connexion
+        edge_index = torch.tensor([[beam[1], beam[2]] for beam in self._beams], dtype=torch.long).t().contiguous()
+        # Beam features (Radius)
+        edge_attr = torch.tensor([beam.radius for beam in self.beams_obj], dtype=torch.float)
+
+        # Create Data object for PyTorch
+        self.dataPyGeometric = Data(x=x, edge_index=edge_index, edge_attr=edge_attr)
+        return self.dataPyGeometric
+
+    def changeHybridData(self, hybridRadiusData):
+        """
+        Change radius data of the hybrid lattice to efficiently generate graph from training neural network
+
+        Parameters:
+        ------------
+        hybridRadiusData: array of dim 3
+            Array of radius data of hybrid lattice
+        """
+        radiusDict = {
+            100: hybridRadiusData[0],
+            101: hybridRadiusData[1],
+            102: hybridRadiusData[2],
+        }
+        for beam in self.beams_obj:
+            if beam.type in radiusDict:
+                beam.radius = radiusDict[beam.type]

@@ -19,7 +19,7 @@ class Beam:
         """
         self.point1 = point1
         self.point2 = point2
-        self.Radius = Radius
+        self.radius = Radius
         self.cell_size_x = cell_size_x
         self.cell_size_y = cell_size_y
         self.cell_size_z = cell_size_z
@@ -69,7 +69,8 @@ class Beam:
 
         :return: Calculated beam radius
         """
-        return self.Radius * self.gradRadius[self.posCell[0]][0] * self.gradRadius[self.posCell[1]][1] * self.gradRadius[self.posCell[2]][2]
+        return (self.radius * self.gradRadius[self.posCell[0]][0] * self.gradRadius[self.posCell[1]][1] *
+                self.gradRadius[self.posCell[2]][2])
 
     def setBeamMaterial(self):
         """
