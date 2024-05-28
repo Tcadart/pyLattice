@@ -207,8 +207,8 @@ hybridLatticeData = [0.05,0.02,0.01]
 # lattice = Lattice(cell_size_X,cell_size_Y,cell_size_Z, number_cell_X,number_cell_Y,number_cell_Z,Lattice_Type,
 #                   Radius,gradRadiusProperty,gradDimProperty,gradMatProperty,MethodSim,uncertaintyNode,hybridLatticeData)
 lattice = Lattice.hybridgeometry(cell_size_X, cell_size_Y,cell_size_Z, MethodSim,uncertaintyNode,hybridLatticeData)
-print(lattice.dataPyGeometric)
-lattice.changeHybridData([0.1,0.2,0.3])
+
+
 # lattice = Lattice.simpleLattice(cell_size_X,cell_size_Y,cell_size_Z, number_cell_X,number_cell_Y,number_cell_Z,Lattice_Type,Radius)
 # display_only_cell_random()
 display_only_lattice()

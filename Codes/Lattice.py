@@ -10,9 +10,12 @@ class Lattice:
     """
     Generate lattice structures with parameters
     """
-    def __init__(self, cell_size_x, cell_size_y, cell_size_z, num_cells_x, num_cells_y, num_cells_z, Lattice_Type,
-                 Radius,gradRadiusProperty,gradDimProperty,gradMatProperty,simMethod = 0,uncertaintyNode = 0,
-                 hybridLatticeData = None):
+    def __init__(self, cell_size_x: float, cell_size_y: float, cell_size_z: float,
+                 num_cells_x: int, num_cells_y: int, num_cells_z: int,
+                 Lattice_Type: int, Radius: float,
+                 gradRadiusProperty, gradDimProperty, gradMatProperty,
+                 simMethod: int = 0, uncertaintyNode: int = 0,
+                 hybridLatticeData = None, periodicity: bool = 0):
         """
         Constructor general for the Lattice class.
 
@@ -57,6 +60,8 @@ class Lattice:
             Control if adding uncertainties on node position
         hybridLatticeData: array of 3 integer [RadiusOfGeometry1,RadiusOfGeometry2,RadiusOfGeometry3]
             Data of radius of each geometry on the hybrid lattice
+        periodicity: boolean (0: off / 1: on)
+            Applying periodicity on the outer box of the lattice structure to calculate penalization method
         """
         self.cellSizeX = cell_size_x
         self.cellSizeY = cell_size_y
@@ -75,6 +80,7 @@ class Lattice:
         self.sizeZ = self.getSize(2)
         self.uncertaintyNode = uncertaintyNode
         self.hybridLatticeData = hybridLatticeData
+        self.periodicity = periodicity # Not finish to implemented
 
         self.cells = []
         self.angles = []
@@ -90,6 +96,8 @@ class Lattice:
         self.generate_custom_lattice()
         self.getNodesObj()
         self.getBeamsObj()
+
+        self.extremumFunction()
         if self.latticeType == 1000: # case for hybrid lattice structures
             self.checkHybridCollision()
             self.LatticeToPyGeometricData()
@@ -99,7 +107,6 @@ class Lattice:
         if self.simMethod == 1:
             self.getBeamNodeMod()
 
-        self.extremumFunction()
         # self.findBoundaryBeams()
 
         # Get some data about lattice structures
@@ -143,7 +150,7 @@ class Lattice:
         gradMatProperty = [Multimat, GradMaterialDirection]
         return cls(cell_size_x, cell_size_y, cell_size_z, 1, 1, 1, 1000,
                  1,gradRadiusProperty,gradDimProperty,gradMatProperty,simMethod,uncertaintyNode,
-                 hybridLatticeData)
+                 hybridLatticeData, periodicity=1)
 
     @classmethod
     def latticeHybridForGraph(cls, hybridLatticeData):
@@ -538,6 +545,25 @@ class Lattice:
             return angle_deg
 
         def getAngleBeam(pointIdx1,pointIdx2,pointbeams):
+            """
+            Calculate angle between the considerate beam form by pointIdx1 and pointIdx2 and other attached beam
+            contain in pointbeams
+
+            Parameters:
+            -----------
+            pointIdx1: Point object
+            pointIdx2: Point object
+                Point 1 and 2 of the considered beam
+            pointbeams: list of Beam object
+                List of beam to calculate angle with considered beam
+
+            Return:
+            ---------
+            non_zero_anglebeam: list of angle between considered beam and pointbeams beam list
+            non_zero_radiusbeam: list of radius between considered beam and pointbeams beam list
+
+            Special case when pointbeams is empty return max angle to minimize penalization zone
+            """
             anglebeam = []
             radiusBeam = []
             u = [pointIdx2.x - pointIdx1.x, pointIdx2.y - pointIdx1.y, pointIdx2.z - pointIdx1.z]
@@ -562,12 +588,6 @@ class Lattice:
             """
             Find Minimum angle between beams and radius connection to this particular beam
             """
-            LValues = []
-            for radius, angle in zip(radii, angles):
-                L = self.functionPenalizationLzone(radius, angle)
-                LValues.append(L)
-            maxLValue = max(LValues)
-            minLIndex = LValues.index(maxLValue)
             minAngle = min(angles)
             radConnexionAngle = angles.index(minAngle)
             RadConnexionAngleData = radii[radConnexionAngle]
@@ -585,6 +605,26 @@ class Lattice:
                     point1beams.append(beamidx)
                 if pointIdx2 in (beamidx.point1, beamidx.point2):
                     point2beams.append(beamidx)
+                if self.periodicity: # Periodicity is not finish
+                    tag1 = self.tagPoint(pointIdx1)
+                    tag2 = self.tagPoint(pointIdx2)
+                    tag1 = tag1[0] if len(tag1) == 1 else None
+                    tag2 = tag2[0] if len(tag2) == 1 else None
+                    point1_tag = self.tagPoint(beamidx.point1)
+                    point2_tag = self.tagPoint(beamidx.point2)
+                    if tag1 is not None and 999 < tag1 < 1008:  # Corner
+                        if any(999 < tag < 1008 for tag in point1_tag):
+                            point1beams.append(beamidx)
+                        if any(999 < tag < 1008 for tag in point2_tag):
+                            point1beams.append(beamidx)
+
+                    if tag2 is not None and 999 < tag2 < 1008:  # Corner
+                        if any(999 < tag < 1008 for tag in point1_tag):
+                            point2beams.append(beamidx)
+                        if any(999 < tag < 1008 for tag in point2_tag):
+                            point2beams.append(beamidx)
+
+
 
             # Determine angle for all beams connected at the node
             non_zero_anglebeam1,non_zero_radiusbeam1 = getAngleBeam(pointIdx1,pointIdx2,point1beams)
