@@ -588,10 +588,16 @@ class Lattice:
             """
             Find Minimum angle between beams and radius connection to this particular beam
             """
-            minAngle = min(angles)
-            radConnexionAngle = angles.index(minAngle)
-            RadConnexionAngleData = radii[radConnexionAngle]
-            return minAngle,RadConnexionAngleData
+            LValuesMax = 0
+            LRadius = None
+            LAngle = None
+            for radius, angle in zip(radii, angles):
+                L = self.functionPenalizationLzone(radius, angle)
+                if L > LValuesMax:
+                    LValuesMax = L
+                    LRadius = radius
+                    LAngle = angle
+            return LAngle,LRadius
         
         for index, beam in enumerate(self.beams_obj):
             point1beams = []
@@ -624,15 +630,13 @@ class Lattice:
                         if any(999 < tag < 1008 for tag in point2_tag):
                             point2beams.append(beamidx)
 
-
-
             # Determine angle for all beams connected at the node
             non_zero_anglebeam1,non_zero_radiusbeam1 = getAngleBeam(pointIdx1,pointIdx2,point1beams)
             non_zero_anglebeam2,non_zero_radiusbeam2 = getAngleBeam(pointIdx2,pointIdx1,point2beams)
             # Find the lowest angle
-            minAngle1,RadConnexion1 = findMinAngle(non_zero_anglebeam1,non_zero_radiusbeam1)
-            minAngle2,RadConnexion2 = findMinAngle(non_zero_anglebeam2,non_zero_radiusbeam2)
-            self.angles.append((index, round(minAngle1,2), RadConnexion1, round(minAngle2,2), RadConnexion2))
+            LAngle1,LRadius1 = findMinAngle(non_zero_anglebeam1, non_zero_radiusbeam1)
+            LAngle2,LRadius2 = findMinAngle(non_zero_anglebeam2,non_zero_radiusbeam2)
+            self.angles.append((index, round(LAngle1,2), LRadius1, round(LAngle2,2), LRadius2))
 
         return self.angles
 
