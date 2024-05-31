@@ -108,7 +108,7 @@ class Lattice:
             self.getBeamNodeMod()
 
         # self.findBoundaryBeams()
-
+        # self.attractorLattice()
         # Get some data about lattice structures
         self.getNodeData()
         self.getBeamData()
@@ -416,7 +416,17 @@ class Lattice:
         self._nodes = []
         for index, point in enumerate(self.nodes_obj):
             self._nodes.append([index, point.x, point.y, point.z])
-    
+
+    def getPosData(self):
+        """
+        Retrieves node position data for the lattice.
+        data structure : each line represent a node with data [X, Y, Z]
+        """
+        posData = []
+        for index, point in enumerate(self.nodes_obj):
+            posData.append([point.x, point.y, point.z])
+        return posData
+
     def getBeamData(self):
         """
         Retrieves beam data for the lattice.
@@ -425,6 +435,26 @@ class Lattice:
         self._beams = []
         for index, beam in enumerate(self.beams_obj):
             self._beams.append([index, self.getPointIndex(beam.point1), self.getPointIndex(beam.point2),beam.type])
+
+    def getEdgeIndex(self):
+        """
+        Retrieves edge index data for the lattice.
+        data structure: each line represent a beam with data [IndexPoint1, IndexPoint2]
+        """
+        edgeIndex = []
+        for index, beam in enumerate(self.beams_obj):
+            edgeIndex.append([self.getPointIndex(beam.point1), self.getPointIndex(beam.point2)])
+        return edgeIndex
+
+    def getBeamType(self):
+        """
+        Retrieves beam type data for the lattice.
+        data structure: each line is the type of the beam with index the line index
+        """
+        BeamType = []
+        for index, beam in enumerate(self.beams_obj):
+            BeamType.append([beam.type])
+        return BeamType
 
     def getPointIndex(self, point):
         """
@@ -678,16 +708,13 @@ class Lattice:
         """
         Modifies beam and node data to model lattice structures for simulation with rigidity penalization at node
         """
-        def distance(point1, point2):
-            """
-            Calculate distance between two points
-            """
-            return math.sqrt((point2.x - point1.x)**2 + (point2.y - point1.y)**2 + (point2.z - point1.z)**2)
 
-        def findPointMod(point1, point2, lengthMod):
-            DR = [(point2.x - point1.x)/distance(point1,point2), (point2.y - point1.y)/distance(point1,point2), (point2.z - point1.z)/distance(point1,point2)]
+        def findPointMod(beam, lengthMod):
+            beamLength = beam.get_length()
+            DR = [(beam.point2.x - beam.point1.x)/beamLength, (beam.point2.y - beam.point1.y)/beamLength,
+                  (beam.point2.z - beam.point1.z)/beamLength]
             factor = [dr * lengthMod for dr in DR]
-            pointMod = [point1.x, point1.y, point1.z]
+            pointMod = [beam.point1.x, beam.point1.y, beam.point1.z]
             pointMod = [p1 + p2 for p1, p2 in zip(pointMod, factor)]
             pointModObj = Point(pointMod[0], pointMod[1], pointMod[2])
             return pointModObj
@@ -699,8 +726,8 @@ class Lattice:
         for index, beam in enumerate(self.beams_obj):
             if index%(self.nbBeam) == 0:
                 indexCell = indexCell+1
-            pointExt1Obj = findPointMod(beam.point1,beam.point2, lengthMod[index][1])
-            pointExt2Obj = findPointMod(beam.point2,beam.point1, lengthMod[index][2])
+            pointExt1Obj = findPointMod(beam, lengthMod[index][1])
+            pointExt2Obj = findPointMod(beam, lengthMod[index][2])
 
             if beam.type == 0:
                 typeBeam = [1,0,1]
@@ -882,6 +909,13 @@ class Lattice:
 
         return tags
 
+    def getTagList(self):
+        tagList = []
+        for node in self.nodes_obj:
+            tagList.append(self.tagPoint(node))
+        return tagList
+
+
     def getConnectedNode(self, node):
         """
         Get all nodes connected to the input node with a beam
@@ -1059,3 +1093,25 @@ class Lattice:
         for beam in self.beams_obj:
             if beam.type in radiusDict:
                 beam.radius = radiusDict[beam.type]
+
+
+    def attractorLattice(self):
+        def distance(point1, point2):
+            """
+            Calculate distance between two points
+            """
+            return math.sqrt((point2.x - point1.x) ** 2 + (point2.y - point1.y) ** 2 + (point2.z - point1.z) ** 2)
+
+        def findPointMod(point1, point2, alpha):
+            DR = [(point2.x - point1.x) / distance(point1, point2), (point2.y - point1.y) / distance(point1, point2),
+                  (point2.z - point1.z) / distance(point1, point2)]
+            factor = [alpha for dr in DR]
+            pointMod = [point1.x, point1.y, point1.z]
+            pointMod = [p1 + p2 for p1, p2 in zip(pointMod, factor)]
+            point1.movePoint(pointMod[0], pointMod[1], pointMod[2])
+
+        pointAttractor = Point(1.51,1.5,1.5)
+        alpha = 0.5
+        for point in self.nodes_obj:
+            findPointMod(point, pointAttractor, alpha)
+

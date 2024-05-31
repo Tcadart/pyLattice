@@ -13,3 +13,9 @@ class Point:
 
     def __sub__(self, other):
         return np.array([self.x - other.x, self.y - other.y, self.z - other.z])
+
+    def movePoint(self, x, y, z):
+        self.x = x
+        self.y = y
+        self.z = z
+
