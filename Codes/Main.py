@@ -125,7 +125,7 @@ cell_size = 1
 cell_size_X = cell_size
 cell_size_Y = cell_size
 cell_size_Z = cell_size
-number_cell = 3
+number_cell = 2
 number_cell_X = number_cell
 number_cell_Y = number_cell
 number_cell_Z = number_cell
@@ -174,7 +174,7 @@ AnalysisType = 0
 # 0 Modelisation lattice only
 # 1 Compression Z
 
-MethodSim = 1
+MethodSim = 0
 # 0 No modification
 # 1 Node Modification
 

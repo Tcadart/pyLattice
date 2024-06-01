@@ -109,7 +109,7 @@ class Lattice:
             self.getBeamNodeMod()
 
         # self.findBoundaryBeams()
-        # self.attractorLattice()
+        self.attractorLattice()
         # Get some data about lattice structures
         self.getNodeData()
         self.getBeamData()
@@ -517,6 +517,9 @@ class Lattice:
         ax.set_xlabel('X')
         ax.set_ylabel('Y')
         ax.set_zlabel('Z')
+        # ax.set_xlim3d(self.xMin, self.xMax)
+        # ax.set_ylim3d(self.yMin, self.yMax)
+        # ax.set_zlim3d(self.zMin, self.zMax)
         ax.set_xlim3d(0, self.xMax)
         ax.set_ylim3d(0, self.yMax)
         ax.set_zlim3d(0, self.zMax)
@@ -1106,17 +1109,22 @@ class Lattice:
             """
             return math.sqrt((point2.x - point1.x) ** 2 + (point2.y - point1.y) ** 2 + (point2.z - point1.z) ** 2)
 
-        def findPointMod(point1, point2, alpha):
-            DR = [(point2.x - point1.x) / distance(point1, point2), (point2.y - point1.y) / distance(point1, point2),
-                  (point2.z - point1.z) / distance(point1, point2)]
-            factor = [alpha for dr in DR]
+        def movePointAttracted(point1, attractorPoint, alpha):
+            """
+            Move point1 relative from attractorPoint with coefficient alpha
+            """
+            DR = [(attractorPoint.x - point1.x) / distance(point1, attractorPoint), (attractorPoint.y - point1.y) / distance(point1, attractorPoint),
+                  (attractorPoint.z - point1.z) / distance(point1, attractorPoint)]
+            factor = [alpha*dr for dr in DR]
             pointMod = [point1.x, point1.y, point1.z]
             pointMod = [p1 + p2 for p1, p2 in zip(pointMod, factor)]
             point1.movePoint(pointMod[0], pointMod[1], pointMod[2])
 
-        pointAttractor = Point(1.51,1.5,1.5)
-        alpha = 0.5
+        pointAttractor = Point(1,1,-1)
+        alpha = 0.1
         for beam in self.beams_obj:
-            beam
-            findPointMod(point, pointAttractor, alpha)
+            movePointAttracted(beam.point1, pointAttractor, alpha)
+            movePointAttracted(beam.point2, pointAttractor, alpha)
+        self.extremumFunction()
+
 
