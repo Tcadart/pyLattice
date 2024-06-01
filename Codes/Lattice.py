@@ -517,12 +517,12 @@ class Lattice:
         ax.set_xlabel('X')
         ax.set_ylabel('Y')
         ax.set_zlabel('Z')
-        # ax.set_xlim3d(self.xMin, self.xMax)
-        # ax.set_ylim3d(self.yMin, self.yMax)
-        # ax.set_zlim3d(self.zMin, self.zMax)
-        ax.set_xlim3d(0, self.xMax)
-        ax.set_ylim3d(0, self.yMax)
-        ax.set_zlim3d(0, self.zMax)
+        ax.set_xlim3d(self.xMin, self.xMax)
+        ax.set_ylim3d(self.yMin, self.yMax)
+        ax.set_zlim3d(self.zMin, self.zMax)
+        # ax.set_xlim3d(0, self.xMax)
+        # ax.set_ylim3d(0, self.yMax)
+        # ax.set_zlim3d(0, self.zMax)
         plt.show()
 
 
@@ -1102,7 +1102,7 @@ class Lattice:
                 beam.radius = radiusDict[beam.type]
 
 
-    def attractorLattice(self):
+    def attractorLattice(self, ):
         def distance(point1, point2):
             """
             Calculate distance between two points
@@ -1113,15 +1113,16 @@ class Lattice:
             """
             Move point1 relative from attractorPoint with coefficient alpha
             """
-            DR = [(attractorPoint.x - point1.x) / distance(point1, attractorPoint), (attractorPoint.y - point1.y) / distance(point1, attractorPoint),
-                  (attractorPoint.z - point1.z) / distance(point1, attractorPoint)]
-            factor = [alpha*dr for dr in DR]
+            Length = distance(point1, attractorPoint)
+            DR = [(attractorPoint.x - point1.x) / Length, (attractorPoint.y - point1.y) / Length,
+                  (attractorPoint.z - point1.z) / Length]
+            factor = [(alpha)*dr for dr in DR]
             pointMod = [point1.x, point1.y, point1.z]
             pointMod = [p1 + p2 for p1, p2 in zip(pointMod, factor)]
             point1.movePoint(pointMod[0], pointMod[1], pointMod[2])
 
-        pointAttractor = Point(1,1,-1)
-        alpha = 0.1
+        pointAttractor = Point(5,0.5,-2)
+        alpha = 0.5
         for beam in self.beams_obj:
             movePointAttracted(beam.point1, pointAttractor, alpha)
             movePointAttracted(beam.point2, pointAttractor, alpha)
