@@ -3,12 +3,13 @@ import math
 import random
 import torch
 from torch_geometric.data import Data
+import matplotlib.pyplot as plt
 
 
 
 class Lattice:
     """
-    Generate lattice structures with parameters
+    Generate lattice structures with a lot of different parameters
     """
     def __init__(self, cell_size_x: float, cell_size_y: float, cell_size_z: float,
                  num_cells_x: int, num_cells_y: int, num_cells_z: int,
@@ -119,6 +120,9 @@ class Lattice:
     @classmethod
     def simpleLattice(cls, cell_size_x, cell_size_y, cell_size_z, num_cells_x, num_cells_y, num_cells_z, Lattice_Type,
                  Radius):
+        """
+        Generate lattice structures with just simple parameters
+        """
         # Define Default gradient properties
         GradDimRule = 'constant'
         GradDimDirection = [1, 0, 0]
@@ -136,6 +140,9 @@ class Lattice:
 
     @classmethod
     def hybridgeometry(cls, cell_size_x, cell_size_y, cell_size_z,simMethod,uncertaintyNode,hybridLatticeData):
+        """
+        Generate hybrid geometry structure with just some parameters
+        """
         # Define Default gradient properties
         GradDimRule = 'constant'
         GradDimDirection = [1, 0, 0]
@@ -154,7 +161,9 @@ class Lattice:
 
     @classmethod
     def latticeHybridForGraph(cls, hybridLatticeData):
-        # Define Default gradient properties
+        """
+        Generate unit cell lattice structure with uniquely hybrid parameter for GNN dataset generation
+        """
         cell_size_x = 1
         cell_size_y = 1
         cell_size_z = 1
@@ -486,7 +495,7 @@ class Lattice:
         for beam in self.beams_obj:
             self._material.append(beam.material)
 
-    def visualize_3d(self, ax):
+    def visualizeLattice3D(self):
         """
         Visualizes the lattice in 3D using matplotlib.
 
@@ -494,6 +503,9 @@ class Lattice:
         -----------
         ax: Axes3D object
         """
+        fig = plt.figure()
+        ax = fig.add_subplot(111, projection='3d')
+        ax.set_title("Lattice généré")
         for point in self.nodes_obj:
             x, y, z = point.x, point.y, point.z
             ax.scatter(x, y, z, c='black', s=5)
@@ -508,6 +520,7 @@ class Lattice:
         ax.set_xlim3d(0, self.xMax)
         ax.set_ylim3d(0, self.yMax)
         ax.set_zlim3d(0, self.zMax)
+        plt.show()
 
 
     def visualize_3d_random(self, ax):
@@ -709,16 +722,6 @@ class Lattice:
         Modifies beam and node data to model lattice structures for simulation with rigidity penalization at node
         """
 
-        def findPointMod(beam, lengthMod):
-            beamLength = beam.get_length()
-            DR = [(beam.point2.x - beam.point1.x)/beamLength, (beam.point2.y - beam.point1.y)/beamLength,
-                  (beam.point2.z - beam.point1.z)/beamLength]
-            factor = [dr * lengthMod for dr in DR]
-            pointMod = [beam.point1.x, beam.point1.y, beam.point1.z]
-            pointMod = [p1 + p2 for p1, p2 in zip(pointMod, factor)]
-            pointModObj = Point(pointMod[0], pointMod[1], pointMod[2])
-            return pointModObj
-
         lengthMod = self.getLengthMod()
         beamMod = []
         indexCell = -1
@@ -726,9 +729,10 @@ class Lattice:
         for index, beam in enumerate(self.beams_obj):
             if index%(self.nbBeam) == 0:
                 indexCell = indexCell+1
-            pointExt1Obj = findPointMod(beam, lengthMod[index][1])
-            pointExt2Obj = findPointMod(beam, lengthMod[index][2])
-
+            pointExt1 = beam.findPointMod(lengthMod[index][1])
+            pointExt1Obj = Point(pointExt1[0], pointExt1[1], pointExt1[2])
+            pointExt2 = beam.findPointMod(lengthMod[index][2])
+            pointExt2Obj = Point(pointExt2[0], pointExt2[1], pointExt2[2])
             if beam.type == 0:
                 typeBeam = [1,0,1]
             else:
@@ -1112,6 +1116,7 @@ class Lattice:
 
         pointAttractor = Point(1.51,1.5,1.5)
         alpha = 0.5
-        for point in self.nodes_obj:
+        for beam in self.beams_obj:
+            beam
             findPointMod(point, pointAttractor, alpha)
 

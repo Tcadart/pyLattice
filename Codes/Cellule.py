@@ -30,28 +30,6 @@ class Cellule:
     def centerCell(self):
         return self._centerCell
 
-    # def nbPointsTBCI(self, Tmin, Tmax):
-    #     """
-    #     Generate a random distribution of points within the cell.
-
-    #     :param Tmin: Minimum number of points
-    #     :param Tmax: Maximum number of points
-    #     :return: Tuple containing total points, boundary points, corner points, and interior points
-    #     """
-    #     pointtotal = random.randint(Tmin, Tmax)
-    #     pointinterieur = random.randint(0, pointtotal)
-    #     proportion_coins = random.uniform(0, 1)
-    #     pointBordOuCoins = pointtotal - pointinterieur
-    #     pointcoin = int(pointBordOuCoins * proportion_coins)
-    #     pointbord = pointBordOuCoins - pointcoin
-    #     if pointcoin > 8:
-    #         pointbord += pointcoin - 8
-    #         pointcoin = 8
-    #     elif pointcoin < 0:
-    #         pointcoin = 0
-    #         pointbord += pointcoin
-    #     return pointtotal, pointbord, pointcoin, pointinterieur
-
     def translate(self, translation):
         """
         Translate the cell and its points by a given translation vector.
@@ -66,102 +44,6 @@ class Cellule:
             point.x += translation[0]
             point.y += translation[1]
             point.z += translation[2]
-
-    # def generate_nodes(self, Tmin, Tmax, padding):
-    #     self.nodes = []
-    #     pointtotal, pointbord, pointcoin, pointinterieur = self.nbPointsTBCI(Tmin, Tmax)
-    #     nodes_interior = []
-    #     nodes_border = []
-    #     nodes_corner = []
-    #     for _ in range(pointinterieur):
-    #         x = round(random.uniform(0 + padding, self.cellSizeX - padding), 2)
-    #         y = round(random.uniform(0 + padding, self.cellSizeY - padding), 2)
-    #         z = round(random.uniform(0 + padding, self.cellSizeZ - padding), 2)
-    #         point = Point(x, y, z)
-    #         nodes_interior.append(point)
-    #     for _ in range(pointcoin):
-    #         x = random.choice([0, self.cellSizeX])
-    #         y = random.choice([0, self.cellSizeY])
-    #         z = random.choice([0, self.cellSizeZ])
-    #         point = Point(x, y, z)
-    #         nodes_corner.append(point)
-    #     for _ in range(pointbord):
-    #         if random.random() < 0.5:
-    #             x = random.choice([0, self.cellSizeX])
-    #             y = random.uniform(0, self.cellSizeY)
-    #             z = random.uniform(0, self.cellSizeZ)
-    #         else:
-    #             x = random.uniform(0, self.cellSizeX)
-    #             y = random.choice([0, self.cellSizeY])
-    #             z = random.uniform(0, self.cellSizeZ)
-    #         point = Point(round(x, 2), round(y, 2), round(z, 2))
-    #         nodes_border.append(point)
-    #     self.nodes = nodes_interior + nodes_border + nodes_corner
-    #     # return self.nodes, nodes_border, nodes_corner, nodes_interior
-    #     return self.nodes
-
-    # def generate_nodes(self, Tmin, Tmax, padding):
-    #     """
-    #     Generate nodes within the cell.
-
-    #     :param Tmin: Minimum number of points
-    #     :param Tmax: Maximum number of points
-    #     :param padding: Minimum distance from the cell boundary
-    #     :return: List of generated Node objects
-    #     """
-    #     pointtotal, pointbord, pointcoin, pointinterieur = self.nbPointsTBCI(Tmin, Tmax)
-    #     nodes_interior = []
-    #     nodes_border = []
-    #     nodes_corner = []
-    #     min_distance = 0.02
-
-    #     def check_min_distance(x, y, z, existing_nodes):
-    #         for point in existing_nodes:
-    #             distance = ((point.x - x) ** 2 + (point.y - y) ** 2 + (point.z - z) ** 2) ** 0.5
-    #             if distance < min_distance:
-    #                 return False
-    #         return True
-
-    #     for _ in range(pointinterieur):
-    #         x, y, z = None, None, None
-    #         while True:
-    #             x = round(random.uniform(0 + padding, self.cellSizeX - padding), 2)
-    #             y = round(random.uniform(0 + padding, self.cellSizeY - padding), 2)
-    #             z = round(random.uniform(0 + padding, self.cellSizeZ - padding), 2)
-    #             if check_min_distance(x, y, z, nodes_interior):
-    #                 break
-    #         point = Point(x, y, z)
-    #         nodes_interior.append(point)
-
-    #     for _ in range(pointcoin):
-    #         x, y, z = None, None, None
-    #         while True:
-    #             x = random.choice([0, self.cellSizeX])
-    #             y = random.choice([0, self.cellSizeY])
-    #             z = random.choice([0, self.cellSizeZ])
-    #             if check_min_distance(x, y, z, nodes_corner):
-    #                 break
-    #         point = Point(x, y, z)
-    #         nodes_corner.append(point)
-
-    #     for _ in range(pointbord):
-    #         x, y, z = None, None, None
-    #         while True:
-    #             if random.random() < 0.5:
-    #                 x = random.choice([0, self.cellSizeX])
-    #                 y = random.uniform(0, self.cellSizeY)
-    #                 z = random.uniform(0, self.cellSizeZ)
-    #             else:
-    #                 x = random.uniform(0, self.cellSizeX)
-    #                 y = random.choice([0, self.cellSizeY])
-    #                 z = random.uniform(0, self.cellSizeZ)
-    #             if check_min_distance(x, y, z, nodes_border):
-    #                 break
-    #         point = Point(round(x, 2), round(y, 2), round(z, 2))
-    #         nodes_border.append(point)
-
-    #     self.nodes = nodes_interior + nodes_border + nodes_corner
-    #     return self.nodes
 
     def merge_nodes(self):
         """
@@ -182,32 +64,6 @@ class Cellule:
             else:
                 merged_nodes.add(point)
         self.nodes = list(merged_nodes)
-
-    # def generate_beams(self):
-    #     """
-    #     Generate beams between nodes.
-
-    #     :return: List of generated Beam objects
-    #     """
-    #     num_nodes = len(self.nodes)
-    #     min_beams = num_nodes // 2
-    #     max_beams = num_nodes
-    #     num_beams = random.randint(min_beams, max_beams)
-    #     used_pairs = set()
-    #     used_beams = set()
-    #     while num_beams > 0:
-    #         index1 = random.randint(0, num_nodes - 1)
-    #         index2 = random.randint(0, num_nodes - 1)
-    #         if index1 != index2 and (index1, index2) not in used_pairs and (index2, index1) not in used_pairs:
-    #             point1 = self.nodes[index1]
-    #             point2 = self.nodes[index2]
-    #             beam = Beam(point1, point2)
-    #             if beam not in used_beams:
-    #                 self.beams.append(beam)
-    #                 used_pairs.add((index1, index2))
-    #                 used_beams.add(beam)
-    #                 num_beams -= 1
-    #     return self.beams
 
     def remove_unused_nodes(self):
         """
@@ -682,7 +538,10 @@ class Cellule:
             self.beams.append(beam)
         return self.nodes, self.beams
 
-    def random_coordinate(self,coord, mu, sigma):
+    def random_coordinate(self, coord, mu, sigma):
+        """
+        Randomize coordinate of a node with a gaussian noise of parameter mu and sigma
+        """
         mod_coord = []
         for pos in coord:
             # mod_coord.append(pos + random.uniform(0, 0.5) - 0.25)

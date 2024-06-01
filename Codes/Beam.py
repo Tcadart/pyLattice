@@ -2,7 +2,8 @@ import math
 
 
 class Beam:
-    def __init__(self, point1, point2, Radius,cell_size_x, cell_size_y, cell_size_z, gradRadius, gradMat, posCell,Type):
+    def __init__(self, point1, point2, Radius: float,cell_size_x: int, cell_size_y: int, cell_size_z: int,
+                 gradRadius, gradMat, posCell,Type):
         """
         Initialize a Beam object.
 
@@ -30,10 +31,10 @@ class Beam:
         # type = 1 => beam mod
         # type = 2 => beam on boundary
         self.type = Type
-        self.radius = self.setBeamRadius()
+        self.setBeamRadius()
         self.length = self.get_length()
         self.volume = self.get_volume()
-        self.material = self.setBeamMaterial()
+        self.setBeamMaterial()
         self.nodes = []
 
     def add_node(self, node):
@@ -69,7 +70,7 @@ class Beam:
 
         :return: Calculated beam radius
         """
-        return (self.radius * self.gradRadius[self.posCell[0]][0] * self.gradRadius[self.posCell[1]][1] *
+        self.radius = (self.radius * self.gradRadius[self.posCell[0]][0] * self.gradRadius[self.posCell[1]][1] *
                 self.gradRadius[self.posCell[2]][2])
 
     def setBeamMaterial(self):
@@ -78,8 +79,16 @@ class Beam:
 
         :return: Material index of the beam
         """
-        Mat = self.gradMat[self.posCell[2]][self.posCell[1]][self.posCell[0]]
-        return Mat
+        self.material = self.gradMat[self.posCell[2]][self.posCell[1]][self.posCell[0]]
 
     def changeBeamType(self, newType):
         self.type = newType
+
+    def findPointMod(self, lengthMod):
+        beamLength = self.get_length()
+        DR = [(self.point2.x - self.point1.x) / beamLength, (self.point2.y - self.point1.y) / beamLength,
+              (self.point2.z - self.point1.z) / beamLength]
+        factor = [dr * lengthMod for dr in DR]
+        pointMod = [self.point1.x, self.point1.y, self.point1.z]
+        pointMod = [p1 + p2 for p1, p2 in zip(pointMod, factor)]
+        return pointMod
