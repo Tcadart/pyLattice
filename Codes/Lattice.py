@@ -82,6 +82,7 @@ class Lattice:
         self.uncertaintyNode = uncertaintyNode
         self.hybridLatticeData = hybridLatticeData
         self.periodicity = periodicity # Not finish to implemented
+        self.penalizationCoefficient = 1.5 # Fixed with previous optimization
 
         self.cells = []
         self.angles = []
@@ -102,14 +103,14 @@ class Lattice:
         if self.latticeType == 1000: # case for hybrid lattice structures
             self.checkHybridCollision()
             self.LatticeToPyGeometricData()
-        self.Getangle()
+        self.getAllAngles()
 
         # Case of penalization at beam near nodes
         if self.simMethod == 1:
             self.getBeamNodeMod()
 
         # self.findBoundaryBeams()
-        self.attractorLattice()
+        # self.attractorLattice()
         # Get some data about lattice structures
         self.getNodeData()
         self.getBeamData()
@@ -495,13 +496,15 @@ class Lattice:
         for beam in self.beams_obj:
             self._material.append(beam.material)
 
-    def visualizeLattice3D(self):
+    def visualizeLattice3D(self, beamColor: str = "Material"):
         """
         Visualizes the lattice in 3D using matplotlib.
 
         Parameter:
         -----------
-        ax: Axes3D object
+        beamColor: string
+            "Material" -> color by material
+            "Type" -> color by type
         """
         fig = plt.figure()
         ax = fig.add_subplot(111, projection='3d')
@@ -513,7 +516,12 @@ class Lattice:
         for beam in self.beams_obj:
             point1 = beam.point1
             point2 = beam.point2
-            ax.plot([point1.x, point2.x], [point1.y, point2.y], [point1.z, point2.z], color=color[beam.material], markersize=10)
+            if beamColor == "Material":
+                ax.plot([point1.x, point2.x], [point1.y, point2.y], [point1.z, point2.z], color=color[beam.material], markersize=10)
+            elif beamColor == "Type":
+                ax.plot([point1.x, point2.x], [point1.y, point2.y], [point1.z, point2.z],
+                        color=color[int(str(beam.type)[0])],
+                        markersize=10)
         ax.set_xlabel('X')
         ax.set_ylabel('Y')
         ax.set_zlabel('Z')
@@ -563,7 +571,107 @@ class Lattice:
         ax.set_ylim3d(0, self.yMax)
         ax.set_zlim3d(0, self.zMax)
 
-    def Getangle(self):
+    def getAngleBetweenBeams(self, beam1, beam2):
+        """
+        Calculates angle between 2 beams
+
+        Return:
+        --------
+        Angle: float
+            angle in degrees
+        """
+        u = beam1.point2 - beam1.point1
+        if beam1.point1 == beam2.point1:
+            v = beam2.point2 - beam2.point1
+        else:
+            v = beam2.point1 - beam2.point2
+        dot_product = sum(a * b for a, b in zip(u, v))
+        u_norm = math.sqrt(sum(a * a for a in u))
+        v_norm = math.sqrt(sum(b * b for b in v))
+        cos_theta = dot_product / (u_norm * v_norm)
+        cos_theta = max(min(cos_theta, 1.0), -1.0)
+        angle_rad = math.acos(cos_theta)
+        angle_deg = math.degrees(angle_rad)
+        return angle_deg
+
+    def getListAngleBeam(self, beam, pointbeams):
+        """
+        Calculate angle between the considerate beam and beam contains in pointbeams
+
+        Parameters:
+        -----------
+        beam: Beam object
+            Beam where angle is computed on
+        pointbeams: list of Beam object
+            List of beam to calculate angle with considered beam
+
+        Return:
+        ---------
+        non_zero_anglebeam: list of angle between considered beam and pointbeams beam list
+        non_zero_radiusbeam: list of radius between considered beam and pointbeams beam list
+
+        Special case when pointbeams is empty return max angle to minimize penalization zone
+        """
+        anglebeam = []
+        radiusBeam = []
+        if len(pointbeams) > 1:
+            for beampoint in pointbeams:
+                radiusBeam.append(beampoint.radius)
+                anglebeam.append(self.getAngleBetweenBeams(beam, beampoint))
+        else:
+            anglebeam.append(179.9)
+            radiusBeam.append(beam.radius)
+        non_zero_anglebeam = [angle for angle in anglebeam if angle >= 0.01]
+        non_zero_radiusbeam = [radius for angle, radius in zip(anglebeam, radiusBeam) if angle >= 0.01]
+        return non_zero_anglebeam, non_zero_radiusbeam
+
+    def getConnectedBeams(self, beam):
+        """
+        get all beams connected to the interest beam
+
+        Parameters:
+        -----------
+        beam: Beam object
+            Beam of interest
+
+        Returns:
+        ---------
+        point1beams: list of Beam Object
+            list of beam connected to point1 of beam of interest
+        point2beams: list of Beam Object
+            list of beam connected to point2 of beam of interest
+        """
+        point1beams = []
+        point2beams = []
+        for beamidx in self.beams_obj:
+            print(beam.point1)
+            print(beamidx.point1, beamidx.point2)
+            if beam.point1 == beamidx.point1 or beam.point1 == beamidx.point2:
+                point1beams.append(beamidx)
+            if beam.point2 == beamidx.point1 or beam.point2 == beamidx.point2:
+                point2beams.append(beamidx)
+            if self.periodicity:  # Periodicity is not finish
+                tag1 = self.tagPoint(beam.point1)
+                tag2 = self.tagPoint(beam.point2)
+                tag1 = tag1[0] if len(tag1) == 1 else None
+                tag2 = tag2[0] if len(tag2) == 1 else None
+                point1_tag = self.tagPoint(beamidx.point1)
+                point2_tag = self.tagPoint(beamidx.point2)
+                if tag1 is not None and 999 < tag1 < 1008:  # Corner
+                    if any(999 < tag < 1008 for tag in point1_tag):
+                        point1beams.append(beamidx)
+                    if any(999 < tag < 1008 for tag in point2_tag):
+                        point1beams.append(beamidx)
+
+                if tag2 is not None and 999 < tag2 < 1008:  # Corner
+                    if any(999 < tag < 1008 for tag in point1_tag):
+                        point2beams.append(beamidx)
+                    if any(999 < tag < 1008 for tag in point2_tag):
+                        point2beams.append(beamidx)
+        return point1beams, point2beams
+
+
+    def getAllAngles(self):
         """
         Calculates angles between beams in the lattice.
 
@@ -572,63 +680,6 @@ class Lattice:
         angle:
             data structure => ((beam_index, Angle mininmum point 1, minRad1, Angle mininmum point 2, minRad2))
         """
-        def calculate_angle(u, v):
-            """
-            Calculates angle between 2 beams
-
-            Return:
-            --------
-            Angle: float
-                angle in degrees
-            """
-            dot_product = sum(a * b for a, b in zip(u, v))
-            u_norm = math.sqrt(sum(a * a for a in u))
-            v_norm = math.sqrt(sum(b * b for b in v))
-            cos_theta = dot_product / (u_norm * v_norm)
-            cos_theta = max(min(cos_theta, 1.0), -1.0)
-            angle_rad = math.acos(cos_theta)
-            angle_deg = math.degrees(angle_rad)
-            return angle_deg
-
-        def getAngleBeam(pointIdx1,pointIdx2,pointbeams):
-            """
-            Calculate angle between the considerate beam form by pointIdx1 and pointIdx2 and other attached beam
-            contain in pointbeams
-
-            Parameters:
-            -----------
-            pointIdx1: Point object
-            pointIdx2: Point object
-                Point 1 and 2 of the considered beam
-            pointbeams: list of Beam object
-                List of beam to calculate angle with considered beam
-
-            Return:
-            ---------
-            non_zero_anglebeam: list of angle between considered beam and pointbeams beam list
-            non_zero_radiusbeam: list of radius between considered beam and pointbeams beam list
-
-            Special case when pointbeams is empty return max angle to minimize penalization zone
-            """
-            anglebeam = []
-            radiusBeam = []
-            u = [pointIdx2.x - pointIdx1.x, pointIdx2.y - pointIdx1.y, pointIdx2.z - pointIdx1.z]
-            if len(pointbeams) > 1:
-                for beampoint in pointbeams:
-                    radiusBeam.append(beampoint.radius)
-                    if beampoint.point1.x == pointIdx1.x and beampoint.point1.y == pointIdx1.y and beampoint.point1.z == pointIdx1.z:
-                        v = [beampoint.point2.x - beampoint.point1.x, beampoint.point2.y - beampoint.point1.y,
-                                beampoint.point2.z - beampoint.point1.z]
-                    else:
-                        v = [beampoint.point1.x - beampoint.point2.x, beampoint.point1.y - beampoint.point2.y,
-                                    beampoint.point1.z - beampoint.point2.z]
-                    anglebeam.append(calculate_angle(u, v))
-            else:
-                anglebeam.append(179.9)
-                radiusBeam.append(beam.radius)
-            non_zero_anglebeam = [angle for angle in anglebeam if angle >= 0.01]
-            non_zero_radiusbeam = [radius for angle, radius in zip(anglebeam, radiusBeam) if angle >= 0.01]
-            return non_zero_anglebeam,non_zero_radiusbeam
 
         def findMinAngle(angles,radii):
             """
@@ -644,41 +695,14 @@ class Lattice:
                     LRadius = radius
                     LAngle = angle
             return LAngle,LRadius
-        
+
         for index, beam in enumerate(self.beams_obj):
-            point1beams = []
-            point2beams = []
-            pointIdx1 = beam.point1
-            pointIdx2 = beam.point2
-
             # Determine beams on nodes
-            for beamidx in self.beams_obj:
-                if pointIdx1 in (beamidx.point1, beamidx.point2):
-                    point1beams.append(beamidx)
-                if pointIdx2 in (beamidx.point1, beamidx.point2):
-                    point2beams.append(beamidx)
-                if self.periodicity: # Periodicity is not finish
-                    tag1 = self.tagPoint(pointIdx1)
-                    tag2 = self.tagPoint(pointIdx2)
-                    tag1 = tag1[0] if len(tag1) == 1 else None
-                    tag2 = tag2[0] if len(tag2) == 1 else None
-                    point1_tag = self.tagPoint(beamidx.point1)
-                    point2_tag = self.tagPoint(beamidx.point2)
-                    if tag1 is not None and 999 < tag1 < 1008:  # Corner
-                        if any(999 < tag < 1008 for tag in point1_tag):
-                            point1beams.append(beamidx)
-                        if any(999 < tag < 1008 for tag in point2_tag):
-                            point1beams.append(beamidx)
-
-                    if tag2 is not None and 999 < tag2 < 1008:  # Corner
-                        if any(999 < tag < 1008 for tag in point1_tag):
-                            point2beams.append(beamidx)
-                        if any(999 < tag < 1008 for tag in point2_tag):
-                            point2beams.append(beamidx)
+            point1beams, point2beams = self.getConnectedBeams(beam)
 
             # Determine angle for all beams connected at the node
-            non_zero_anglebeam1,non_zero_radiusbeam1 = getAngleBeam(pointIdx1,pointIdx2,point1beams)
-            non_zero_anglebeam2,non_zero_radiusbeam2 = getAngleBeam(pointIdx2,pointIdx1,point2beams)
+            non_zero_anglebeam1,non_zero_radiusbeam1 = self.getListAngleBeam(beam, point1beams)
+            non_zero_anglebeam2,non_zero_radiusbeam2 = self.getListAngleBeam(beam, point2beams)
             # Find the lowest angle
             LAngle1,LRadius1 = findMinAngle(non_zero_anglebeam1, non_zero_radiusbeam1)
             LAngle2,LRadius2 = findMinAngle(non_zero_anglebeam2,non_zero_radiusbeam2)
@@ -724,7 +748,6 @@ class Lattice:
         """
         Modifies beam and node data to model lattice structures for simulation with rigidity penalization at node
         """
-
         lengthMod = self.getLengthMod()
         beamMod = []
         indexCell = -1
@@ -741,11 +764,11 @@ class Lattice:
             else:
                 typeBeam = [beam.type+100,beam.type,beam.type+100]
 
-            beamExt1 = Beam(beam.point1, pointExt1Obj, beam.radius * 1.5, self.cellSizeX, self.cellSizeY,
+            beamExt1 = Beam(beam.point1, pointExt1Obj, beam.radius * self.penalizationCoefficient, self.cellSizeX, self.cellSizeY,
                             self.cellSizeZ, self.gradRadius, self.gradMat, self.posCell[indexCell], typeBeam[0])
             beamCenter = Beam(pointExt1Obj, pointExt2Obj, beam.radius, self.cellSizeX, self.cellSizeY,
                               self.cellSizeZ, self.gradRadius, self.gradMat, self.posCell[indexCell], typeBeam[1])
-            beamExt2 = Beam(pointExt2Obj, beam.point2, beam.radius * 1.5, self.cellSizeX, self.cellSizeY,
+            beamExt2 = Beam(pointExt2Obj, beam.point2, beam.radius * self.penalizationCoefficient, self.cellSizeX, self.cellSizeY,
                             self.cellSizeZ, self.gradRadius, self.gradMat, self.posCell[indexCell], typeBeam[2])
 
             self.nodes_obj.append(pointExt1Obj)
@@ -756,7 +779,10 @@ class Lattice:
         self.beams_obj = beamMod
 
     def functionPenalizationLzone(self, radius, angle):
-        L = radius / math.tan(math.radians(angle) / 2)
+        if angle > 170:
+            L = 0.0000001
+        else:
+            L = radius / math.tan(math.radians(angle) / 2)
         return L
 
     def getLengthMod(self):
@@ -767,17 +793,11 @@ class Lattice:
         --------
         LenghtMod: list of tuples ((beam_index,Lmod point1,Lmod point2))
         """
-        def getlength(angle, radius):
-            if angle > 170:
-                L = 0.0001
-            else:
-                L = self.functionPenalizationLzone(radius, angle)
-            return L
 
         lengthMod = []
         for index, angle1, radius1, angle2, radius2 in self.angles:
-            L1 = getlength(angle1,radius1)
-            L2 = getlength(angle2,radius2)
+            L1 = self.functionPenalizationLzone(radius1,angle1)
+            L2 = self.functionPenalizationLzone(radius2,angle2)
             lengthMod.append((index,L1,L2))
         return lengthMod
 

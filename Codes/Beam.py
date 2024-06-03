@@ -37,6 +37,8 @@ class Beam:
         self.setBeamMaterial()
         self.nodes = []
 
+
+
     def add_node(self, node):
         """
         Add a node to the beam's list of connected nodes.
@@ -84,11 +86,16 @@ class Beam:
     def changeBeamType(self, newType):
         self.type = newType
 
+
+
     def findPointMod(self, lengthMod):
         beamLength = self.get_length()
-        DR = [(self.point2.x - self.point1.x) / beamLength, (self.point2.y - self.point1.y) / beamLength,
+        # Direction ratio components
+        DR = [(self.point2.x - self.point1.x) / beamLength,
+              (self.point2.y - self.point1.y) / beamLength,
               (self.point2.z - self.point1.z) / beamLength]
+        # Scaling the direction ratio components by lengthMod
         factor = [dr * lengthMod for dr in DR]
-        pointMod = [self.point1.x, self.point1.y, self.point1.z]
-        pointMod = [p1 + p2 for p1, p2 in zip(pointMod, factor)]
+        # Calculating the new point position
+        pointMod = [self.point1.x + factor[0], self.point1.y + factor[1], self.point1.z + factor[2]]
         return pointMod

@@ -54,7 +54,7 @@ print("Beam_data", Beam_data)
 # angles = lattice.angles
 
 # angles = lattice.Getangle().tolist()
-angles = lattice.Getangle()
+angles = lattice.getAllAngles()
 print("les angles", angles)
 name_model = 'Lattice_cube'
 name_Part = 'Lattice_Part'
