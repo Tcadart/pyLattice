@@ -72,13 +72,11 @@ class Lattice:
         self.numCellsZ = num_cells_z
         self.latticeType = Lattice_Type
         self.Radius = Radius
-        self.gradRadius = self.gradSettings(gradRadiusProperty)
-        self.gradDim = self.gradSettings(gradDimProperty)
+        self.gradRadius = self.getGradSettings(gradRadiusProperty)
+        self.gradDim = self.getGradSettings(gradDimProperty)
         self.gradMat = self.gradMaterialSetting(gradMatProperty)
         self.simMethod = simMethod
-        self.sizeX = self.getSize(0)
-        self.sizeY = self.getSize(1)
-        self.sizeZ = self.getSize(2)
+        self.sizeX, self.sizeY, self.sizeZ = self.getSizeLattice()
         self.uncertaintyNode = uncertaintyNode
         self.hybridLatticeData = hybridLatticeData
         self.periodicity = periodicity # Not finish to implemented
@@ -95,11 +93,11 @@ class Lattice:
         self.beams_obj = []
         self.posCell = []
         self.toucanModifier = []
-        self.generate_custom_lattice()
+        self.generateLattice()
         self.getNodesObj()
         self.getBeamsObj()
 
-        self.extremumFunction()
+        self.getMinMaxValues()
         if self.latticeType == 1000: # case for hybrid lattice structures
             self.checkHybridCollision()
             self.LatticeToPyGeometricData()
@@ -209,32 +207,23 @@ class Lattice:
     def centerCell(self):
         return self._centerCell
 
-    def getSize(self, direction):
+    def getSizeLattice(self):
         """
-        Computes the size of the lattice along a given direction.
-
-        Parameter:
-        ------------
-        direction: integer
-            0=X, 1=Y, 2=Z
+        Computes the size of the lattice along each direction.
 
         Return:
         ---------
-        Length of the lattice in direction: float
-        """        
-        length = 0
-        if direction == 0:
+        sizeLattice: list of float in dim 3
+            Length of the lattice in each direction
+        """
+        cellSize = [self.cellSizeX, self.cellSizeY, self.cellSizeZ]
+        sizeLattice = [0, 0, 0]
+        for direction in range(3):
             for dim in self.gradDim:
-                length += dim[0] * self.cellSizeX
-        elif direction == 1:
-            for dim in self.gradDim:
-                length += dim[1] * self.cellSizeY
-        elif direction == 2:
-            for dim in self.gradDim:
-                length += dim[2] * self.cellSizeZ
-        return length
+                sizeLattice[direction] += dim[direction] * cellSize[direction]
+        return sizeLattice
 
-    def gradSettings(self, gradProperties):
+    def getGradSettings(self, gradProperties):
         """
         Generate gradient settings based on the provided rule, direction, and parameters.
 
@@ -308,12 +297,6 @@ class Lattice:
         multimat = gradMatProperty[0]
         direction = gradMatProperty[1]
 
-        # def calculatePositionPointOnPlane(CoeffPlan, PositionPlan , x, y, z):
-        #     value = CoeffPlan[0]*x + CoeffPlan[1]*y + CoeffPlan[2]*z + PositionPlan
-        #     if value > 0:
-        #         return 0
-        #     else:
-        #         return 1
         if multimat == -1:  # Random
             gradMat = [[[random.randint(1, 3) for X in range(self.numCellsX)] for Y in range(self.numCellsY)] for Z in
                        range(self.numCellsZ)]
@@ -329,23 +312,10 @@ class Lattice:
             if direction == 3:
                 gradMat = [[[Z for X in range(self.numCellsX)] for Y in range(self.numCellsY)] for Z in
                            range(self.numCellsZ)]
-        # elif Multimat == 2:
-        #     gradMat = [[[0 for X in range(number_cell_X)] for Y in range(number_cell_Y)] for Z in range(number_cell_Z)]
-        #     centerCell = []
-        #     for x in range(number_cell_X):
-        #         for y in range(number_cell_Y):
-        #             for z in range(number_cell_Z):
-        #                 centerCell.append([0.5+x,0.5+y,0.5+z])
-        #     for PositionPlan in range(number_cell_Z):
-        #         IdxMat = PositionPlan%2
-        #         for IdxCenterCells in range(len(lattice.centerCell)):
-        #             if calculatePositionPointOnPlane([1,0,0], PositionPlan , lattice.centerCell[IdxCenterCells,0], lattice.centerCell[IdxCenterCells,1], lattice.centerCell[IdxCenterCells,2]):
-        #                 gradMat[lattice.centerCell[IdxCenterCells,3]][lattice.centerCell[IdxCenterCells,4]][lattice.centerCell[IdxCenterCells,5]] = IdxMat
         return gradMat
 
 
-    
-    def generate_custom_lattice(self):
+    def generateLattice(self):
         """
         Generates lattice structure based on specified parameters.
         """
@@ -421,7 +391,7 @@ class Lattice:
     def getNodeData(self):
         """
         Retrieves node data for the lattice.
-        data structure : each line represent a node with data [indexNode, X, Y, Z]
+        data structure: each line represent a node with data [indexNode, X, Y, Z]
         """
         self._nodes = []
         for index, point in enumerate(self.nodes_obj):
@@ -429,7 +399,7 @@ class Lattice:
 
     def getPosData(self):
         """
-        Retrieves node position data for the lattice.
+        Retrieves node position data for the lattice
         data structure : each line represent a node with data [X, Y, Z]
         """
         posData = []
@@ -596,7 +566,7 @@ class Lattice:
 
     def getListAngleBeam(self, beam, pointbeams):
         """
-        Calculate angle between the considerate beam and beam contains in pointbeams
+        Calculate angle between the considerate beam and beams contains in pointbeams
 
         Parameters:
         -----------
@@ -644,8 +614,6 @@ class Lattice:
         point1beams = []
         point2beams = []
         for beamidx in self.beams_obj:
-            print(beam.point1)
-            print(beamidx.point1, beamidx.point2)
             if beam.point1 == beamidx.point1 or beam.point1 == beamidx.point2:
                 point1beams.append(beamidx)
             if beam.point2 == beamidx.point1 or beam.point2 == beamidx.point2:
@@ -707,11 +675,10 @@ class Lattice:
             LAngle1,LRadius1 = findMinAngle(non_zero_anglebeam1, non_zero_radiusbeam1)
             LAngle2,LRadius2 = findMinAngle(non_zero_anglebeam2,non_zero_radiusbeam2)
             self.angles.append((index, round(LAngle1,2), LRadius1, round(LAngle2,2), LRadius2))
-
         return self.angles
 
 
-    def extremumFunction(self):
+    def getMinMaxValues(self):
         """
         Computes extremum values of coordinates in the lattice.
 
@@ -741,7 +708,7 @@ class Lattice:
         nbBeam: integer
             Number of beams in the lattice cell
         """
-        self.nbBeam = len(Cellule.Lattice_geometry(self.cells[0],self.latticeType))
+        self.nbBeam = len(Cellule.Lattice_geometry(self.cells[0], self.latticeType))
         return self.nbBeam
     
     def getBeamNodeMod(self):
@@ -778,7 +745,22 @@ class Lattice:
             beamMod.append(beamCenter)
         self.beams_obj = beamMod
 
-    def functionPenalizationLzone(self, radius, angle):
+    def functionPenalizationLzone(self, radius: float, angle: float):
+        """
+        Definition of the penalization function
+
+        Parameters:
+        ------------
+        radius: float
+            radius data
+        angle: float
+            angle data
+
+        Returns:
+        ---------
+        L: float
+            Length of the penalization zone
+        """
         if angle > 170:
             L = 0.0000001
         else:
@@ -805,6 +787,11 @@ class Lattice:
     def removeCell(self, index):
         """
         Removes a cell from the lattice
+
+        Parameters:
+        ------------
+        index: int
+            index of the cell to remove
         """
         if 0 <= index < len(self.cells):
             del self.cells[index]
@@ -814,6 +801,11 @@ class Lattice:
     def removeBeam(self, index):
         """
         Removes a beam from the lattice
+
+        Parameters:
+        ------------
+        index: int
+            index of the beam to remove
         """
         if 0 <= index < len(self.beams_obj):
             del self.beams_obj[index]
@@ -823,6 +815,11 @@ class Lattice:
     def removeNode(self, index):
         """
         Removes a node from the lattice
+
+        Parameters:
+        ------------
+        index: int
+            index of the node to remove
         """
         if 0 <= index < len(self.nodes_obj):
             del self.nodes_obj[index]
@@ -837,17 +834,14 @@ class Lattice:
         for index, cell in enumerate(self.cells):
             self._centerCell.append([cell.centerCell,self.posCell[index]])
 
-    def getNumberBeamCell(self):
-        """
-        Calculate number of beams in a cell
-        """
-        cell = self.cells[0]
-        self.lenghtLat = len(cell.beams)
-        return self.lenghtLat
-
     def findMinimumBeamLength(self):
         """
         Find minimum beam length
+
+        Returns:
+        --------
+        minLength: float
+            Length of smallest beam in the lattice
         """
         minLength = 1000
         for index, beam in enumerate(self.beams_obj):
@@ -937,6 +931,14 @@ class Lattice:
         return tags
 
     def getTagList(self):
+        """
+        Get the tag for all points in lattice
+
+        Returns:
+        --------
+        tagList: list of int
+            List of all tags of each point in lattice
+        """
         tagList = []
         for node in self.nodes_obj:
             tagList.append(self.tagPoint(node))
@@ -1146,6 +1148,6 @@ class Lattice:
         for beam in self.beams_obj:
             movePointAttracted(beam.point1, pointAttractor, alpha)
             movePointAttracted(beam.point2, pointAttractor, alpha)
-        self.extremumFunction()
+        self.getMinMaxValues()
 
 

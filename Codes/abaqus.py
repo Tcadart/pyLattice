@@ -41,7 +41,7 @@ def CreateBeams(name_model, name_Part, Beam_data):
 
 lattice = Lattice(1, 1, 1, 2, 2, 2)
 
-lattice.generate_custom_lattice(7)
+lattice.generateLattice()
 # cell = lattice.generate_random_lattice(20, 40, 0.01)[0]
 
 # node_data = affichage_points_console(lattice)

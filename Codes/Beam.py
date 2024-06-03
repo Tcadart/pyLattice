@@ -38,6 +38,8 @@ class Beam:
         self.nodes = []
 
 
+    def __repr__(self):
+        return f"Beam({self.point1}, {self.point2}, {self.radius})"
 
     def add_node(self, node):
         """
