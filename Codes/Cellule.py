@@ -534,9 +534,44 @@ class Cellule:
             point2 = Point((x2)*self.cell_size_x+self.x, (y2)*self.cell_size_y+self.y, (z2)*self.cell_size_z+self.z)
             self.nodes.append(point1)
             self.nodes.append(point2)
-            beam = Beam(point1, point2, Radius, self.cell_size_x, self.cell_size_y, self.cell_size_z, gradRadius, gradMat,posCell,0)
+            beamMaterial = self.getBeamMaterial(gradMat, posCell)
+            beamRadius = self.getBeamRadius(gradRadius, posCell, Radius)
+            beam = Beam(point1, point2, beamRadius, beamMaterial,0)
             self.beams.append(beam)
         return self.nodes, self.beams
+
+    def getBeamMaterial(self, gradMat, posCell):
+        """
+        Get the material of the beam based on the gradient and position.
+
+        Parameters:
+        -----------
+        gradMat:
+        posCell:
+
+        Returns:
+        ---------
+        materialType: int
+            Material index of the beam
+        """
+        return gradMat[posCell[2]][posCell[1]][posCell[0]]
+
+    def getBeamRadius(self, gradRadius, posCell, BaseRadius: float):
+        """
+        Calculate and return the beam radius
+
+        Parameters:
+        -----------
+        gradRadius:
+        posCell:
+        BaseRadius: float
+
+        Returns:
+        ---------
+        actualBeamRadius: float
+            Calculated beam radius
+        """
+        return (BaseRadius * gradRadius[posCell[0]][0] * gradRadius[posCell[1]][1] * gradRadius[posCell[2]][2])
 
     def random_coordinate(self, coord, mu, sigma):
         """
@@ -620,9 +655,8 @@ class Cellule:
 
         # Generate beam at least 2 beams per node
         for beam in range(1):
-            beam = Beam(self.nodes[random.randint(0, len(self.nodes)-1)], self.nodes[random.randint(0, len(self.nodes)-1)], Radius,
-                        self.cell_size_x, self.cell_size_y, self.cell_size_z, gradRadius, gradMat,
-                        posCell, 0)
+            beam = Beam(self.nodes[random.randint(0, len(self.nodes)-1)], self.nodes[random.randint(0, len(self.nodes)-1)], beamRadius,
+                        beamMaterial, 0)
             if self.beam_already_exist(beam):
                 self.beams.append(beam)
         return self.nodes, self.beams

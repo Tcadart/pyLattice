@@ -2,54 +2,38 @@ import math
 
 
 class Beam:
-    def __init__(self, point1, point2, Radius: float,cell_size_x: int, cell_size_y: int, cell_size_z: int,
-                 gradRadius, gradMat, posCell,Type):
+    def __init__(self, point1, point2, Radius: float, Material: int, Type: int):
         """
-        Initialize a Beam object.
+        Beam object represent a beam by 2 points a radius and a beam type
 
-        :param point1: First end point of the beam (Node object)
-        :param point2: Second end point of the beam (Node object)
-        :param Radius: Initial beam radius
-        :param cell_size_x: Cell size in the x-direction
-        :param cell_size_y: Cell size in the y-direction
-        :param cell_size_z: Cell size in the z-direction
-        :param gradRadius: Gradient of beam radius
-        :param gradMat: Gradient of material
-        :param posCell: Position of the cell
-        :param Type: Center beam = 0; Modified beam = 1
+        Parameters:
+        ------------
+        point1: Point object
+        point2: Point object
+        Radius: float
+        Type: int
+            Center beam = 0; Modified beam = 1
         """
         self.point1 = point1
         self.point2 = point2
         self.radius = Radius
-        self.cell_size_x = cell_size_x
-        self.cell_size_y = cell_size_y
-        self.cell_size_z = cell_size_z
-        self.gradRadius = gradRadius
-        self.gradMat = gradMat
-        self.posCell = posCell
-        # type = 0 => no mod
+        self.material = Material
+
+        # type = 0 => normal
         # type = 1 => beam mod
         # type = 2 => beam on boundary
         self.type = Type
-        self.setBeamRadius()
-        self.length = self.get_length()
-        self.volume = self.get_volume()
-        self.setBeamMaterial()
-        self.nodes = []
+
 
 
     def __repr__(self):
-        return f"Beam({self.point1}, {self.point2}, {self.radius})"
+        return f"Beam({self.point1}, {self.point2}, Radius:{self.radius}, Type:{self.type})"
 
-    def add_node(self, node):
-        """
-        Add a node to the beam's list of connected nodes.
+    def __eq__(self, other):
+        return isinstance(other, Beam) and self.point1 == other.point1 and self.point2 == other.point2
 
-        :param node: Node object to be added
-        """
-        self.nodes.append(node)
 
-    def get_length(self):
+    def getLength(self):
         """
         Calculate the length of the beam.
 
@@ -60,7 +44,7 @@ class Beam:
         length = round(math.sqrt((x2 - x1) ** 2 + (y2 - y1) ** 2 + (z2 - z1) ** 2), 4)
         return length
 
-    def get_volume(self):
+    def getVolume(self):
         """
         Calculate the volume of the beam.
 
@@ -68,30 +52,13 @@ class Beam:
         """
         return math.pi * (self.radius ** 2) * self.length
 
-    def setBeamRadius(self):
-        """
-        Calculate and set the beam radius.
-
-        :return: Calculated beam radius
-        """
-        self.radius = (self.radius * self.gradRadius[self.posCell[0]][0] * self.gradRadius[self.posCell[1]][1] *
-                self.gradRadius[self.posCell[2]][2])
-
-    def setBeamMaterial(self):
-        """
-        Set the material of the beam based on the gradient and position.
-
-        :return: Material index of the beam
-        """
-        self.material = self.gradMat[self.posCell[2]][self.posCell[1]][self.posCell[0]]
 
     def changeBeamType(self, newType):
         self.type = newType
 
 
-
     def findPointMod(self, lengthMod):
-        beamLength = self.get_length()
+        beamLength = self.getLength()
         # Direction ratio components
         DR = [(self.point2.x - self.point1.x) / beamLength,
               (self.point2.y - self.point1.y) / beamLength,

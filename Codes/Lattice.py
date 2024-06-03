@@ -100,7 +100,7 @@ class Lattice:
         self.getMinMaxValues()
         if self.latticeType == 1000: # case for hybrid lattice structures
             self.checkHybridCollision()
-            self.LatticeToPyGeometricData()
+            # self.LatticeToPyGeometricData()
         self.getAllAngles()
 
         # Case of penalization at beam near nodes
@@ -449,7 +449,23 @@ class Lattice:
         Node index: integer
         """
         for index, node in enumerate(self.nodes_obj):
-            if point.x == node.x and point.y == node.y and point.z == node.z:
+            if point == node:
+                return index
+
+    def getBeamIndex(self, beam):
+        """
+        Retrieves the index of a beam in the list of nodes.
+
+        Parameter:
+        ----------
+        beam: Beam object
+
+        Return:
+        -------
+        Node index: integer
+        """
+        for index, beamlist in enumerate(self.beams_obj):
+            if beam == beamlist:
                 return index
 
     def getRadiusData(self):
@@ -715,28 +731,32 @@ class Lattice:
         """
         Modifies beam and node data to model lattice structures for simulation with rigidity penalization at node
         """
-        lengthMod = self.getLengthMod()
         beamMod = []
         indexCell = -1
         self.getNbBeamCell()
         for index, beam in enumerate(self.beams_obj):
+            lengthMod = self.getLengthMod(beam)
             if index%(self.nbBeam) == 0:
                 indexCell = indexCell+1
-            pointExt1 = beam.findPointMod(lengthMod[index][1])
+            pointExt1 = beam.findPointMod(lengthMod[0])
             pointExt1Obj = Point(pointExt1[0], pointExt1[1], pointExt1[2])
-            pointExt2 = beam.findPointMod(lengthMod[index][2])
+            pointExt2 = beam.findPointMod(lengthMod[1])
             pointExt2Obj = Point(pointExt2[0], pointExt2[1], pointExt2[2])
             if beam.type == 0:
                 typeBeam = [1,0,1]
             else:
                 typeBeam = [beam.type+100,beam.type,beam.type+100]
-
-            beamExt1 = Beam(beam.point1, pointExt1Obj, beam.radius * self.penalizationCoefficient, self.cellSizeX, self.cellSizeY,
-                            self.cellSizeZ, self.gradRadius, self.gradMat, self.posCell[indexCell], typeBeam[0])
-            beamCenter = Beam(pointExt1Obj, pointExt2Obj, beam.radius, self.cellSizeX, self.cellSizeY,
-                              self.cellSizeZ, self.gradRadius, self.gradMat, self.posCell[indexCell], typeBeam[1])
-            beamExt2 = Beam(pointExt2Obj, beam.point2, beam.radius * self.penalizationCoefficient, self.cellSizeX, self.cellSizeY,
-                            self.cellSizeZ, self.gradRadius, self.gradMat, self.posCell[indexCell], typeBeam[2])
+            beamExt1 = Beam(beam.point1, pointExt1Obj, beam.radius * self.penalizationCoefficient, beam.material,
+                            typeBeam[0])
+            beamCenter = Beam(pointExt1Obj, pointExt2Obj, beam.radius, beam.material, typeBeam[1])
+            beamExt2 = Beam(pointExt2Obj, beam.point2, beam.radius * self.penalizationCoefficient, beam.material,
+                            typeBeam[2])
+            print((beamExt1.getLength() / beam.getLength()) * 100,
+                  (beamCenter.getLength() / beam.getLength()) * 100,
+                  (beamExt2.getLength() / beam.getLength()) * 100)
+            print((beamExt1.getLength() / beam.getLength()) * 100 +
+                  (beamCenter.getLength() / beam.getLength()) * 100 +
+                  (beamExt2.getLength() / beam.getLength()) * 100)
 
             self.nodes_obj.append(pointExt1Obj)
             self.nodes_obj.append(pointExt2Obj)
@@ -767,7 +787,7 @@ class Lattice:
             L = radius / math.tan(math.radians(angle) / 2)
         return L
 
-    def getLengthMod(self):
+    def getLengthMod2(self):
         """
         Calculate and return length to modify in penalization method
 
@@ -782,6 +802,25 @@ class Lattice:
             L2 = self.functionPenalizationLzone(radius2,angle2)
             lengthMod.append((index,L1,L2))
         return lengthMod
+
+    def getLengthMod(self, beam):
+        """
+        Calculate and return length to modify in penalization method
+
+        Parameter:
+        ----------
+        beam: Beam Object
+            beam of interest
+
+        Return:
+        --------
+        LenghtMod: list
+            data structure: (Lmod point1,Lmod point2)
+        """
+        beamIndex = self.getBeamIndex(beam)
+        L1 = self.functionPenalizationLzone(self.angles[beamIndex][2],self.angles[beamIndex][1])
+        L2 = self.functionPenalizationLzone(self.angles[beamIndex][4],self.angles[beamIndex][3])
+        return L1, L2
 
 
     def removeCell(self, index):
@@ -845,8 +884,8 @@ class Lattice:
         """
         minLength = 1000
         for index, beam in enumerate(self.beams_obj):
-            if beam.get_length()<minLength and beam.get_length()>0.0001 and (beam.type == 0 or beam.type == 2):
-                minLength = beam.get_length()
+            if beam.getLength() <minLength and beam.getLength() >0.0001 and (beam.type == 0 or beam.type == 2):
+                minLength = beam.getLength()
         return minLength
 
     def tagPoint(self, point):
@@ -1049,11 +1088,9 @@ class Lattice:
                 if self.isPointOnLine(beam.point1,beam.point2,node):
                     typeBeamToRemove = beam.type # Get beam to remove type to apply in new separated beams
                     self.removeBeam(idxbeam)
-                    beam1= Beam(beam.point1, node, beam.radius, self.cellSizeX, self.cellSizeY, self.cellSizeZ,
-                                self.gradRadius, self.gradMat,[0,0,0],typeBeamToRemove)
+                    beam1= Beam(beam.point1, node, beam.radius, beam.material, typeBeamToRemove)
                     self.beams_obj.append(beam1)
-                    beam2 = Beam(beam.point2, node, beam.radius, self.cellSizeX, self.cellSizeY, self.cellSizeZ,
-                                 self.gradRadius, self.gradMat, [0,0,0], typeBeamToRemove)
+                    beam2 = Beam(beam.point2, node, beam.radius, beam.material, typeBeamToRemove)
                     self.beams_obj.append(beam2)
 
     def isPointOnLine(self, point1, point2, node):
