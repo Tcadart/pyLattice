@@ -45,7 +45,7 @@ class Cellule:
             point.y += translation[1]
             point.z += translation[2]
 
-    def merge_nodes(self):
+    def mergeNodes(self):
         """
         Merge nodes on the same plane to simplify the structure.
         """
@@ -65,7 +65,7 @@ class Cellule:
                 merged_nodes.add(point)
         self.nodes = list(merged_nodes)
 
-    def remove_unused_nodes(self):
+    def removeUnusedNodes(self):
         """
         Remove nodes not used in any beams.
 

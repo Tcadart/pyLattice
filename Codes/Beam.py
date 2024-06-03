@@ -53,18 +53,50 @@ class Beam:
         return math.pi * (self.radius ** 2) * self.length
 
 
-    def changeBeamType(self, newType):
+    def changeBeamType(self, newType: int):
+        """
+        Change beam type
+
+        Parameters:
+        newtype: integer
+            beam type wanted to assign
+        """
         self.type = newType
 
 
-    def findPointMod(self, lengthMod):
-        beamLength = self.getLength()
-        # Direction ratio components
-        DR = [(self.point2.x - self.point1.x) / beamLength,
-              (self.point2.y - self.point1.y) / beamLength,
-              (self.point2.z - self.point1.z) / beamLength]
-        # Scaling the direction ratio components by lengthMod
-        factor = [dr * lengthMod for dr in DR]
-        # Calculating the new point position
-        pointMod = [self.point1.x + factor[0], self.point1.y + factor[1], self.point1.z + factor[2]]
-        return pointMod
+    def getPointOnBeamFromDistance(self, distance, pointIndex):
+        """
+        Get the position [x,y,z] of a point on the beam at a distance of the point pointIndex
+
+        Parameters:
+        -----------
+        distance: float
+            Distance between pointIndex and new point
+        pointIndex: int (1 or 2)
+            Index of the beam point
+        """
+        beam_length = self.getLength()
+        if pointIndex == 1:
+            start_point = self.point1
+            end_point = self.point2
+        elif pointIndex == 2:
+            start_point = self.point2
+            end_point = self.point1
+        else:
+            raise ValueError("Point must be 1 or 2.")
+
+        direction_ratios = [
+            (end_point.x - start_point.x) / beam_length,
+            (end_point.y - start_point.y) / beam_length,
+            (end_point.z - start_point.z) / beam_length,
+        ]
+
+        factors = [dr * distance for dr in direction_ratios]
+
+        point_mod = [
+            start_point.x + factors[0],
+            start_point.y + factors[1],
+            start_point.z + factors[2]
+        ]
+
+        return point_mod

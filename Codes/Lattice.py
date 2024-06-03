@@ -738,9 +738,10 @@ class Lattice:
             lengthMod = self.getLengthMod(beam)
             if index%(self.nbBeam) == 0:
                 indexCell = indexCell+1
-            pointExt1 = beam.findPointMod(lengthMod[0])
+            print("lengthMod", lengthMod)
+            pointExt1 = beam.getPointOnBeamFromDistance(lengthMod[0], 1)
             pointExt1Obj = Point(pointExt1[0], pointExt1[1], pointExt1[2])
-            pointExt2 = beam.findPointMod(lengthMod[1])
+            pointExt2 = beam.getPointOnBeamFromDistance(lengthMod[1], 2)
             pointExt2Obj = Point(pointExt2[0], pointExt2[1], pointExt2[2])
             if beam.type == 0:
                 typeBeam = [1,0,1]
