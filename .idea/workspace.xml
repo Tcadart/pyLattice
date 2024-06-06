@@ -4,10 +4,8 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="e3dc1a1d-8b4b-4101-aad1-b4f2b4f8d3a5" name="Changes" comment="classe Beam.py reworked">
+    <list default="true" id="e3dc1a1d-8b4b-4101-aad1-b4f2b4f8d3a5" name="Changes" comment="Beam mod corrected">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Codes/Beam.py" beforeDir="false" afterPath="$PROJECT_DIR$/Codes/Beam.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Codes/Cellule.py" beforeDir="false" afterPath="$PROJECT_DIR$/Codes/Cellule.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Codes/Lattice.py" beforeDir="false" afterPath="$PROJECT_DIR$/Codes/Lattice.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
@@ -41,24 +39,24 @@
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
-  <component name="PropertiesComponent"><![CDATA[{
-  "keyToString": {
-    "RunOnceActivity.OpenProjectViewOnStart": "true",
-    "RunOnceActivity.ShowReadmeOnStart": "true",
-    "WebServerToolWindowFactoryState": "false",
-    "git-widget-placeholder": "LatticeWIP",
-    "ignore.virus.scanning.warn.message": "true",
-    "last_opened_file_path": "D:/Fichiers/002_These",
-    "node.js.detected.package.eslint": "true",
-    "node.js.detected.package.tslint": "true",
-    "node.js.selected.package.eslint": "(autodetect)",
-    "node.js.selected.package.tslint": "(autodetect)",
-    "nodejs_package_manager_path": "npm",
-    "settings.editor.selected.configurable": "com.jetbrains.python.configuration.PyActiveSdkModuleConfigurable",
-    "two.files.diff.last.used.file": "D:/travail_Abaqus/Lattice/BCC_311.txt",
-    "vue.rearranger.settings.migration": "true"
+  <component name="PropertiesComponent">{
+  &quot;keyToString&quot;: {
+    &quot;RunOnceActivity.OpenProjectViewOnStart&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
+    &quot;WebServerToolWindowFactoryState&quot;: &quot;false&quot;,
+    &quot;git-widget-placeholder&quot;: &quot;LatticeWIP&quot;,
+    &quot;ignore.virus.scanning.warn.message&quot;: &quot;true&quot;,
+    &quot;last_opened_file_path&quot;: &quot;D:/Fichiers/002_These&quot;,
+    &quot;node.js.detected.package.eslint&quot;: &quot;true&quot;,
+    &quot;node.js.detected.package.tslint&quot;: &quot;true&quot;,
+    &quot;node.js.selected.package.eslint&quot;: &quot;(autodetect)&quot;,
+    &quot;node.js.selected.package.tslint&quot;: &quot;(autodetect)&quot;,
+    &quot;nodejs_package_manager_path&quot;: &quot;npm&quot;,
+    &quot;settings.editor.selected.configurable&quot;: &quot;com.jetbrains.python.configuration.PyActiveSdkModuleConfigurable&quot;,
+    &quot;two.files.diff.last.used.file&quot;: &quot;D:/travail_Abaqus/Lattice/BCC_311.txt&quot;,
+    &quot;vue.rearranger.settings.migration&quot;: &quot;true&quot;
   }
-}]]></component>
+}</component>
   <component name="RecentsManager">
     <key name="CopyFile.RECENT_KEYS">
       <recent name="D:\travail_Abaqus\Lattice" />
@@ -145,7 +143,8 @@
       <workItem from="1714135469000" duration="9751000" />
       <workItem from="1714655380978" duration="1191000" />
       <workItem from="1714977880642" duration="25514000" />
-      <workItem from="1716462932041" duration="56677000" />
+      <workItem from="1716462932041" duration="58556000" />
+      <workItem from="1717589460948" duration="2518000" />
     </task>
     <task id="LOCAL-00001" summary="Modiff récuperation result">
       <option name="closed" value="true" />
@@ -307,7 +306,15 @@
       <option name="project" value="LOCAL" />
       <updated>1717425383218</updated>
     </task>
-    <option name="localTasksCounter" value="21" />
+    <task id="LOCAL-00021" summary="Beam mod corrected">
+      <option name="closed" value="true" />
+      <created>1717426304213</created>
+      <option name="number" value="00021" />
+      <option name="presentableId" value="LOCAL-00021" />
+      <option name="project" value="LOCAL" />
+      <updated>1717426304213</updated>
+    </task>
+    <option name="localTasksCounter" value="22" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -363,10 +370,13 @@
     <MESSAGE value="amélioration des fonction d'angle" />
     <MESSAGE value="amélioration commentaire" />
     <MESSAGE value="classe Beam.py reworked" />
-    <option name="LAST_COMMIT_MESSAGE" value="classe Beam.py reworked" />
+    <MESSAGE value="Beam mod corrected" />
+    <option name="LAST_COMMIT_MESSAGE" value="Beam mod corrected" />
   </component>
   <component name="WfRunsListSearchHistory"><![CDATA[{
   "history": [
+    {
+    },
     {
     },
     {

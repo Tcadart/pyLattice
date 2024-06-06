@@ -738,7 +738,6 @@ class Lattice:
             lengthMod = self.getLengthMod(beam)
             if index%(self.nbBeam) == 0:
                 indexCell = indexCell+1
-            print("lengthMod", lengthMod)
             pointExt1 = beam.getPointOnBeamFromDistance(lengthMod[0], 1)
             pointExt1Obj = Point(pointExt1[0], pointExt1[1], pointExt1[2])
             pointExt2 = beam.getPointOnBeamFromDistance(lengthMod[1], 2)
@@ -752,12 +751,6 @@ class Lattice:
             beamCenter = Beam(pointExt1Obj, pointExt2Obj, beam.radius, beam.material, typeBeam[1])
             beamExt2 = Beam(pointExt2Obj, beam.point2, beam.radius * self.penalizationCoefficient, beam.material,
                             typeBeam[2])
-            print((beamExt1.getLength() / beam.getLength()) * 100,
-                  (beamCenter.getLength() / beam.getLength()) * 100,
-                  (beamExt2.getLength() / beam.getLength()) * 100)
-            print((beamExt1.getLength() / beam.getLength()) * 100 +
-                  (beamCenter.getLength() / beam.getLength()) * 100 +
-                  (beamExt2.getLength() / beam.getLength()) * 100)
 
             self.nodes_obj.append(pointExt1Obj)
             self.nodes_obj.append(pointExt2Obj)
