@@ -2,6 +2,9 @@ import math
 
 
 class Beam:
+    """
+    Class Beam represente beam element in structures
+    """
     def __init__(self, point1, point2, Radius: float, Material: int, Type: int):
         """
         Beam object represent a beam by 2 points a radius and a beam type
