@@ -1,5 +1,3 @@
-import random
-
 from Lattice import *
 import matplotlib.pyplot as plt
 import math
@@ -9,10 +7,6 @@ def visu_Cellule(ax):
     ax.set_title("Cellule choisie")
     lattice.cells[0].visualize_3d(ax)
 
-# Function to visualize the generated lattice
-def visu_lattice(ax):
-    ax.set_title("Lattice généré")
-    lattice.visualize_3d(ax)
 
 # Function to display lattice points and beams
 def display_lattice_points_beams():
@@ -23,12 +17,6 @@ def display_lattice_points_beams():
     visu_lattice(ax2)
     plt.show()
 
-# Function to display only the lattice
-def display_only_lattice():
-    fig = plt.figure()
-    ax = fig.add_subplot(111, projection='3d')
-    visu_lattice(ax)
-    plt.show()
 
 def display_only_cell_random():
     fig = plt.figure()
@@ -135,10 +123,10 @@ cell_size = 1
 cell_size_X = cell_size
 cell_size_Y = cell_size
 cell_size_Z = cell_size
-number_cell = 1
-number_cell_X = number_cell
-number_cell_Y = number_cell
-number_cell_Z = number_cell
+number_cell = 2
+number_cell_X = 10
+number_cell_Y = 1
+number_cell_Z = 1
 
 Lattice_Type = 0
 # -2 => Method random cell
@@ -184,7 +172,7 @@ AnalysisType = 0
 # 0 Modelisation lattice only
 # 1 Compression Z
 
-MethodSim = 0
+MethodSim = 1
 # 0 No modification
 # 1 Node Modification
 
@@ -202,11 +190,13 @@ gradDimProperty = [GradDimRule,GradDimDirection,GradDimParameters]
 gradRadiusProperty = [GradRadRule,GradRadDirection,GradRadParameters]
 gradMatProperty = [Multimat,GradMaterialDirection]
 
-hybridLatticeData = [0.1,0.2,0.3]
-#Generate data from lattice
+hybridLatticeData = [0.005236359885094433, 0.008718667752263232, 0.04072417636703984]
+# #Generate data from lattice
 # lattice = Lattice(cell_size_X,cell_size_Y,cell_size_Z, number_cell_X,number_cell_Y,number_cell_Z,Lattice_Type,
 #                   Radius,gradRadiusProperty,gradDimProperty,gradMatProperty,MethodSim,uncertaintyNode,hybridLatticeData)
 lattice = Lattice.hybridgeometry(cell_size_X, cell_size_Y,cell_size_Z, MethodSim,uncertaintyNode,hybridLatticeData)
+
+
 # lattice = Lattice.simpleLattice(cell_size_X,cell_size_Y,cell_size_Z, number_cell_X,number_cell_Y,number_cell_Z,Lattice_Type,Radius)
 # display_only_cell_random()
-display_only_lattice()
+lattice.visualizeLattice3D("Type")

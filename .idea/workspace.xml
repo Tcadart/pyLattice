@@ -4,10 +4,21 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="e3dc1a1d-8b4b-4101-aad1-b4f2b4f8d3a5" name="Changes" comment="Update hybrid lattice">
+    <list default="true" id="e3dc1a1d-8b4b-4101-aad1-b4f2b4f8d3a5" name="Changes" comment=".7 ignore">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Codes/Lattice.py" beforeDir="false" afterPath="$PROJECT_DIR$/Codes/Lattice.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Codes/Main.py" beforeDir="false" afterPath="$PROJECT_DIR$/Codes/Main.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Codes/Beam.py" beforeDir="false" afterPath="$PROJECT_DIR$/Beam.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Codes/Cellule.py" beforeDir="false" afterPath="$PROJECT_DIR$/Cellule.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Codes/FullLatticeSimulation.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Codes/Lattice.py" beforeDir="false" afterPath="$PROJECT_DIR$/Lattice.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Codes/Lattice_description.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Codes/Main.py" beforeDir="false" afterPath="$PROJECT_DIR$/Main.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Codes/Materials.py" beforeDir="false" afterPath="$PROJECT_DIR$/Materials.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Codes/Point.py" beforeDir="false" afterPath="$PROJECT_DIR$/Point.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Codes/Save_result.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Codes/abaqus.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Codes/plot_result.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/abaqusMacros.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/fort.7" beforeDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -29,6 +40,9 @@
     </option>
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
   </component>
+  <component name="MarkdownSettingsMigration">
+    <option name="stateVersion" value="1" />
+  </component>
   <component name="ProjectColorInfo">{
   &quot;associatedIndex&quot;: 2
 }</component>
@@ -44,11 +58,12 @@
     &quot;WebServerToolWindowFactoryState&quot;: &quot;false&quot;,
     &quot;git-widget-placeholder&quot;: &quot;LatticeWIP&quot;,
     &quot;ignore.virus.scanning.warn.message&quot;: &quot;true&quot;,
-    &quot;last_opened_file_path&quot;: &quot;D:/travail_Abaqus/Lattice/BCC_311.txt&quot;,
+    &quot;last_opened_file_path&quot;: &quot;D:/Fichiers/002_These&quot;,
     &quot;node.js.detected.package.eslint&quot;: &quot;true&quot;,
     &quot;node.js.detected.package.tslint&quot;: &quot;true&quot;,
     &quot;node.js.selected.package.eslint&quot;: &quot;(autodetect)&quot;,
     &quot;node.js.selected.package.tslint&quot;: &quot;(autodetect)&quot;,
+    &quot;nodejs_package_manager_path&quot;: &quot;npm&quot;,
     &quot;settings.editor.selected.configurable&quot;: &quot;com.jetbrains.python.configuration.PyActiveSdkModuleConfigurable&quot;,
     &quot;two.files.diff.last.used.file&quot;: &quot;D:/travail_Abaqus/Lattice/BCC_311.txt&quot;,
     &quot;vue.rearranger.settings.migration&quot;: &quot;true&quot;
@@ -59,6 +74,8 @@
       <recent name="D:\travail_Abaqus\Lattice" />
     </key>
     <key name="MoveFile.RECENT_KEYS">
+      <recent name="D:\travail_Abaqus\Lattice" />
+      <recent name="D:\travail_Abaqus\Lattice\AbaqusLattice" />
       <recent name="D:\travail_Abaqus\Lattice\Codes" />
     </key>
   </component>
@@ -76,7 +93,7 @@
       <option name="ADD_CONTENT_ROOTS" value="true" />
       <option name="ADD_SOURCE_ROOTS" value="true" />
       <EXTENSION ID="PythonCoverageRunConfigurationExtension" runner="coverage.py" />
-      <option name="SCRIPT_NAME" value="D:\travail_Abaqus\Lattice\Codes\Main.py" />
+      <option name="SCRIPT_NAME" value="D:\travail_Abaqus\Lattice\Main.py" />
       <option name="PARAMETERS" value="" />
       <option name="SHOW_COMMAND_LINE" value="false" />
       <option name="EMULATE_TERMINAL" value="false" />
@@ -140,6 +157,9 @@
       <workItem from="1714135469000" duration="9751000" />
       <workItem from="1714655380978" duration="1191000" />
       <workItem from="1714977880642" duration="25514000" />
+      <workItem from="1716462932041" duration="58556000" />
+      <workItem from="1717589460948" duration="2552000" />
+      <workItem from="1718181313030" duration="1448000" />
     </task>
     <task id="LOCAL-00001" summary="Modiff récuperation result">
       <option name="closed" value="true" />
@@ -197,7 +217,143 @@
       <option name="project" value="LOCAL" />
       <updated>1715088553046</updated>
     </task>
-    <option name="localTasksCounter" value="8" />
+    <task id="LOCAL-00008" summary="Master merge from WIP">
+      <option name="closed" value="true" />
+      <created>1715179649876</created>
+      <option name="number" value="00008" />
+      <option name="presentableId" value="LOCAL-00008" />
+      <option name="project" value="LOCAL" />
+      <updated>1715179649876</updated>
+    </task>
+    <task id="LOCAL-00009" summary="update">
+      <option name="closed" value="true" />
+      <created>1716549547139</created>
+      <option name="number" value="00009" />
+      <option name="presentableId" value="LOCAL-00009" />
+      <option name="project" value="LOCAL" />
+      <updated>1716549547139</updated>
+    </task>
+    <task id="LOCAL-00010" summary="correction angle quand plusieurs rayon sont en jeux">
+      <option name="closed" value="true" />
+      <created>1716563555820</created>
+      <option name="number" value="00010" />
+      <option name="presentableId" value="LOCAL-00010" />
+      <option name="project" value="LOCAL" />
+      <updated>1716563555820</updated>
+    </task>
+    <task id="LOCAL-00011" summary="Modif pour Lzone et début implémentation IA">
+      <option name="closed" value="true" />
+      <created>1716821232011</created>
+      <option name="number" value="00011" />
+      <option name="presentableId" value="LOCAL-00011" />
+      <option name="project" value="LOCAL" />
+      <updated>1716821232011</updated>
+    </task>
+    <task id="LOCAL-00012" summary="Adding periodicity">
+      <option name="closed" value="true" />
+      <created>1716901799536</created>
+      <option name="number" value="00012" />
+      <option name="presentableId" value="LOCAL-00012" />
+      <option name="project" value="LOCAL" />
+      <updated>1716901799536</updated>
+    </task>
+    <task id="LOCAL-00013" summary="Correction Penalization">
+      <option name="closed" value="true" />
+      <created>1716903263416</created>
+      <option name="number" value="00013" />
+      <option name="presentableId" value="LOCAL-00013" />
+      <option name="project" value="LOCAL" />
+      <updated>1716903263416</updated>
+    </task>
+    <task id="LOCAL-00014" summary="Add attractor">
+      <option name="closed" value="true" />
+      <created>1717168013987</created>
+      <option name="number" value="00014" />
+      <option name="presentableId" value="LOCAL-00014" />
+      <option name="project" value="LOCAL" />
+      <updated>1717168013987</updated>
+    </task>
+    <task id="LOCAL-00015" summary="Beam class ajout findBeamMod">
+      <option name="closed" value="true" />
+      <created>1717254408712</created>
+      <option name="number" value="00015" />
+      <option name="presentableId" value="LOCAL-00015" />
+      <option name="project" value="LOCAL" />
+      <updated>1717254408712</updated>
+    </task>
+    <task id="LOCAL-00016" summary="Corrected attractor in lattice">
+      <option name="closed" value="true" />
+      <created>1717255628414</created>
+      <option name="number" value="00016" />
+      <option name="presentableId" value="LOCAL-00016" />
+      <option name="project" value="LOCAL" />
+      <updated>1717255628414</updated>
+    </task>
+    <task id="LOCAL-00017" summary="Corrected attractor in lattice">
+      <option name="closed" value="true" />
+      <created>1717256404570</created>
+      <option name="number" value="00017" />
+      <option name="presentableId" value="LOCAL-00017" />
+      <option name="project" value="LOCAL" />
+      <updated>1717256404570</updated>
+    </task>
+    <task id="LOCAL-00018" summary="amélioration des fonction d'angle">
+      <option name="closed" value="true" />
+      <created>1717420104579</created>
+      <option name="number" value="00018" />
+      <option name="presentableId" value="LOCAL-00018" />
+      <option name="project" value="LOCAL" />
+      <updated>1717420104579</updated>
+    </task>
+    <task id="LOCAL-00019" summary="amélioration commentaire">
+      <option name="closed" value="true" />
+      <created>1717422270989</created>
+      <option name="number" value="00019" />
+      <option name="presentableId" value="LOCAL-00019" />
+      <option name="project" value="LOCAL" />
+      <updated>1717422270989</updated>
+    </task>
+    <task id="LOCAL-00020" summary="classe Beam.py reworked">
+      <option name="closed" value="true" />
+      <created>1717425383218</created>
+      <option name="number" value="00020" />
+      <option name="presentableId" value="LOCAL-00020" />
+      <option name="project" value="LOCAL" />
+      <updated>1717425383218</updated>
+    </task>
+    <task id="LOCAL-00021" summary="Beam mod corrected">
+      <option name="closed" value="true" />
+      <created>1717426304213</created>
+      <option name="number" value="00021" />
+      <option name="presentableId" value="LOCAL-00021" />
+      <option name="project" value="LOCAL" />
+      <updated>1717426304213</updated>
+    </task>
+    <task id="LOCAL-00022" summary="avant déplacement LatticeGNN">
+      <option name="closed" value="true" />
+      <created>1717659555530</created>
+      <option name="number" value="00022" />
+      <option name="presentableId" value="LOCAL-00022" />
+      <option name="project" value="LOCAL" />
+      <updated>1717659555530</updated>
+    </task>
+    <task id="LOCAL-00023" summary="idea ignore">
+      <option name="closed" value="true" />
+      <created>1718181777377</created>
+      <option name="number" value="00023" />
+      <option name="presentableId" value="LOCAL-00023" />
+      <option name="project" value="LOCAL" />
+      <updated>1718181777377</updated>
+    </task>
+    <task id="LOCAL-00024" summary=".7 ignore">
+      <option name="closed" value="true" />
+      <created>1718181829177</created>
+      <option name="number" value="00024" />
+      <option name="presentableId" value="LOCAL-00024" />
+      <option name="project" value="LOCAL" />
+      <updated>1718181829177</updated>
+    </task>
+    <option name="localTasksCounter" value="25" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -241,10 +397,38 @@
     <MESSAGE value="Bug angle" />
     <MESSAGE value="Update" />
     <MESSAGE value="Update hybrid lattice" />
-    <option name="LAST_COMMIT_MESSAGE" value="Update hybrid lattice" />
+    <MESSAGE value="Master merge from WIP" />
+    <MESSAGE value="update" />
+    <MESSAGE value="correction angle quand plusieurs rayon sont en jeux" />
+    <MESSAGE value="Modif pour Lzone et début implémentation IA" />
+    <MESSAGE value="Adding periodicity" />
+    <MESSAGE value="Correction Penalization" />
+    <MESSAGE value="Add attractor" />
+    <MESSAGE value="Beam class ajout findBeamMod" />
+    <MESSAGE value="Corrected attractor in lattice" />
+    <MESSAGE value="amélioration des fonction d'angle" />
+    <MESSAGE value="amélioration commentaire" />
+    <MESSAGE value="classe Beam.py reworked" />
+    <MESSAGE value="Beam mod corrected" />
+    <MESSAGE value="avant déplacement LatticeGNN" />
+    <MESSAGE value="idea ignore" />
+    <MESSAGE value=".7 ignore" />
+    <option name="LAST_COMMIT_MESSAGE" value=".7 ignore" />
   </component>
   <component name="WfRunsListSearchHistory">{
   &quot;history&quot;: [
+    {
+    },
+    {
+    },
+    {
+    },
+    {
+    },
+    {
+    },
+    {
+    },
     {
     },
     {
@@ -317,7 +501,7 @@
 }</component>
   <component name="com.intellij.coverage.CoverageDataManagerImpl">
     <SUITE FILE_PATH="coverage/Lattice$Lattice.coverage" NAME="Lattice Coverage Results" MODIFIED="1713426426220" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
-    <SUITE FILE_PATH="coverage/Lattice$Main.coverage" NAME="Main Coverage Results" MODIFIED="1715176863850" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
+    <SUITE FILE_PATH="coverage/Lattice$Main.coverage" NAME="Main Coverage Results" MODIFIED="1717426214206" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
     <SUITE FILE_PATH="coverage/Lattice$plot_result.coverage" NAME="plot_result Coverage Results" MODIFIED="1710757782517" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
     <SUITE FILE_PATH="coverage/Lattice$Cellule.coverage" NAME="Cellule Coverage Results" MODIFIED="1712818355371" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
     <SUITE FILE_PATH="coverage/Lattice$Save_result.coverage" NAME="Save_result Coverage Results" MODIFIED="1710757236865" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
