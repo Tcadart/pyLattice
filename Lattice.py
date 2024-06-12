@@ -156,7 +156,7 @@ class Lattice:
         gradMatProperty = [Multimat, GradMaterialDirection]
         return cls(cell_size_x, cell_size_y, cell_size_z, 1, 1, 1, 1000,
                  1,gradRadiusProperty,gradDimProperty,gradMatProperty,simMethod,uncertaintyNode,
-                 hybridLatticeData, periodicity=1)
+                 hybridLatticeData, periodicity=True)
 
     @classmethod
     def latticeHybridForGraph(cls, hybridLatticeData):
