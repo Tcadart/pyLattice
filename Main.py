@@ -1,5 +1,3 @@
-import random
-
 from Lattice import *
 import matplotlib.pyplot as plt
 import math

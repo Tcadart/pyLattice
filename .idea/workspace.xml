@@ -4,8 +4,21 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="e3dc1a1d-8b4b-4101-aad1-b4f2b4f8d3a5" name="Changes" comment="avant déplacement LatticeGNN">
+    <list default="true" id="e3dc1a1d-8b4b-4101-aad1-b4f2b4f8d3a5" name="Changes" comment=".7 ignore">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Codes/Beam.py" beforeDir="false" afterPath="$PROJECT_DIR$/Beam.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Codes/Cellule.py" beforeDir="false" afterPath="$PROJECT_DIR$/Cellule.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Codes/FullLatticeSimulation.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Codes/Lattice.py" beforeDir="false" afterPath="$PROJECT_DIR$/Lattice.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Codes/Lattice_description.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Codes/Main.py" beforeDir="false" afterPath="$PROJECT_DIR$/Main.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Codes/Materials.py" beforeDir="false" afterPath="$PROJECT_DIR$/Materials.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Codes/Point.py" beforeDir="false" afterPath="$PROJECT_DIR$/Point.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Codes/Save_result.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Codes/abaqus.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Codes/plot_result.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/abaqusMacros.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/fort.7" beforeDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -61,6 +74,8 @@
       <recent name="D:\travail_Abaqus\Lattice" />
     </key>
     <key name="MoveFile.RECENT_KEYS">
+      <recent name="D:\travail_Abaqus\Lattice" />
+      <recent name="D:\travail_Abaqus\Lattice\AbaqusLattice" />
       <recent name="D:\travail_Abaqus\Lattice\Codes" />
     </key>
   </component>
@@ -78,7 +93,7 @@
       <option name="ADD_CONTENT_ROOTS" value="true" />
       <option name="ADD_SOURCE_ROOTS" value="true" />
       <EXTENSION ID="PythonCoverageRunConfigurationExtension" runner="coverage.py" />
-      <option name="SCRIPT_NAME" value="D:\travail_Abaqus\Lattice\Codes\Main.py" />
+      <option name="SCRIPT_NAME" value="D:\travail_Abaqus\Lattice\Main.py" />
       <option name="PARAMETERS" value="" />
       <option name="SHOW_COMMAND_LINE" value="false" />
       <option name="EMULATE_TERMINAL" value="false" />
@@ -144,7 +159,7 @@
       <workItem from="1714977880642" duration="25514000" />
       <workItem from="1716462932041" duration="58556000" />
       <workItem from="1717589460948" duration="2552000" />
-      <workItem from="1718181313030" duration="396000" />
+      <workItem from="1718181313030" duration="1448000" />
     </task>
     <task id="LOCAL-00001" summary="Modiff récuperation result">
       <option name="closed" value="true" />
@@ -322,7 +337,23 @@
       <option name="project" value="LOCAL" />
       <updated>1717659555530</updated>
     </task>
-    <option name="localTasksCounter" value="23" />
+    <task id="LOCAL-00023" summary="idea ignore">
+      <option name="closed" value="true" />
+      <created>1718181777377</created>
+      <option name="number" value="00023" />
+      <option name="presentableId" value="LOCAL-00023" />
+      <option name="project" value="LOCAL" />
+      <updated>1718181777377</updated>
+    </task>
+    <task id="LOCAL-00024" summary=".7 ignore">
+      <option name="closed" value="true" />
+      <created>1718181829177</created>
+      <option name="number" value="00024" />
+      <option name="presentableId" value="LOCAL-00024" />
+      <option name="project" value="LOCAL" />
+      <updated>1718181829177</updated>
+    </task>
+    <option name="localTasksCounter" value="25" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -380,7 +411,9 @@
     <MESSAGE value="classe Beam.py reworked" />
     <MESSAGE value="Beam mod corrected" />
     <MESSAGE value="avant déplacement LatticeGNN" />
-    <option name="LAST_COMMIT_MESSAGE" value="avant déplacement LatticeGNN" />
+    <MESSAGE value="idea ignore" />
+    <MESSAGE value=".7 ignore" />
+    <option name="LAST_COMMIT_MESSAGE" value=".7 ignore" />
   </component>
   <component name="WfRunsListSearchHistory"><![CDATA[{
   "history": [
