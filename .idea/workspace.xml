@@ -4,9 +4,8 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="e3dc1a1d-8b4b-4101-aad1-b4f2b4f8d3a5" name="Changes" comment="Beam mod corrected">
+    <list default="true" id="e3dc1a1d-8b4b-4101-aad1-b4f2b4f8d3a5" name="Changes" comment="avant déplacement LatticeGNN">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Codes/Lattice.py" beforeDir="false" afterPath="$PROJECT_DIR$/Codes/Lattice.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -144,7 +143,8 @@
       <workItem from="1714655380978" duration="1191000" />
       <workItem from="1714977880642" duration="25514000" />
       <workItem from="1716462932041" duration="58556000" />
-      <workItem from="1717589460948" duration="2518000" />
+      <workItem from="1717589460948" duration="2552000" />
+      <workItem from="1718181313030" duration="396000" />
     </task>
     <task id="LOCAL-00001" summary="Modiff récuperation result">
       <option name="closed" value="true" />
@@ -314,7 +314,15 @@
       <option name="project" value="LOCAL" />
       <updated>1717426304213</updated>
     </task>
-    <option name="localTasksCounter" value="22" />
+    <task id="LOCAL-00022" summary="avant déplacement LatticeGNN">
+      <option name="closed" value="true" />
+      <created>1717659555530</created>
+      <option name="number" value="00022" />
+      <option name="presentableId" value="LOCAL-00022" />
+      <option name="project" value="LOCAL" />
+      <updated>1717659555530</updated>
+    </task>
+    <option name="localTasksCounter" value="23" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -371,10 +379,13 @@
     <MESSAGE value="amélioration commentaire" />
     <MESSAGE value="classe Beam.py reworked" />
     <MESSAGE value="Beam mod corrected" />
-    <option name="LAST_COMMIT_MESSAGE" value="Beam mod corrected" />
+    <MESSAGE value="avant déplacement LatticeGNN" />
+    <option name="LAST_COMMIT_MESSAGE" value="avant déplacement LatticeGNN" />
   </component>
   <component name="WfRunsListSearchHistory"><![CDATA[{
   "history": [
+    {
+    },
     {
     },
     {
