@@ -1,31 +1,40 @@
+"""
+Class Cell
+"""
 from Point import *
 from Beam import *
 import math
 import random
 
 
-class Cellule:
-    def __init__(self, cell_size_x, cell_size_y, cell_size_z, x, y, z):
-        """
-        Initialize a Cellule (cell) with its dimensions and position.
+class Cell:
+    """
+    Define Cell data for lattice structure
+    """
 
-        :param cell_size_x: x-dimension of the cell
-        :param cell_size_y: y-dimension of the cell
-        :param cell_size_z: z-dimension of the cell
-        :param x: x-coordinate of the cell's position
-        :param y: y-coordinate of the cell's position
-        :param z: z-coordinate of the cell's position
+    def __init__(self, cell_size_x: float, cell_size_y: float, cell_size_z: float, x: float, y: float, z: float):
         """
-        self.cell_size_x = cell_size_x
-        self.cell_size_y = cell_size_y
-        self.cell_size_z = cell_size_z
+        Initialize a Cell with its dimensions and position
+
+        Parameters:
+        -----------
+        cell_size_x: x-dimension of the cell
+        cell_size_y: y-dimension of the cell
+        cell_size_z: z-dimension of the cell
+        x: x-coordinate of the cell center
+        y: y-coordinate of the cell center
+        z: z-coordinate of the cell center
+        """
+        self.cellSizeX = cell_size_x
+        self.cellSizeY = cell_size_y
+        self.cellSizeZ = cell_size_z
         self.x = x
         self.y = y
         self.z = z
         self.nodes = []
         self.beams = []
         self._centerCell = self.calculateCenterCell()
-    
+
     @property
     def centerCell(self):
         return self._centerCell
@@ -55,11 +64,11 @@ class Cellule:
         merged_nodes = set()
         for point in self.nodes:
             x, y, z = point.x, point.y, point.z
-            if z == z_min or (x in [0, self.cell_size_x] and y in [0, self.cell_size_y]) or (
-                    z == z_max and x != 0 and x != self.cell_size_x and y != 0 and y != self.cell_size_y):
+            if z == z_min or (x in [0, self.cellSizeX] and y in [0, self.cellSizeY]) or (
+                    z == z_max and x != 0 and x != self.cellSizeX and y != 0 and y != self.cellSizeY):
                 merged_nodes.add(Point(x, y, z_max))
-            elif z == z_max or (x in [0, self.cell_size_x] and y in [0, self.cell_size_y]) or (
-                    z == z_min and x != 0 and x != self.cell_size_x and y != 0 and y != self.cell_size_y):
+            elif z == z_max or (x in [0, self.cellSizeX] and y in [0, self.cellSizeY]) or (
+                    z == z_min and x != 0 and x != self.cellSizeX and y != 0 and y != self.cellSizeY):
                 merged_nodes.add(Point(x, y, z_min))
             else:
                 merged_nodes.add(point)
@@ -343,45 +352,45 @@ class Cellule:
             (0.25, 0.75, 0.75, 0.0, 0.5, 0.5),
             (0.25, 0.75, 0.75, 0.5, 1.0, 0.5)
         ]
-        angleGeom = 20 #Angle en degres
+        angleGeom = 20  # Angle en degres
         hGeom = 0.35
-        valGeom = hGeom-math.tan(angleGeom*math.pi/180)/2
+        valGeom = hGeom - math.tan(angleGeom * math.pi / 180) / 2
         Auxetic = [(0.5, 0.0, 0.0, 0.5, 0.0, hGeom),
-                   (0.5, 0.0, 1.0, 0.5, 0.0, 1-hGeom),
-                   (0.0, 0.0, valGeom, 0.0, 0.0, 1-valGeom),
-                   (1.0, 0.0, valGeom, 1.0, 0.0, 1-valGeom),
+                   (0.5, 0.0, 1.0, 0.5, 0.0, 1 - hGeom),
+                   (0.0, 0.0, valGeom, 0.0, 0.0, 1 - valGeom),
+                   (1.0, 0.0, valGeom, 1.0, 0.0, 1 - valGeom),
                    (0.0, 0.0, valGeom, 0.5, 0.0, hGeom),
-                   (0.0, 0.0, 1-valGeom, 0.5, 0.0, 1-hGeom),
-                   (1.0, 0.0, 1-valGeom, 0.5, 0.0, 1-hGeom),
+                   (0.0, 0.0, 1 - valGeom, 0.5, 0.0, 1 - hGeom),
+                   (1.0, 0.0, 1 - valGeom, 0.5, 0.0, 1 - hGeom),
                    (1.0, 0.0, valGeom, 0.5, 0.0, hGeom),
                    (0.5, 1.0, 0.0, 0.5, 1.0, hGeom),
-                   (0.5, 1.0, 1.0, 0.5, 1.0, 1-hGeom),
-                   (0.0, 1.0, valGeom, 0.0, 1.0, 1-valGeom),
-                   (1.0, 1.0, valGeom, 1.0, 1.0, 1-valGeom),
+                   (0.5, 1.0, 1.0, 0.5, 1.0, 1 - hGeom),
+                   (0.0, 1.0, valGeom, 0.0, 1.0, 1 - valGeom),
+                   (1.0, 1.0, valGeom, 1.0, 1.0, 1 - valGeom),
                    (0.0, 1.0, valGeom, 0.5, 1.0, hGeom),
-                   (0.0, 1.0, 1-valGeom, 0.5, 1.0, 1-hGeom),
-                   (1.0, 1.0, 1-valGeom, 0.5, 1.0, 1-hGeom),
+                   (0.0, 1.0, 1 - valGeom, 0.5, 1.0, 1 - hGeom),
+                   (1.0, 1.0, 1 - valGeom, 0.5, 1.0, 1 - hGeom),
                    (1.0, 1.0, valGeom, 0.5, 1.0, hGeom),
                    (1.0, 0.0, valGeom, 1.0, 0.5, hGeom),
                    (1.0, 1.0, valGeom, 1.0, 0.5, hGeom),
                    (1.0, 0.5, 0.0, 1.0, 0.5, hGeom),
-                   (1.0, 0.5, 1-hGeom, 1.0, 1.0, 1-valGeom),
-                   (1.0, 0.5, 1-hGeom, 1.0, 0.0, 1-valGeom),
-                   (1.0, 0.5, 1-hGeom, 1.0, 0.5, 1.0),
+                   (1.0, 0.5, 1 - hGeom, 1.0, 1.0, 1 - valGeom),
+                   (1.0, 0.5, 1 - hGeom, 1.0, 0.0, 1 - valGeom),
+                   (1.0, 0.5, 1 - hGeom, 1.0, 0.5, 1.0),
                    (0.0, 0.0, valGeom, 0.0, 0.5, hGeom),
                    (0.0, 1.0, valGeom, 0.0, 0.5, hGeom),
                    (0.0, 0.5, 0.0, 0.0, 0.5, hGeom),
-                   (0.0, 0.5, 1-hGeom, 0.0, 1.0, 1-valGeom),
-                   (0.0, 0.5, 1-hGeom, 0.0, 0.0, 1-valGeom),
-                   (0.0, 0.5, 1-hGeom, 0.0, 0.5, 1.0)]
+                   (0.0, 0.5, 1 - hGeom, 0.0, 1.0, 1 - valGeom),
+                   (0.0, 0.5, 1 - hGeom, 0.0, 0.0, 1 - valGeom),
+                   (0.0, 0.5, 1 - hGeom, 0.0, 0.5, 1.0)]
         Hichem = [(0.0, 0.0, 0.0, 0.5, 0.5, 0.5),
-                   (0.5, 0.5, 0.5, 1.0, 1.0, 1.0),
-                   (0.5, 0.5, 0.5, 1.0, 1.0, 0.0),
-                   (0.5, 0.5, 0.5, 0.0, 0.0, 1.0),
-                   (0.5, 0.5, 0.5, 0.0, 1.0, 0.0),
-                   (0.5, 0.5, 0.5, 0.0, 1.0, 1.0),
-                   (1.0, 0.0, 1.0, 0.5, 0.5, 0.5),
-                   (0.5, 0.5, 0.5, 1.0, 0.0, 0.0),
+                  (0.5, 0.5, 0.5, 1.0, 1.0, 1.0),
+                  (0.5, 0.5, 0.5, 1.0, 1.0, 0.0),
+                  (0.5, 0.5, 0.5, 0.0, 0.0, 1.0),
+                  (0.5, 0.5, 0.5, 0.0, 1.0, 0.0),
+                  (0.5, 0.5, 0.5, 0.0, 1.0, 1.0),
+                  (1.0, 0.0, 1.0, 0.5, 0.5, 0.5),
+                  (0.5, 0.5, 0.5, 1.0, 0.0, 0.0),
                   (0.0, 0.0, 0.0, 0.5, 0.0, 0.5),
                   (0.5, 0.0, 0.0, 0.5, 0.0, 0.5),
                   (1.0, 0.0, 0.0, 0.5, 0.0, 0.5),
@@ -510,9 +519,7 @@ class Cellule:
         if (Lattice == 17):
             return Hybrid2
         if (Lattice == 1000):
-            return np.concatenate((BCC,Hybrid1,Hybrid2))
-        
-
+            return np.concatenate((BCC, Hybrid1, Hybrid2))
 
     def generate_beams_from_given_point_list(self, latticeType, Radius, gradRadius, gradDim, gradMat, posCell):
         """
@@ -530,13 +537,15 @@ class Cellule:
         self.nodes = []
         for line in self.Lattice_geometry(latticeType):
             x1, y1, z1, x2, y2, z2 = map(float, line)
-            point1 = Point((x1)*self.cell_size_x+self.x, (y1)*self.cell_size_y+self.y, (z1)*self.cell_size_z+self.z)
-            point2 = Point((x2)*self.cell_size_x+self.x, (y2)*self.cell_size_y+self.y, (z2)*self.cell_size_z+self.z)
+            point1 = Point((x1) * self.cellSizeX + self.x, (y1) * self.cellSizeY + self.y,
+                           (z1) * self.cellSizeZ + self.z)
+            point2 = Point((x2) * self.cellSizeX + self.x, (y2) * self.cellSizeY + self.y,
+                           (z2) * self.cellSizeZ + self.z)
             self.nodes.append(point1)
             self.nodes.append(point2)
             beamMaterial = self.getBeamMaterial(gradMat, posCell)
             beamRadius = self.getBeamRadius(gradRadius, posCell, Radius)
-            beam = Beam(point1, point2, beamRadius, beamMaterial,0)
+            beam = Beam(point1, point2, beamRadius, beamMaterial, 0)
             self.beams.append(beam)
         return self.nodes, self.beams
 
@@ -585,30 +594,30 @@ class Cellule:
 
     def add_point(self, point):
         x, y, z = map(float, point)
-        point_obj = Point((x) * self.cell_size_x + self.x, (y) * self.cell_size_y + self.y,
-                      (z) * self.cell_size_z + self.z)
+        point_obj = Point((x) * self.cellSizeX + self.x, (y) * self.cellSizeY + self.y,
+                          (z) * self.cellSizeZ + self.z)
         self.nodes.append(point_obj)
 
     def generate_beams_random(self, Radius, gradRadius, gradDim, gradMat, posCell):
         self.beams = []
         self.nodes = []
         # Corner node
-        corner_node = random.randint(0,1)
-        if corner_node == 1: # Corner nodes
+        corner_node = random.randint(0, 1)
+        if corner_node == 1:  # Corner nodes
             map_corner = [(0.0, 0.0, 0.0),
-                   (1.0, 1.0, 1.0),
-                   (1.0, 1.0, 0.0),
-                   (0.0, 0.0, 1.0),
-                   (0.0, 1.0, 0.0),
-                   (0.0, 1.0, 1.0),
-                   (1.0, 0.0, 1.0),
-                   (1.0, 0.0, 0.0)]
+                          (1.0, 1.0, 1.0),
+                          (1.0, 1.0, 0.0),
+                          (0.0, 0.0, 1.0),
+                          (0.0, 1.0, 0.0),
+                          (0.0, 1.0, 1.0),
+                          (1.0, 0.0, 1.0),
+                          (1.0, 0.0, 0.0)]
             for idx, point_corner in enumerate(map_corner):
                 self.add_point(point_corner)
         # Edge
         map_edge = [(0.0, 0.0), (0.0, 1.0), (1.0, 0.0), (1.0, 1.0)]
-        for i in range(3): # 3 direction of edge node
-            Edge_node = random.randint(0,1)
+        for i in range(3):  # 3 direction of edge node
+            Edge_node = random.randint(0, 1)
             if Edge_node == 1:
                 point_mod = 0.5 + random.uniform(0, 0.5) - 0.25
                 for idx, point_edge in enumerate(map_edge):
@@ -618,7 +627,7 @@ class Cellule:
         # Face
         map_face = [(0.25, 0.25), (0.75, 0.25), (0.5, 0.5), (0.25, 0.75), (0.75, 0.75)]
         for i in range(3):  # 3 direction of face node
-            Face_node = [random.randint(0,1) for _ in range(5)]
+            Face_node = [random.randint(0, 1) for _ in range(5)]
             for idx, point_face in enumerate(map_face):
                 if Face_node[idx] == 1:
                     point = list(self.random_coordinate(map_face[idx], 0, 0.25))
@@ -651,11 +660,10 @@ class Cellule:
         self.remove_nodes_too_close_advanced()
         print(len(self.nodes))
 
-
-
         # Generate beam at least 2 beams per node
         for beam in range(1):
-            beam = Beam(self.nodes[random.randint(0, len(self.nodes)-1)], self.nodes[random.randint(0, len(self.nodes)-1)], beamRadius,
+            beam = Beam(self.nodes[random.randint(0, len(self.nodes) - 1)],
+                        self.nodes[random.randint(0, len(self.nodes) - 1)], beamRadius,
                         beamMaterial, 0)
             if self.beam_already_exist(beam):
                 self.beams.append(beam)
@@ -683,7 +691,7 @@ class Cellule:
         """
         inside_nodes = []
         for point in self.nodes:
-            if 0 <= point.x <= self.cell_size_x and 0 <= point.y <= self.cell_size_y and 0 <= point.z <= self.cell_size_z:
+            if 0 <= point.x <= self.cellSizeX and 0 <= point.y <= self.cellSizeY and 0 <= point.z <= self.cellSizeZ:
                 inside_nodes.append(point)
         self.nodes = inside_nodes
 
@@ -694,16 +702,15 @@ class Cellule:
         :param node: The node to check.
         :return: True if the node is in a corner, False otherwise.
         """
-        return ((node.x in [0, self.cell_size_x]) and
-                (node.y in [0, self.cell_size_y]) and
-                (node.z in [0, self.cell_size_z]))
+        return ((node.x in [0, self.cellSizeX]) and
+                (node.y in [0, self.cellSizeY]) and
+                (node.z in [0, self.cellSizeZ]))
 
     def remove_nodes_too_close_advanced(self, min_distance=0.1):
         """
         Remove nodes that are too close together with a refined decision process.
         """
         to_remove = set()
-
 
         def is_surface_not_corner(node):
             return self.is_node_on_surface(node) and not self.is_node_in_corner(node)
@@ -730,7 +737,6 @@ class Cellule:
                         to_remove.add(i)
                         continue
 
-
                     if self.is_node_on_surface(node_i) and not self.is_node_on_surface(node_j):
                         to_remove.add(i)
                     elif not self.is_node_on_surface(node_i) and self.is_node_on_surface(node_j):
@@ -753,9 +759,9 @@ class Cellule:
         :param node: The node to check.
         :return: True if the node is on the surface, False otherwise.
         """
-        return (node.x in [0, self.cell_size_x] or
-                node.y in [0, self.cell_size_y] or
-                node.z in [0, self.cell_size_z])
+        return (node.x in [0, self.cellSizeX] or
+                node.y in [0, self.cellSizeY] or
+                node.z in [0, self.cellSizeZ])
 
     def find_symmetric_node(self, node):
         """
@@ -766,10 +772,9 @@ class Cellule:
         :return: The symmetric node, if found.
         """
 
-        symmetric_x = self.cell_size_x - node.x if node.x in [0, self.cell_size_x] else node.x
-        symmetric_y = self.cell_size_y - node.y if node.y in [0, self.cell_size_y] else node.y
-        symmetric_z = self.cell_size_z - node.z if node.z in [0, self.cell_size_z] else node.z
-
+        symmetric_x = self.cellSizeX - node.x if node.x in [0, self.cellSizeX] else node.x
+        symmetric_y = self.cellSizeY - node.y if node.y in [0, self.cellSizeY] else node.y
+        symmetric_z = self.cellSizeZ - node.z if node.z in [0, self.cellSizeZ] else node.z
 
         for n in self.nodes:
             if n.x == symmetric_x and n.y == symmetric_y and n.z == symmetric_z:
@@ -835,12 +840,12 @@ class Cellule:
         for point in self.nodes:
             x, y, z = point.x, point.y, point.z
             color = color1
-            if z == 0 or z == self.cell_size_z:
-                if (x == 0 or x == self.cell_size_x) and (y == 0 or y == self.cell_size_y):
+            if z == 0 or z == self.cellSizeZ:
+                if (x == 0 or x == self.cellSizeX) and (y == 0 or y == self.cellSizeY):
                     color = color2
                 else:
                     color = 'y'
-            elif (x == 0 or x == self.cell_size_x) or (y == 0 or y == self.cell_size_y):
+            elif (x == 0 or x == self.cellSizeX) or (y == 0 or y == self.cellSizeY):
                 color = color3
             ax.scatter(x, y, z, c=color)
 
@@ -854,14 +859,14 @@ class Cellule:
         for point in self.nodes:
             x, y, z = point.x, point.y, point.z
             ax.scatter(x, y, z, c=color)
-            
+
     def display_beams(self, ax):
         """
         Display beams in the 3D plot.
 
         :param ax: Matplotlib 3D axis object
         """
-        color = ['blue','green','black','yellow','orange']
+        color = ['blue', 'green', 'black', 'yellow', 'orange']
         for index, beam in enumerate(self.beams):
             point1 = beam.point1
             point2 = beam.point2
@@ -875,6 +880,13 @@ class Cellule:
         """
         self.display_point(ax, 'r', 'pink', 'black')
         self.display_beams(ax, 'b', 'r')
-    
+
     def calculateCenterCell(self):
-        return [self.x+self.cell_size_x/2,self.y+self.cell_size_y/2,self.z+self.cell_size_z/2]
+        """
+        Calculate the position of the center of the cell
+
+        Return:
+        --------
+        Coordinates of central point [X, Y, Z]
+        """
+        return [self.x + self.cellSizeX / 2, self.y + self.cellSizeY / 2, self.z + self.cellSizeZ / 2]

@@ -1,6 +1,5 @@
 import math
 
-
 class Beam:
     """
     Class Beam represente beam element in structures

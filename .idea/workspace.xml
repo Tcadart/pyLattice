@@ -4,8 +4,12 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="e3dc1a1d-8b4b-4101-aad1-b4f2b4f8d3a5" name="Changes" comment=".7 ignore">
+    <list default="true" id="e3dc1a1d-8b4b-4101-aad1-b4f2b4f8d3a5" name="Changes" comment="docstring Beam">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Beam.py" beforeDir="false" afterPath="$PROJECT_DIR$/Beam.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Cellule.py" beforeDir="false" afterPath="$PROJECT_DIR$/Cell.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Lattice.py" beforeDir="false" afterPath="$PROJECT_DIR$/Lattice.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Main.py" beforeDir="false" afterPath="$PROJECT_DIR$/Main.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -22,7 +26,7 @@
   <component name="Git.Settings">
     <option name="RECENT_BRANCH_BY_REPOSITORY">
       <map>
-        <entry key="$PROJECT_DIR$" value="LatticeWIP" />
+        <entry key="$PROJECT_DIR$" value="master" />
       </map>
     </option>
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
@@ -38,24 +42,24 @@
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
-  <component name="PropertiesComponent">{
-  &quot;keyToString&quot;: {
-    &quot;RunOnceActivity.OpenProjectViewOnStart&quot;: &quot;true&quot;,
-    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
-    &quot;WebServerToolWindowFactoryState&quot;: &quot;false&quot;,
-    &quot;git-widget-placeholder&quot;: &quot;master&quot;,
-    &quot;ignore.virus.scanning.warn.message&quot;: &quot;true&quot;,
-    &quot;last_opened_file_path&quot;: &quot;D:/Fichiers/002_These&quot;,
-    &quot;node.js.detected.package.eslint&quot;: &quot;true&quot;,
-    &quot;node.js.detected.package.tslint&quot;: &quot;true&quot;,
-    &quot;node.js.selected.package.eslint&quot;: &quot;(autodetect)&quot;,
-    &quot;node.js.selected.package.tslint&quot;: &quot;(autodetect)&quot;,
-    &quot;nodejs_package_manager_path&quot;: &quot;npm&quot;,
-    &quot;settings.editor.selected.configurable&quot;: &quot;com.jetbrains.python.configuration.PyActiveSdkModuleConfigurable&quot;,
-    &quot;two.files.diff.last.used.file&quot;: &quot;D:/travail_Abaqus/Lattice/BCC_311.txt&quot;,
-    &quot;vue.rearranger.settings.migration&quot;: &quot;true&quot;
+  <component name="PropertiesComponent"><![CDATA[{
+  "keyToString": {
+    "RunOnceActivity.OpenProjectViewOnStart": "true",
+    "RunOnceActivity.ShowReadmeOnStart": "true",
+    "WebServerToolWindowFactoryState": "false",
+    "git-widget-placeholder": "CellModifications",
+    "ignore.virus.scanning.warn.message": "true",
+    "last_opened_file_path": "D:/Fichiers/002_These",
+    "node.js.detected.package.eslint": "true",
+    "node.js.detected.package.tslint": "true",
+    "node.js.selected.package.eslint": "(autodetect)",
+    "node.js.selected.package.tslint": "(autodetect)",
+    "nodejs_package_manager_path": "npm",
+    "settings.editor.selected.configurable": "preferences.pluginManager",
+    "two.files.diff.last.used.file": "D:/travail_Abaqus/Lattice/BCC_311.txt",
+    "vue.rearranger.settings.migration": "true"
   }
-}</component>
+}]]></component>
   <component name="RecentsManager">
     <key name="CopyFile.RECENT_KEYS">
       <recent name="D:\travail_Abaqus\Lattice" />
@@ -149,7 +153,9 @@
       <workItem from="1716462932041" duration="58556000" />
       <workItem from="1717589460948" duration="2552000" />
       <workItem from="1718181313030" duration="1448000" />
-      <workItem from="1718185428678" duration="60000" />
+      <workItem from="1718185428678" duration="2983000" />
+      <workItem from="1718203663559" duration="258000" />
+      <workItem from="1718203958662" duration="1476000" />
     </task>
     <task id="LOCAL-00001" summary="Modiff récuperation result">
       <option name="closed" value="true" />
@@ -343,7 +349,15 @@
       <option name="project" value="LOCAL" />
       <updated>1718181829177</updated>
     </task>
-    <option name="localTasksCounter" value="25" />
+    <task id="LOCAL-00025" summary="docstring Beam">
+      <option name="closed" value="true" />
+      <created>1718185547157</created>
+      <option name="number" value="00025" />
+      <option name="presentableId" value="LOCAL-00025" />
+      <option name="project" value="LOCAL" />
+      <updated>1718185547157</updated>
+    </task>
+    <option name="localTasksCounter" value="26" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -403,10 +417,15 @@
     <MESSAGE value="avant déplacement LatticeGNN" />
     <MESSAGE value="idea ignore" />
     <MESSAGE value=".7 ignore" />
-    <option name="LAST_COMMIT_MESSAGE" value=".7 ignore" />
+    <MESSAGE value="docstring Beam" />
+    <option name="LAST_COMMIT_MESSAGE" value="docstring Beam" />
   </component>
   <component name="WfRunsListSearchHistory"><![CDATA[{
   "history": [
+    {
+    },
+    {
+    },
     {
     },
     {
@@ -493,7 +512,7 @@
 }]]></component>
   <component name="com.intellij.coverage.CoverageDataManagerImpl">
     <SUITE FILE_PATH="coverage/Lattice$Lattice.coverage" NAME="Lattice Coverage Results" MODIFIED="1713426426220" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
-    <SUITE FILE_PATH="coverage/Lattice$Main.coverage" NAME="Main Coverage Results" MODIFIED="1717426214206" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
+    <SUITE FILE_PATH="coverage/Lattice$Main.coverage" NAME="Main Coverage Results" MODIFIED="1718217285744" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
     <SUITE FILE_PATH="coverage/Lattice$plot_result.coverage" NAME="plot_result Coverage Results" MODIFIED="1710757782517" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
     <SUITE FILE_PATH="coverage/Lattice$Cellule.coverage" NAME="Cellule Coverage Results" MODIFIED="1712818355371" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
     <SUITE FILE_PATH="coverage/Lattice$Save_result.coverage" NAME="Save_result Coverage Results" MODIFIED="1710757236865" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />

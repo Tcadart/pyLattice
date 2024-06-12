@@ -2,6 +2,7 @@ from Lattice import *
 import matplotlib.pyplot as plt
 import math
 
+
 # Function to visualize the chosen cell
 def visu_Cellule(ax):
     ax.set_title("Cellule choisie")
@@ -24,7 +25,8 @@ def display_only_cell_random():
     lattice.visualize_3d_random(ax)
     plt.show()
 
-def gradSettings(rule,direction,parameters,number_cell_X,number_cell_Y, number_cell_Z):
+
+def gradSettings(rule, direction, parameters, number_cell_X, number_cell_Y, number_cell_Z):
     """
     Generate gradient settings based on the provided rule, direction, and parameters.
 
@@ -36,6 +38,7 @@ def gradSettings(rule,direction,parameters,number_cell_X,number_cell_Y, number_c
     :param number_cell_Z: Number of cells along Z axis (int)
     :return: Generated gradient settings (list of lists)
     """
+
     def apply_rule(i, number_cell, dir_value, param_value, rule):
         if i < number_cell:
             if i >= 1 and dir_value == 1:
@@ -57,9 +60,10 @@ def gradSettings(rule,direction,parameters,number_cell_X,number_cell_Y, number_c
                 elif rule == 'exponential':
                     return math.exp(i * param_value)
             return 1.0
-        return 0.0  
+        return 0.0
 
-    # Initialization matrix
+        # Initialization matrix
+
     max_cells = max(number_cell_X, number_cell_Y, number_cell_Z)
     gradient = [[0.0, 0.0, 0.0] for _ in range(max_cells)]
 
@@ -67,24 +71,25 @@ def gradSettings(rule,direction,parameters,number_cell_X,number_cell_Y, number_c
     for i in range(max_cells):
         number_cells = [number_cell_X, number_cell_Y, number_cell_Z]
         for dim_index in range(3):
-            gradient[i][dim_index] = apply_rule(i, number_cells[dim_index], direction[dim_index], parameters[dim_index], rule)
-
+            gradient[i][dim_index] = apply_rule(i, number_cells[dim_index], direction[dim_index], parameters[dim_index],
+                                                rule)
 
     return gradient
 
-def gradMaterialSetting(Multimat,direction,number_cell_X,number_cell_Y, number_cell_Z):
 
+def gradMaterialSetting(Multimat, direction, number_cell_X, number_cell_Y, number_cell_Z):
     # def calculatePositionPointOnPlane(CoeffPlan, PositionPlan , x, y, z):
     #     value = CoeffPlan[0]*x + CoeffPlan[1]*y + CoeffPlan[2]*z + PositionPlan
     #     if value > 0:
     #         return 0
     #     else:
     #         return 1
-    if Multimat == -1: #Random
-        gradMat = [[[random.randint(1,3) for X in range(number_cell_X)] for Y in range(number_cell_Y)] for Z in range(number_cell_Z)]
-    if Multimat == 0: # Mono material
+    if Multimat == -1:  # Random
+        gradMat = [[[random.randint(1, 3) for X in range(number_cell_X)] for Y in range(number_cell_Y)] for Z in
+                   range(number_cell_Z)]
+    if Multimat == 0:  # Mono material
         gradMat = [[[1 for X in range(number_cell_X)] for Y in range(number_cell_Y)] for Z in range(number_cell_Z)]
-    elif Multimat == 1: # Graded material
+    elif Multimat == 1:  # Graded material
         if direction == 1:
             gradMat = [[[X for X in range(number_cell_X)] for Y in range(number_cell_Y)] for Z in range(number_cell_Z)]
         if direction == 2:
@@ -105,19 +110,20 @@ def gradMaterialSetting(Multimat,direction,number_cell_X,number_cell_Y, number_c
     #                 gradMat[lattice.centerCell[IdxCenterCells,3]][lattice.centerCell[IdxCenterCells,4]][lattice.centerCell[IdxCenterCells,5]] = IdxMat
     return gradMat
 
-#*******************************************************************************************************************
-#*******************************************************************************************************************
 
-                                    #Variables
+# *******************************************************************************************************************
+# *******************************************************************************************************************
 
-#*******************************************************************************************************************
-#*******************************************************************************************************************
+# Variables
+
+# *******************************************************************************************************************
+# *******************************************************************************************************************
 
 name_model = 'Lattice_cube'
 name_Job = 'Job_1'
 name_Part = 'Lattice_Part'
 name_Assembly = 'Lattice_assembly'
-VectorOrientation = [0,0,-1]
+VectorOrientation = [0, 0, -1]
 Radius = 0.05
 cell_size = 1
 cell_size_X = cell_size
@@ -149,13 +155,13 @@ Lattice_Type = 0
 
 # Gradient on cell dimensions
 GradDimRule = 'constant'
-GradDimDirection = [1,0,0]
-GradDimParameters = [1.1,0.0,2.0] #Float
+GradDimDirection = [1, 0, 0]
+GradDimParameters = [1.1, 0.0, 2.0]  # Float
 # Gradient on radius of beams
 GradRadRule = 'constant'
-GradRadDirection = [0,0,1]
-GradRadParameters = [1.0,0.0,2.0]
-#Gradient Rule
+GradRadDirection = [0, 0, 1]
+GradRadParameters = [1.0, 0.0, 2.0]
+# Gradient Rule
 # - constant
 # - linear
 # - parabolic
@@ -166,7 +172,7 @@ Multimat = 0
 # -1 => Full random
 # 0 -> materiaux
 # 1 -> multimat par couche
-GradMaterialDirection = 3 # 1:X / 2:Y / 3:Z
+GradMaterialDirection = 3  # 1:X / 2:Y / 3:Z
 
 AnalysisType = 0
 # 0 Modelisation lattice only
@@ -178,25 +184,25 @@ MethodSim = 1
 
 uncertaintyNode = 0
 
-#*******************************************************************************************************************
-#*******************************************************************************************************************
+# *******************************************************************************************************************
+# *******************************************************************************************************************
 
-                                    #Main
+# Main
 
-#*******************************************************************************************************************
-#*******************************************************************************************************************
+# *******************************************************************************************************************
+# *******************************************************************************************************************
 # Gradient properties
-gradDimProperty = [GradDimRule,GradDimDirection,GradDimParameters]
-gradRadiusProperty = [GradRadRule,GradRadDirection,GradRadParameters]
-gradMatProperty = [Multimat,GradMaterialDirection]
+gradDimProperty = [GradDimRule, GradDimDirection, GradDimParameters]
+gradRadiusProperty = [GradRadRule, GradRadDirection, GradRadParameters]
+gradMatProperty = [Multimat, GradMaterialDirection]
 
 hybridLatticeData = [0.005236359885094433, 0.008718667752263232, 0.04072417636703984]
 # #Generate data from lattice
 # lattice = Lattice(cell_size_X,cell_size_Y,cell_size_Z, number_cell_X,number_cell_Y,number_cell_Z,Lattice_Type,
 #                   Radius,gradRadiusProperty,gradDimProperty,gradMatProperty,MethodSim,uncertaintyNode,hybridLatticeData)
-lattice = Lattice.hybridgeometry(cell_size_X, cell_size_Y,cell_size_Z, MethodSim,uncertaintyNode,hybridLatticeData)
+lattice = Lattice.hybridgeometry(cell_size_X, cell_size_Y, cell_size_Z, MethodSim, uncertaintyNode, hybridLatticeData)
 
-
-# lattice = Lattice.simpleLattice(cell_size_X,cell_size_Y,cell_size_Z, number_cell_X,number_cell_Y,number_cell_Z,Lattice_Type,Radius)
+# lattice = Lattice.simpleLattice(cell_size_X,cell_size_Y,cell_size_Z, number_cell_X,number_cell_Y,number_cell_Z,
+# Lattice_Type,Radius)
 # display_only_cell_random()
 lattice.visualizeLattice3D("Type")
