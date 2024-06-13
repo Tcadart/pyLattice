@@ -485,12 +485,13 @@ class Cell:
         self.generateBeamsInCell(latticeType, startCellPos)
         self.getCellCenter(initialCellSize)
 
-    def generateBeamsInCell(self, latticeType: int, startCellPos: list):
+    def generateBeamsInCell(self, latticeType: int, startCellPos: list, beamType: int = 0):
         """
         Generate beams and nodes using a given lattice type and parameters.
 
         :param latticeType: Type of lattice geometry
         :param startCellPos: array of position of the start of the cell
+        :param beamType: optional type of the beam to create
         """
         for line in Lattice_geometry(latticeType):
             x1, y1, z1, x2, y2, z2 = map(float, line)
@@ -498,7 +499,7 @@ class Cell:
                            z1 * self.cellSize[2] + startCellPos[2])
             point2 = Point(x2 * self.cellSize[0] + startCellPos[0], y2 * self.cellSize[1] + startCellPos[1],
                            z2 * self.cellSize[2] + startCellPos[2])
-            beam = Beam(point1, point2, self._beamRadius, self._beamMaterial, 0)
+            beam = Beam(point1, point2, self._beamRadius, self._beamMaterial, beamType)
             self.beams.append(beam)
 
     def getBeamMaterial(self, gradMat):
@@ -532,7 +533,8 @@ class Cell:
         actualBeamRadius: float
             Calculated beam radius
         """
-        self._beamRadius = BaseRadius * gradRadius[self.posCell[0]][0] * gradRadius[self.posCell[1]][1] * gradRadius[self.posCell[2]][2]
+        self._beamRadius = BaseRadius * gradRadius[self.posCell[0]][0] * gradRadius[self.posCell[1]][1] * \
+                           gradRadius[self.posCell[2]][2]
 
     def getCellSize(self, initialCellSize, gradDim):
         """
@@ -549,14 +551,14 @@ class Cell:
         cellSize : float
             Calculated beam radius
         """
-        self.cellSize = [initial_size * gradDim[pos][i] for i, (initial_size, pos) in enumerate(zip(initialCellSize, self.posCell))]
-
+        self.cellSize = [initial_size * gradDim[pos][i] for i, (initial_size, pos) in
+                         enumerate(zip(initialCellSize, self.posCell))]
 
     def getCellCenter(self, initialCellSize):
         """
         Calculate the center point of the cell
         """
-        self.centerPoint = [initialCellSize[i] + self.cellSize[i]/2 for i in range(3)]
+        self.centerPoint = [initialCellSize[i] + self.cellSize[i] / 2 for i in range(3)]
 
     def getAllPoints(self):
         """
@@ -578,16 +580,16 @@ class Cell:
         beamToDelete: beam Object
             Beam to remove
         """
-        for beam in self.beams:
-            if beam == beamToDelete:
-                del beam
+        try:
+            self.beams.remove(beamToDelete)
+        except ValueError:
+            print("Beam not found in the list")
 
     def addBeam(self, beamToAdd):
         """
         Adding beam to cell
         """
         self.beams.append(beamToAdd)
-
 
     def random_coordinate(self, coord, mu, sigma):
         """

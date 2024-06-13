@@ -39,3 +39,9 @@ class Point:
         Set node index
         """
         self.index = index
+
+    def getData(self):
+        """
+        Return data structure to export lattice
+        """
+        return [self.index, self.x, self.y, self.z]

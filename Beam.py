@@ -28,6 +28,8 @@ class Beam:
         # type = 2 => beam on boundary
         self.type = Type
         self.index = None
+        self.angle1 = None
+        self.angle2 = None
 
     def __repr__(self):
         return f"Beam({self.point1}, {self.point2}, Radius:{self.radius}, Type:{self.type}, Index:{self.index})"
@@ -136,3 +138,16 @@ class Beam:
         Set beam index
         """
         self.index = index
+
+    def getData(self):
+        """
+        Return data structure to export lattice
+        """
+        return [self.index, self.point1.index, self.point2.index, self.type]
+
+    def setAngle(self, AngleData):
+        """
+        Set angle data to beam
+        """
+        self.angle1 = AngleData[0:2]
+        self.angle2 = AngleData[2:4]
