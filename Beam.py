@@ -1,9 +1,11 @@
 import math
 
+
 class Beam:
     """
     Class Beam represente beam element in structures
     """
+
     def __init__(self, point1, point2, Radius: float, Material: int, Type: int):
         """
         Beam object represent a beam by 2 points a radius and a beam type
@@ -25,15 +27,16 @@ class Beam:
         # type = 1 => beam mod
         # type = 2 => beam on boundary
         self.type = Type
-
-
+        self.index = None
 
     def __repr__(self):
-        return f"Beam({self.point1}, {self.point2}, Radius:{self.radius}, Type:{self.type})"
+        return f"Beam({self.point1}, {self.point2}, Radius:{self.radius}, Type:{self.type}, Index:{self.index})"
 
     def __eq__(self, other):
         return isinstance(other, Beam) and self.point1 == other.point1 and self.point2 == other.point2
 
+    def __hash__(self):
+        return hash((self.point1, self.point2))
 
     def getLength(self):
         """
@@ -54,7 +57,6 @@ class Beam:
         """
         return math.pi * (self.radius ** 2) * self.length
 
-
     def changeBeamType(self, newType: int):
         """
         Change beam type
@@ -64,7 +66,6 @@ class Beam:
             beam type wanted to assign
         """
         self.type = newType
-
 
     def getPointOnBeamFromDistance(self, distance, pointIndex):
         """
@@ -102,3 +103,36 @@ class Beam:
         ]
 
         return point_mod
+
+    def isPointOnBeam(self, node):
+        """
+        Find if input node is on the beam
+
+        Return
+        -------
+        boolean: True => Point on line
+        """
+        vector1 = (self.point2.x - self.point1.x, self.point2.y - self.point1.y, self.point2.z - self.point1.z)
+        vector2 = (node.x - self.point1.x, node.y - self.point1.y, node.z - self.point1.z)
+
+        if (node.x == self.point1.x and node.y == self.point1.y and node.z == self.point1.z) or (
+                node.x == self.point2.x and node.y == self.point2.y and node.z == self.point2.z):
+            return False
+        cross_product = (
+            vector1[1] * vector2[2] - vector1[2] * vector2[1],
+            vector1[2] * vector2[0] - vector1[0] * vector2[2],
+            vector1[0] * vector2[1] - vector1[1] * vector2[0]
+        )
+
+        if cross_product == (0, 0, 0):
+            dot_product = (vector2[0] * vector1[0] + vector2[1] * vector1[1] + vector2[2] * vector1[2])
+            vector1_length_squared = (vector1[0] ** 2 + vector1[1] ** 2 + vector1[2] ** 2)
+            return 0 <= dot_product <= vector1_length_squared
+        else:
+            return False
+
+    def setIndex(self, index):
+        """
+        Set beam index
+        """
+        self.index = index

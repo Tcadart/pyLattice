@@ -64,6 +64,13 @@ class Lattice:
         periodicity: boolean (0: off / 1: on)
             Applying periodicity on the outer box of the lattice structure to calculate penalization method
         """
+        self.yMin = None
+        self.yMax = None
+        self.xMax = None
+        self.xMin = None
+        self.zMax = None
+        self.zMin = None
+
         self.cellSizeX = cell_size_x
         self.cellSizeY = cell_size_y
         self.cellSizeZ = cell_size_z
@@ -91,16 +98,15 @@ class Lattice:
         self._angle = []
         self.nodes_obj = []
         self.beams_obj = []
-        self.posCell = []
         self.toucanModifier = []
+
+        # Process
         self.generateLattice()
+        self.getMinMaxValues()
+        self.defineBeamNodeIndex()
         self.getNodesObj()
         self.getBeamsObj()
 
-        self.getMinMaxValues()
-        if self.latticeType == 1000:  # case for hybrid lattice structures
-            self.checkHybridCollision()
-            # self.LatticeToPyGeometricData()
         self.getAllAngles()
 
         # Case of penalization at beam near nodes
@@ -319,65 +325,95 @@ class Lattice:
         """
         Generates lattice structure based on specified parameters.
         """
+        xCellStartInit = 0
+        yCellStartInit = 0
+        zCellStartInit = 0
         xCellStart = 0
         yCellStart = 0
         zCellStart = 0
-        self.cells = []
+        posCell = [0, 0, 0]
         for i in range(self.numCellsX):
             if i != 0:
                 xCellStart += self.cellSizeX * self.gradDim[posCell[0]][0]
             else:
-                xCellStart = 0
+                xCellStart = xCellStartInit
             for j in range(self.numCellsY):
                 if j != 0:
                     yCellStart += self.cellSizeY * self.gradDim[posCell[1]][1]
                 else:
-                    yCellStart = 0
+                    yCellStart = yCellStartInit
                 for k in range(self.numCellsZ):
                     if k != 0:
                         zCellStart += self.cellSizeZ * self.gradDim[posCell[2]][2]
                     else:
-                        zCellStart = 0
+                        zCellStart = zCellStartInit
                     posCell = [i, j, k]
-                    cellSizeX = self.cellSizeX * self.gradDim[posCell[0]][0]
-                    cellSizeY = self.cellSizeY * self.gradDim[posCell[1]][1]
-                    cellSizeZ = self.cellSizeZ * self.gradDim[posCell[2]][2]
-                    new_cell = Cell(cellSizeX, cellSizeY, cellSizeZ, xCellStart, yCellStart, zCellStart)
+                    initialCellSize = [self.cellSizeX, self.cellSizeY, self.cellSizeZ]
+                    startCellPos = [xCellStart, yCellStart, zCellStart]
+                    new_cell = []
                     # Case for normal lattice structures
                     if self.latticeType != -2 and self.latticeType < 1000:
-                        new_cell.generate_beams_from_given_point_list(self.latticeType, self.Radius, self.gradRadius,
-                                                                      self.gradDim, self.gradMat, posCell)
+                        new_cell = Cell(posCell, initialCellSize, startCellPos, self.latticeType, self.Radius,
+                                        self.gradRadius, self.gradDim, self.gradMat)
                     # Case for hybrid lattice on 1 cell
                     elif self.latticeType == 1000:
                         latticeHybridType = [0, 16, 17]
                         for idx, radiusHybrid in enumerate(self.hybridLatticeData):
-                            new_cell.generate_beams_from_given_point_list(latticeHybridType[idx], radiusHybrid,
-                                                                          self.gradRadius, self.gradDim, self.gradMat,
-                                                                          posCell)
-                            for beam in new_cell.beams:
-                                beam.changeBeamType(idx + 100)
-                            if idx < len(self.hybridLatticeData) - 1:
-                                self.cells.append(new_cell)
-                                self.posCell.append([i, j, k])
-                                new_cell = Cell(cellSizeX, cellSizeY, cellSizeZ, xCellStart, yCellStart, zCellStart)
+                            if radiusHybrid != 0.0:
+                                new_cell = Cell(posCell, initialCellSize, startCellPos,
+                                                latticeHybridType[idx], radiusHybrid, self.gradRadius,
+                                                             self.gradDim, self.gradMat)
+                                for beam in new_cell.beams:
+                                    beam.changeBeamType(idx + 100)
+                                if idx < len(self.hybridLatticeData) - 1:
+                                    self.cells.append(new_cell)
                     # Case for randomized lattice
-                    else:
-                        new_cell.generate_beams_random(self.Radius, self.gradRadius, self.gradDim, self.gradMat,
-                                                       posCell)
+                    # else:
+                    #     new_cell.generate_beams_random(self.Radius, self.gradRadius, self.gradDim, self.gradMat,
+                    #                                    posCell)
                     self.cells.append(new_cell)
-                    self.posCell.append([i, j, k])
+        if self.latticeType == 1000:
+            self.checkHybridCollision()
+
+    def defineBeamNodeIndex(self):
+        """
+        Define index at each beam and node
+        """
+        beamIndexed = {}
+        nodeIndexed = {}
+        nextBeamIndex = 0
+        nextNodeIndex = 0
+
+        for cell in self.cells:
+            for beam in cell.beams:
+                if beam not in beamIndexed:
+                    beam.setIndex(nextBeamIndex)
+                    beamIndexed[beam] = nextBeamIndex
+                    nextBeamIndex += 1
+                else:
+                    beam.setIndex(beamIndexed[beam])
+
+                for node in [beam.point1, beam.point2]:
+                    if node not in nodeIndexed:
+                        node.setIndex(nextNodeIndex)
+                        nodeIndexed[node] = nextNodeIndex
+                        nextNodeIndex += 1
+                    else:
+                        node.setIndex(nodeIndexed[node])
 
     def getNodesObj(self):
         """
         Retrieves the list of unique nodes objects from cells.
         """
+        self.nodes_obj = []
         seen_coordinates = set()
         for cell in self.cells:
-            for node in cell.nodes:
-                node_coordinates = (node.x, node.y, node.z)
-                if node_coordinates not in seen_coordinates:
-                    seen_coordinates.add(node_coordinates)
-                    self.nodes_obj.append(node)
+            for beam in cell.beams:
+                for node in [beam.point1, beam.point2]:
+                    coordinates = node.getPos()
+                    if coordinates not in seen_coordinates:
+                        seen_coordinates.add(coordinates)
+                        self.nodes_obj.append(node)
 
     def getBeamsObj(self):
         """
@@ -704,18 +740,23 @@ class Lattice:
         --------
         ExtrumumValues: tuple of floats (xMin, xMax, yMin, yMax, zMin, zMax)
         """
-        x_values = [node.x for cell in self.cells for node in cell.nodes]
-        y_values = [node.y for cell in self.cells for node in cell.nodes]
-        z_values = [node.z for cell in self.cells for node in cell.nodes]
+        if not self.cells:
+            raise ValueError("No cells in the lattice.")
 
-        self.xMin = min(x_values)
-        self.xMax = max(x_values)
-        self.yMin = min(y_values)
-        self.yMax = max(y_values)
-        self.zMin = min(z_values)
-        self.zMax = max(z_values)
+        # Flatten the list of nodes from all cells
+        all_nodes = [point for cell in self.cells for beam in cell.beams for point in [beam.point1, beam.point2]]
 
-        return self.xMin, self.xMax, self.yMin, self.yMax, self.zMin, self.zMax
+        if not all_nodes:
+            raise ValueError("No nodes in the cells of the lattice.")
+
+        # Extract coordinates
+        x_values = [node.x for node in all_nodes]
+        y_values = [node.y for node in all_nodes]
+        z_values = [node.z for node in all_nodes]
+
+        self.xMin, self.xMax = min(x_values), max(x_values)
+        self.yMin, self.yMax = min(y_values), max(y_values)
+        self.zMin, self.zMax = min(z_values), max(z_values)
 
     def getNbBeamCell(self):
         """
@@ -726,7 +767,7 @@ class Lattice:
         nbBeam: integer
             Number of beams in the lattice cell
         """
-        self.nbBeam = len(Cell.Lattice_geometry(self.cells[0], self.latticeType))
+        self.nbBeam = len(Lattice_geometry(self.latticeType))
         return self.nbBeam
 
     def getBeamNodeMod(self):
@@ -738,8 +779,8 @@ class Lattice:
         self.getNbBeamCell()
         for index, beam in enumerate(self.beams_obj):
             lengthMod = self.getLengthMod(beam)
-            if index % (self.nbBeam) == 0:
-                indexCell = indexCell + 1
+            if index % self.nbBeam == 0:
+                indexCell += 1
             pointExt1 = beam.getPointOnBeamFromDistance(lengthMod[0], 1)
             pointExt1Obj = Point(pointExt1[0], pointExt1[1], pointExt1[2])
             pointExt2 = beam.getPointOnBeamFromDistance(lengthMod[1], 2)
@@ -859,14 +900,6 @@ class Lattice:
             del self.nodes_obj[index]
         else:
             raise IndexError("Invalid node index.")
-
-    def getCenterCells(self):
-        """
-        Determine center cell of the lattice
-        """
-        self._centerCell = []
-        for index, cell in enumerate(self.cells):
-            self._centerCell.append([cell.centerCell, self.posCell[index]])
 
     def findMinimumBeamLength(self):
         """
@@ -1078,42 +1111,17 @@ class Lattice:
         Check if beam in hybrid configuration is cut by a point in the geometry
         Change the beam configuration of collisionned beams
         """
-        for idxnode, node in enumerate(self.nodes_obj):
-            for idxbeam, beam in enumerate(self.beams_obj):
-                if self.isPointOnLine(beam.point1, beam.point2, node):
-                    typeBeamToRemove = beam.type  # Get beam to remove type to apply in new separated beams
-                    self.removeBeam(idxbeam)
-                    beam1 = Beam(beam.point1, node, beam.radius, beam.material, typeBeamToRemove)
-                    self.beams_obj.append(beam1)
-                    beam2 = Beam(beam.point2, node, beam.radius, beam.material, typeBeamToRemove)
-                    self.beams_obj.append(beam2)
-
-    def isPointOnLine(self, point1, point2, node):
-        """
-        Find if input node if on the line formed by point1 and point2
-
-        Return
-        -------
-        boolean: True => Point on line
-        """
-        vector1 = (point2.x - point1.x, point2.y - point1.y, point2.z - point1.z)
-        vector2 = (node.x - point1.x, node.y - point1.y, node.z - point1.z)
-
-        if (node.x == point1.x and node.y == point1.y and node.z == point1.z) or (
-                node.x == point2.x and node.y == point2.y and node.z == point2.z):
-            return False
-        cross_product = (
-            vector1[1] * vector2[2] - vector1[2] * vector2[1],
-            vector1[2] * vector2[0] - vector1[0] * vector2[2],
-            vector1[0] * vector2[1] - vector1[1] * vector2[0]
-        )
-
-        if cross_product == (0, 0, 0):
-            dot_product = (vector2[0] * vector1[0] + vector2[1] * vector1[1] + vector2[2] * vector1[2])
-            vector1_length_squared = (vector1[0] ** 2 + vector1[1] ** 2 + vector1[2] ** 2)
-            return 0 <= dot_product <= vector1_length_squared
-        else:
-            return False
+        for cell in self.cells:
+            cellPoints = cell.getAllPoints()
+            for node in cellPoints:
+                for beam in cell.beams:
+                    if beam.isPointOnBeam(node):
+                        typeBeamToRemove = beam.type  # Get beam to remove type to apply in new separated beams
+                        beam1 = Beam(beam.point1, node, beam.radius, beam.material, typeBeamToRemove)
+                        beam2 = Beam(beam.point2, node, beam.radius, beam.material, typeBeamToRemove)
+                        cell.removeBeam(beam)
+                        cell.addBeam(beam1)
+                        cell.addBeam(beam2)
 
     def LatticeToPyGeometricData(self):
         """
