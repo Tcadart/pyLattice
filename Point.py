@@ -7,7 +7,7 @@ class Point:
         self.y = y
         self.z = z
         self.index = None
-        self.tag = None
+        self.tag = []
 
     def __eq__(self, other):
         return isinstance(other, Point) and self.x == other.x and self.y == other.y and self.z == other.z
@@ -60,70 +60,67 @@ class Point:
         tags: array of integer
             List of tags of the point
         """
-        tags = []
 
         # Faces
         if self.x == xMin and (yMin < self.y < yMax) and (
                 zMin < self.z < zMax):
-            tags.append(12)  # Face 1
+            self.tag.append(12)  # Face 1
         elif self.x == xMax and (yMin < self.y < yMax) and (
                 zMin < self.z < zMax):
-            tags.append(13)  # Face 2
+            self.tag.append(13)  # Face 2
         elif (xMin < self.x < xMax) and self.y == yMin and (
                 zMin < self.z < zMax):
-            tags.append(11)  # Face 3
+            self.tag.append(11)  # Face 3
         elif (xMin < self.x < xMax) and self.y == yMax and (
                 zMin < self.z < zMax):
-            tags.append(14)  # Face 4
+            self.tag.append(14)  # Face 4
         elif (xMin < self.x < xMax) and (
                 yMin < self.y < yMax) and self.z == zMin:
-            tags.append(10)  # Face 5
+            self.tag.append(10)  # Face 5
         elif (xMin < self.x < xMax) and (
                 yMin < self.y < yMax) and self.z == zMax:
-            tags.append(15)  # Face 6
+            self.tag.append(15)  # Face 6
 
         # Edge
         if self.x == xMin and self.y == yMin and (zMin < self.z < zMax):
-            tags.append(102)  # Edge 0
+            self.tag.append(102)  # Edge 0
         elif (xMin < self.x < xMax) and self.y == yMin and self.z == zMin:
-            tags.append(100)  # Edge 1
+            self.tag.append(100)  # Edge 1
         elif self.x == xMax and self.y == yMin and (zMin < self.z < zMax):
-            tags.append(104)  # Edge 2
+            self.tag.append(104)  # Edge 2
         elif (xMin < self.x < xMax) and self.y == yMin and self.z == zMax:
-            tags.append(108)  # Edge 3
+            self.tag.append(108)  # Edge 3
         elif self.x == xMin and (yMin < self.y < yMax) and self.z == zMin:
-            tags.append(101)  # Edge 4
+            self.tag.append(101)  # Edge 4
         elif self.x == xMax and (yMin < self.y < yMax) and self.z == zMin:
-            tags.append(103)  # Edge 5
+            self.tag.append(103)  # Edge 5
         elif self.x == xMin and self.y == yMax and (zMin < self.z < zMax):
-            tags.append(106)  # Edge 6
+            self.tag.append(106)  # Edge 6
         elif (xMin < self.x < xMax) and self.y == yMax and self.z == zMin:
-            tags.append(105)  # Edge 7
+            self.tag.append(105)  # Edge 7
         elif self.x == xMax and self.y == yMax and (zMin < self.z < zMax):
-            tags.append(107)  # Edge 8
+            self.tag.append(107)  # Edge 8
         elif (xMin < self.x < xMax) and self.y == yMax and self.z == zMax:
-            tags.append(111)  # Edge 9
+            self.tag.append(111)  # Edge 9
         elif self.x == xMin and (yMin < self.y < yMax) and self.z == zMax:
-            tags.append(109)  # Edge 10
+            self.tag.append(109)  # Edge 10
         elif self.x == xMax and (yMin < self.y < yMax) and self.z == zMax:
-            tags.append(110)  # Edge 11
+            self.tag.append(110)  # Edge 11
 
         # Corner
         if self.x == xMin and self.y == yMin and self.z == zMin:
-            tags.append(1000)  # Corner 0
+            self.tag.append(1000)  # Corner 0
         elif self.x == xMax and self.y == yMin and self.z == zMin:
-            tags.append(1001)  # Corner 1
+            self.tag.append(1001)  # Corner 1
         elif self.x == xMin and self.y == yMax and self.z == zMin:
-            tags.append(1002)  # Corner 2
+            self.tag.append(1002)  # Corner 2
         elif self.x == xMax and self.y == yMax and self.z == zMin:
-            tags.append(1003)  # Corner 3
+            self.tag.append(1003)  # Corner 3
         elif self.x == xMin and self.y == yMin and self.z == zMax:
-            tags.append(1004)  # Corner 4
+            self.tag.append(1004)  # Corner 4
         elif self.x == xMax and self.y == yMin and self.z == zMax:
-            tags.append(1005)  # Corner 5
+            self.tag.append(1005)  # Corner 5
         elif self.x == xMin and self.y == yMax and self.z == zMax:
-            tags.append(1006)  # Corner 6
+            self.tag.append(1006)  # Corner 6
         elif self.x == xMax and self.y == yMax and self.z == zMax:
-            tags.append(1007)  # Corner 7
-
-        return tags
+            self.tag.append(1007)  # Corner 7

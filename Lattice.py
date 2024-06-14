@@ -99,6 +99,7 @@ class Lattice:
         self.getMinMaxValues()
         self.defineBeamNodeIndex()
 
+        self.applyTagToAllPoint()
         self.getAllAngles()
 
         # Case of penalization at beam near nodes
@@ -400,6 +401,18 @@ class Lattice:
                     if node not in self._nodes:
                         self._nodes.append(node.getData())
 
+    def getNodeObject(self):
+        """
+        Retrieves node object for the lattice.
+        """
+        nodeObjList = []
+        for cell in self.cells:
+            for beam in cell.beams:
+                for node in [beam.point1, beam.point2]:
+                    if node not in nodeObjList:
+                        nodeObjList.append(node)
+        return nodeObjList
+
     def getBeamData(self):
         """
         Retrieves beam data for the lattice.
@@ -410,6 +423,17 @@ class Lattice:
             for beam in cell.beams:
                 if beam not in self._beams:
                     self._beams.append(beam.getData())
+    def getBeamObject(self):
+        """
+        Retrieves beam object for the lattice.
+        """
+        beamObjList = []
+        self._beams = []
+        for cell in self.cells:
+            for beam in cell.beams:
+                if beam not in beamObjList:
+                    beamObjList.append(beam)
+        return beamObjList
 
     def visualizeLattice3D(self, beamColor: str = "Material"):
         """
@@ -571,12 +595,12 @@ class Lattice:
             if beam.point2 == beamidx.point1 or beam.point2 == beamidx.point2:
                 point2beams.append(beamidx)
             if self.periodicity:  # Periodicity is not finish
-                tag1 = beam.point1.tagPoint(self.xMin, self.xMax, self.yMin, self.yMax, self.zMin, self.zMax)
-                tag2 = beam.point2.tagPoint(self.xMin, self.xMax, self.yMin, self.yMax, self.zMin, self.zMax)
+                tag1 = beam.point1.tag
+                tag2 = beam.point2.tag
                 tag1 = tag1[0] if len(tag1) == 1 else None
                 tag2 = tag2[0] if len(tag2) == 1 else None
-                point1_tag = beamidx.point1.tagPoint(self.xMin, self.xMax, self.yMin, self.yMax, self.zMin, self.zMax)
-                point2_tag = beamidx.point2.tagPoint(self.xMin, self.xMax, self.yMin, self.yMax, self.zMin, self.zMax)
+                point1_tag = beamidx.point1.tag
+                point2_tag = beamidx.point2.tag
                 if tag1 is not None and 999 < tag1 < 1008:  # Corner
                     if any(999 < tag < 1008 for tag in point1_tag):
                         point1beams.append(beamidx)
@@ -635,7 +659,6 @@ class Lattice:
             LAngle2, LRadius2 = findMinAngle(non_zero_anglebeam2, non_zero_radiusbeam2)
             angleList[beam.index] = (LRadius1, round(LAngle1, 2), LRadius2, round(LAngle2, 2))
 
-        print(angleList)
         for cell in self.cells:
             for beam in cell.beams:
                 beam.setAngle(angleList[beam.index])
@@ -771,9 +794,18 @@ class Lattice:
             for beam in cell.beams:
                 for node in [beam.point1, beam.point2]:
                     if node not in nodeAlreadyAdded:
-                        tagList.append(node.tagPoint(self.xMin, self.xMax, self.yMin, self.yMax, self.zMin, self.zMax))
+                        tagList.append(node.tag)
                         nodeAlreadyAdded.append(node)
         return tagList
+
+    def applyTagToAllPoint(self):
+        """
+        Generate tag to all nodes in lattice
+        """
+        for cell in self.cells:
+            for beam in cell.beams:
+                for node in [beam.point1, beam.point2]:
+                    node.tagPoint(self.xMin, self.xMax, self.yMin, self.yMax, self.zMin, self.zMax)
 
     def getConnectedNode(self, node):
         """
