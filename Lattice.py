@@ -571,12 +571,12 @@ class Lattice:
             if beam.point2 == beamidx.point1 or beam.point2 == beamidx.point2:
                 point2beams.append(beamidx)
             if self.periodicity:  # Periodicity is not finish
-                tag1 = self.tagPoint(beam.point1)
-                tag2 = self.tagPoint(beam.point2)
+                tag1 = beam.point1.tagPoint(self.xMin, self.xMax, self.yMin, self.yMax, self.zMin, self.zMax)
+                tag2 = beam.point2.tagPoint(self.xMin, self.xMax, self.yMin, self.yMax, self.zMin, self.zMax)
                 tag1 = tag1[0] if len(tag1) == 1 else None
                 tag2 = tag2[0] if len(tag2) == 1 else None
-                point1_tag = self.tagPoint(beamidx.point1)
-                point2_tag = self.tagPoint(beamidx.point2)
+                point1_tag = beamidx.point1.tagPoint(self.xMin, self.xMax, self.yMin, self.yMax, self.zMin, self.zMax)
+                point2_tag = beamidx.point2.tagPoint(self.xMin, self.xMax, self.yMin, self.yMax, self.zMin, self.zMax)
                 if tag1 is not None and 999 < tag1 < 1008:  # Corner
                     if any(999 < tag < 1008 for tag in point1_tag):
                         point1beams.append(beamidx)
@@ -756,87 +756,6 @@ class Lattice:
                     minLength = beam.getLength()
         return minLength
 
-    def tagPoint(self, point):
-        """
-        Define standardized tags for a point
-
-        Parameter:
-        ----------
-        point: Point Object
-
-        Return:
-        --------
-        tags: array of integer
-            List of tags of the point
-        """
-        tags = []
-
-        # Faces
-        if point.x == self.xMin and (self.yMin < point.y < self.yMax) and (
-                self.zMin < point.z < self.zMax):
-            tags.append(12)  # Face 1
-        elif point.x == self.xMax and (self.yMin < point.y < self.yMax) and (
-                self.zMin < point.z < self.zMax):
-            tags.append(13)  # Face 2
-        elif (self.xMin < point.x < self.xMax) and point.y == self.yMin and (
-                self.zMin < point.z < self.zMax):
-            tags.append(11)  # Face 3
-        elif (self.xMin < point.x < self.xMax) and point.y == self.yMax and (
-                self.zMin < point.z < self.zMax):
-            tags.append(14)  # Face 4
-        elif (self.xMin < point.x < self.xMax) and (
-                self.yMin < point.y < self.yMax) and point.z == self.zMin:
-            tags.append(10)  # Face 5
-        elif (self.xMin < point.x < self.xMax) and (
-                self.yMin < point.y < self.yMax) and point.z == self.zMax:
-            tags.append(15)  # Face 6
-
-        # Edge
-        if point.x == self.xMin and point.y == self.yMin and (self.zMin < point.z < self.zMax):
-            tags.append(102)  # Edge 0
-        elif (self.xMin < point.x < self.xMax) and point.y == self.yMin and point.z == self.zMin:
-            tags.append(100)  # Edge 1
-        elif point.x == self.xMax and point.y == self.yMin and (self.zMin < point.z < self.zMax):
-            tags.append(104)  # Edge 2
-        elif (self.xMin < point.x < self.xMax) and point.y == self.yMin and point.z == self.zMax:
-            tags.append(108)  # Edge 3
-        elif point.x == self.xMin and (self.yMin < point.y < self.yMax) and point.z == self.zMin:
-            tags.append(101)  # Edge 4
-        elif point.x == self.xMax and (self.yMin < point.y < self.yMax) and point.z == self.zMin:
-            tags.append(103)  # Edge 5
-        elif point.x == self.xMin and point.y == self.yMax and (self.zMin < point.z < self.zMax):
-            tags.append(106)  # Edge 6
-        elif (self.xMin < point.x < self.xMax) and point.y == self.yMax and point.z == self.zMin:
-            tags.append(105)  # Edge 7
-        elif point.x == self.xMax and point.y == self.yMax and (self.zMin < point.z < self.zMax):
-            tags.append(107)  # Edge 8
-        elif (self.xMin < point.x < self.xMax) and point.y == self.yMax and point.z == self.zMax:
-            tags.append(111)  # Edge 9
-        elif point.x == self.xMin and (self.yMin < point.y < self.yMax) and point.z == self.zMax:
-            tags.append(109)  # Edge 10
-        elif point.x == self.xMax and (self.yMin < point.y < self.yMax) and point.z == self.zMax:
-            tags.append(110)  # Edge 11
-
-        # Corner
-        if point.x == self.xMin and point.y == self.yMin and point.z == self.zMin:
-            tags.append(1000)  # Corner 0
-        elif point.x == self.xMax and point.y == self.yMin and point.z == self.zMin:
-            tags.append(1001)  # Corner 1
-        elif point.x == self.xMin and point.y == self.yMax and point.z == self.zMin:
-            tags.append(1002)  # Corner 2
-        elif point.x == self.xMax and point.y == self.yMax and point.z == self.zMin:
-            tags.append(1003)  # Corner 3
-        elif point.x == self.xMin and point.y == self.yMin and point.z == self.zMax:
-            tags.append(1004)  # Corner 4
-        elif point.x == self.xMax and point.y == self.yMin and point.z == self.zMax:
-            tags.append(1005)  # Corner 5
-        elif point.x == self.xMin and point.y == self.yMax and point.z == self.zMax:
-            tags.append(1006)  # Corner 6
-        elif point.x == self.xMax and point.y == self.yMax and point.z == self.zMax:
-            tags.append(1007)  # Corner 7
-
-        return tags
-
     def getTagList(self):
         """
         Get the tag for all points in lattice
@@ -852,7 +771,7 @@ class Lattice:
             for beam in cell.beams:
                 for node in [beam.point1, beam.point2]:
                     if node not in nodeAlreadyAdded:
-                        tagList.append(self.tagPoint(node))
+                        tagList.append(node.tagPoint(self.xMin, self.xMax, self.yMin, self.yMax, self.zMin, self.zMax))
                         nodeAlreadyAdded.append(node)
         return tagList
 
