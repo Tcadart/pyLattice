@@ -478,6 +478,7 @@ class Cell:
         self.cellSize = None
         self.posCell = posCell
         self.beams = []
+        self.index = None
 
         self.getBeamMaterial(gradMat)
         self.getBeamRadius(gradRadius, Radius)

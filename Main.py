@@ -196,7 +196,7 @@ gradDimProperty = [GradDimRule, GradDimDirection, GradDimParameters]
 gradRadiusProperty = [GradRadRule, GradRadDirection, GradRadParameters]
 gradMatProperty = [Multimat, GradMaterialDirection]
 
-hybridLatticeData = [0.005236359885094433, 0.008718667752263232, 0.04072417636703984]
+hybridLatticeData = [0.01, 0.01, 0.01]
 # #Generate data from lattice
 # lattice = Lattice(cell_size_X,cell_size_Y,cell_size_Z, number_cell_X,number_cell_Y,number_cell_Z,Lattice_Type,
 #                   Radius,gradRadiusProperty,gradDimProperty,gradMatProperty,MethodSim,uncertaintyNode,hybridLatticeData)
