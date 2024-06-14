@@ -16,7 +16,7 @@ class Lattice:
                  Lattice_Type: int, Radius: float,
                  gradRadiusProperty, gradDimProperty, gradMatProperty,
                  simMethod: int = 0, uncertaintyNode: int = 0,
-                 hybridLatticeData=None, periodicity: bool = 0):
+                 hybridLatticeData=None, periodicity: bool = 0, erasedParts: list = None):
         """
         Constructor general for the Lattice class.
 
@@ -89,6 +89,7 @@ class Lattice:
         self.hybridLatticeData = hybridLatticeData
         self.periodicity = periodicity  # Not finish to implemented
         self.penalizationCoefficient = 1.5  # Fixed with previous optimization
+        self.erasedParts = erasedParts
 
         self.cells = []
         self._nodes = []
@@ -128,8 +129,8 @@ class Lattice:
         gradDimProperty = [GradDimRule, GradDimDirection, GradDimParameters]
         gradRadiusProperty = [GradRadRule, GradRadDirection, GradRadParameters]
         gradMatProperty = [Multimat, GradMaterialDirection]
-        return cls(cell_size_x, cell_size_y, cell_size_z, num_cells_x, num_cells_y, num_cells_z, Lattice_Type,
-                   Radius, gradRadiusProperty, gradDimProperty, gradMatProperty, 0, 0, None)
+        return cls(cell_size_x, cell_size_y, cell_size_z, num_cells_x, num_cells_y, num_cells_z, Lattice_Type, Radius,
+                   gradRadiusProperty, gradDimProperty, gradMatProperty)
 
     @classmethod
     def hybridgeometry(cls, cell_size_x, cell_size_y, cell_size_z, simMethod, uncertaintyNode, hybridLatticeData):
@@ -150,7 +151,7 @@ class Lattice:
         gradMatProperty = [Multimat, GradMaterialDirection]
         return cls(cell_size_x, cell_size_y, cell_size_z, 1, 1, 1, 1000,
                    1, gradRadiusProperty, gradDimProperty, gradMatProperty, simMethod, uncertaintyNode,
-                   hybridLatticeData, periodicity=1)
+                   hybridLatticeData, periodicity=True)
 
     @classmethod
     def latticeHybridForGraph(cls, hybridLatticeData):
@@ -942,6 +943,7 @@ class Lattice:
                 for node in [beam.point1, beam.point2]:
                     if node not in nodeAlreadyAdded:
                         posData.append([node.getPos()])
+                        print(node.index)
                         nodeAlreadyAdded.append(node)
         return posData
 
