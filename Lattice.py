@@ -540,8 +540,8 @@ class Lattice:
                 radiusBeam.append(beampoint.radius)
                 anglebeam.append(getAngleBetweenBeams(beam, beampoint))
         else:
-            anglebeam.append(179.9)
             radiusBeam.append(beam.radius)
+            anglebeam.append(179.9)
         non_zero_anglebeam = [angle for angle in anglebeam if angle >= 0.01]
         non_zero_radiusbeam = [radius for angle, radius in zip(anglebeam, radiusBeam) if angle >= 0.01]
         return non_zero_anglebeam, non_zero_radiusbeam
@@ -633,7 +633,7 @@ class Lattice:
             LAngle1, LRadius1 = findMinAngle(non_zero_anglebeam1, non_zero_radiusbeam1)
             LAngle2, LRadius2 = findMinAngle(non_zero_anglebeam2, non_zero_radiusbeam2)
             angleList[beam.index] = (LRadius1, round(LAngle1, 2), LRadius2, round(LAngle2, 2))
-            #BUG
+
 
         for cell in self.cells:
             for beam in cell.beams:
@@ -674,7 +674,7 @@ class Lattice:
             beamToAdd = []
 
             for beam in cell.beams:
-                lengthMod = self.getLengthMod(beam)
+                lengthMod = beam.getLengthMod()
                 pointExt1 = beam.getPointOnBeamFromDistance(lengthMod[0], 1)
                 pointExt1Obj = Point(pointExt1[0], pointExt1[1], pointExt1[2])
                 pointExt2 = beam.getPointOnBeamFromDistance(lengthMod[1], 2)
@@ -724,24 +724,6 @@ class Lattice:
         else:
             L = radius / math.tan(math.radians(angle) / 2)
         return L
-
-    def getLengthMod(self, beam):
-        """
-        Calculate and return length to modify in penalization method
-
-        Parameter:
-        ----------
-        beam: Beam Object
-            beam of interest
-
-        Return:
-        --------
-        LenghtMod: list
-            data structure: (Lmod point1,Lmod point2)
-        """
-        L1 = self.functionPenalizationLzone(beam.angle1[0], beam.angle1[1])
-        L2 = self.functionPenalizationLzone(beam.angle2[0], beam.angle2[1])
-        return L1, L2
 
     def removeCell(self, index):
         """

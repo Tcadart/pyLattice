@@ -151,3 +151,35 @@ class Beam:
         """
         self.angle1 = AngleData[0:2]
         self.angle2 = AngleData[2:4]
+
+    def getLengthMod(self):
+        """
+        Calculate and return length to modify in penalization method.
+
+        Returns:
+        --------
+        lengthMod: tuple
+            Data structure: (Lmod_point1, Lmod_point2)
+        """
+        L1 = self.functionPenalizationLzone(self.angle1)
+        L2 = self.functionPenalizationLzone(self.angle2)
+        return L1, L2
+
+    def functionPenalizationLzone(self, radiusAngleData: list):
+        """
+        Calculate the penalization length based on radius and angle data.
+
+        Parameters:
+        ------------
+        radiusAngleData: tuple
+            A tuple containing (radius, angle)
+
+        Returns:
+        ---------
+        L: float
+            Length of the penalization zone
+        """
+        radius, angle = radiusAngleData
+        if angle > 170:
+            return 0.0000001
+        return radius / math.tan(math.radians(angle) / 2)
