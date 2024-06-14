@@ -339,6 +339,7 @@ class Lattice:
                                     for beam in new_cell.beams:
                                         beam.changeBeamType(idx + 100)
                                 else:
+                                    new_cell.getBeamRadius(self.gradRadius, radiusHybrid)
                                     new_cell.generateBeamsInCell(latticeHybridType[idx], startCellPos, idx + 100)
                     # Case for randomized lattice
                     # else:
@@ -634,7 +635,7 @@ class Lattice:
             LAngle2, LRadius2 = findMinAngle(non_zero_anglebeam2, non_zero_radiusbeam2)
             angleList[beam.index] = (LRadius1, round(LAngle1, 2), LRadius2, round(LAngle2, 2))
 
-
+        print(angleList)
         for cell in self.cells:
             for beam in cell.beams:
                 beam.setAngle(angleList[beam.index])
