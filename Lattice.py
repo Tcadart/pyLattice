@@ -943,7 +943,6 @@ class Lattice:
                 for node in [beam.point1, beam.point2]:
                     if node not in nodeAlreadyAdded:
                         posData.append([node.getPos()])
-                        print(node.index)
                         nodeAlreadyAdded.append(node)
         return posData
 
@@ -961,15 +960,18 @@ class Lattice:
                     beamAlreadyAdded.append(beam)
         return edgeIndex
 
-    def getBeamType(self): # A modifier
+    def getBeamType(self):
         """
         Retrieves beam type data for the lattice.
         data structure: each line is the type of the beam with index the line index
         """
-        BeamType = []
-        for index, beam in enumerate(self.beams_obj):
-            BeamType.append([beam.type])
-        return BeamType
+        beamType = []
+        beamAlreadyAdded = []
+        for cell in self.cells:
+            for beam in cell.beams:
+                if beam not in beamAlreadyAdded:
+                    beamType.append([beam.type])
+        return beamType
 
     def changeHybridData(self, hybridRadiusData):
         """
