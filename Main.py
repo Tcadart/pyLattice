@@ -130,9 +130,9 @@ cell_size_X = cell_size
 cell_size_Y = cell_size
 cell_size_Z = cell_size
 number_cell = 2
-number_cell_X = 5
-number_cell_Y = 5
-number_cell_Z = 5
+number_cell_X = 3
+number_cell_Y = 3
+number_cell_Z = 3
 
 Lattice_Type = 0
 # -2 => Method random cell
@@ -156,7 +156,7 @@ Lattice_Type = 0
 # Gradient on cell dimensions
 GradDimRule = 'constant'
 GradDimDirection = [1, 0, 0]
-GradDimParameters = [1.1, 0.0, 2.0]  # Float
+GradDimParameters = [1.5, 0.0, 2.0]  # Float
 # Gradient on radius of beams
 GradRadRule = 'constant'
 GradRadDirection = [0, 0, 1]

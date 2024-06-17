@@ -477,8 +477,10 @@ class Cell:
         self._beamRadius = None
         self.cellSize = None
         self.posCell = posCell
+        self.coordinateCell = startCellPos
         self.beams = []
         self.index = None
+        self.latticeType = latticeType
 
         self.getBeamMaterial(gradMat)
         self.getBeamRadius(gradRadius, Radius)

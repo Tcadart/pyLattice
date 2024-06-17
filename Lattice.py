@@ -470,46 +470,62 @@ class Lattice:
     from mpl_toolkits.mplot3d.art3d import Line3DCollection
     import numpy as np
 
-    def visualizeLattice3D(self, beamColor: str = "Material"):
+    def visualizeLattice3D(self, beamColor: str = "Material", voxelViz: bool = False):
         """
         Visualizes the lattice in 3D using matplotlib.
 
         Parameter:
         -----------
-        beamColor: string
+        beamColor: string (default: "Material")
             "Material" -> color by material
             "Type" -> color by type
+        voxelViz: boolean (default: False)
+            True -> voxel visualization
+            False -> beam visualization
         """
         fig = plt.figure()
         ax = fig.add_subplot(111, projection='3d')
         ax.set_title("Lattice généré")
         color = ['blue', 'green', 'red', 'yellow', 'orange']
-        beamDraw = []
-        lines = []
-        colors = []
-        nodeDraw = set()
 
-        for cell in self.cells:
-            for beam in cell.beams:
-                if beam not in beamDraw:
-                    if beamColor == "Material":
-                        colorBeam = color[beam.material]
-                    elif beamColor == "Type":
-                        colorBeam = color[int(str(beam.type)[0])]
-                    point1 = beam.point1
-                    point2 = beam.point2
-                    lines.append([(point1.x, point1.y, point1.z), (point2.x, point2.y, point2.z)])
-                    colors.append(colorBeam)
-                    beamDraw.append(beam)
-                for node in [beam.point1, beam.point2]:
-                    if (node.x, node.y, node.z) not in nodeDraw:
-                        nodeDraw.add((node.x, node.y, node.z))
+        if not voxelViz:
+            beamDraw = []
+            lines = []
+            colors = []
+            nodeDraw = set()
+            for cell in self.cells:
+                for beam in cell.beams:
+                    if beam not in beamDraw:
+                        if beamColor == "Material":
+                            colorBeam = color[beam.material]
+                        elif beamColor == "Type":
+                            colorBeam = color[int(str(beam.type)[0])]
+                        point1 = beam.point1
+                        point2 = beam.point2
+                        lines.append([(point1.x, point1.y, point1.z), (point2.x, point2.y, point2.z)])
+                        colors.append(colorBeam)
+                        beamDraw.append(beam)
+                    for node in [beam.point1, beam.point2]:
+                        if (node.x, node.y, node.z) not in nodeDraw:
+                            nodeDraw.add((node.x, node.y, node.z))
 
-        line_collection = Line3DCollection(lines, colors=colors, linewidths=2)
-        ax.add_collection3d(line_collection)
+            line_collection = Line3DCollection(lines, colors=colors, linewidths=2)
+            ax.add_collection3d(line_collection)
 
-        nodeDraw = np.array(list(nodeDraw))
-        ax.scatter(nodeDraw[:, 0], nodeDraw[:, 1], nodeDraw[:, 2], c='black', s=5)
+            nodeDraw = np.array(list(nodeDraw))
+            ax.scatter(nodeDraw[:, 0], nodeDraw[:, 1], nodeDraw[:, 2], c='black', s=5)
+        elif voxelViz:
+            for cell in self.cells:
+                x, y, z = cell.coordinateCell
+                dx, dy, dz = cell.cellSize
+
+                if beamColor == "Material":
+                    colorCell = color[cell.beams[0].material]
+                elif beamColor == "Type":
+                    colorCell = color[int(str(cell.latticeType)[0])]
+                ax.bar3d(x, y, z, dx, dy, dz, color=colorCell, alpha=1, shade=True, edgecolor='k')
+
+
 
         ax.set_xlabel('X')
         ax.set_ylabel('Y')
