@@ -306,6 +306,8 @@ class Lattice:
         startCellPos: list of float in dim 6
             (xStart, yStart, zStart, xDim, yDim, zDim) of the erased region
         """
+        if self.erasedParts is None:
+            return False
         counterIn = 0
         for delPart in self.erasedParts:
             for direction in range(3):
