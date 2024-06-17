@@ -3,8 +3,6 @@ from mpl_toolkits.mplot3d.art3d import Line3DCollection
 from Cell import *
 import math
 import random
-import torch
-from torch_geometric.data import Data
 import matplotlib.pyplot as plt
 
 
