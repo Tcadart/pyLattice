@@ -130,9 +130,9 @@ cell_size_X = cell_size
 cell_size_Y = cell_size
 cell_size_Z = cell_size
 number_cell = 2
-number_cell_X = 2
-number_cell_Y = 2
-number_cell_Z = 2
+number_cell_X = 5
+number_cell_Y = 5
+number_cell_Z = 5
 
 Lattice_Type = 0
 # -2 => Method random cell
@@ -196,11 +196,12 @@ gradDimProperty = [GradDimRule, GradDimDirection, GradDimParameters]
 gradRadiusProperty = [GradRadRule, GradRadDirection, GradRadParameters]
 gradMatProperty = [Multimat, GradMaterialDirection]
 
-erasedParts = [(1, 1, 1, 1, 1, 1)]
+erasedParts = [(1.0, 0.0, 1.0, 2.0, 2.0, 2.0)]
 
 # #Generate data from lattice
 lattice = Lattice(cell_size_X, cell_size_Y, cell_size_Z, number_cell_X, number_cell_Y, number_cell_Z, Lattice_Type,
-                  Radius, gradRadiusProperty, gradDimProperty, gradMatProperty, MethodSim, uncertaintyNode, erasedParts)
+                  Radius, gradRadiusProperty, gradDimProperty, gradMatProperty, MethodSim, uncertaintyNode,
+                  erasedParts=erasedParts)
 hybridLatticeData = [0.01, 0.01, 0.01]
 # lattice = Lattice.hybridgeometry(cell_size_X, cell_size_Y, cell_size_Z, MethodSim, uncertaintyNode, hybridLatticeData)
 

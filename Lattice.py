@@ -1,3 +1,5 @@
+from mpl_toolkits.mplot3d.art3d import Line3DCollection
+
 from Cell import *
 import math
 import random
@@ -295,9 +297,30 @@ class Lattice:
                            range(self.numCellsZ)]
         return gradMat
 
+    def isNotInErasedRegion(self, startCellPos):
+        """
+        Check if the cell is not in the erased region
+
+        Parameters:
+        -----------
+        startCellPos: list of float in dim 6
+            (xStart, yStart, zStart, xDim, yDim, zDim) of the erased region
+        """
+        counterIn = 0
+        for delPart in self.erasedParts:
+            for direction in range(3):
+                if delPart[direction] <= startCellPos[direction] <= delPart[direction+3] + delPart[direction]:
+                    counterIn += 1
+        return counterIn == 3
+
     def generateLattice(self):
         """
         Generates lattice structure based on specified parameters.
+
+        Return:
+        --------
+        cells: list of Cell objects
+            List of cells in the lattice
         """
         xCellStartInit = 0
         yCellStartInit = 0
@@ -324,30 +347,31 @@ class Lattice:
                     posCell = [i, j, k]
                     initialCellSize = [self.cellSizeX, self.cellSizeY, self.cellSizeZ]
                     startCellPos = [xCellStart, yCellStart, zCellStart]
-                    new_cell = []
-                    # Case for normal lattice structures
-                    if self.latticeType != -2 and self.latticeType < 1000:
-                        new_cell = Cell(posCell, initialCellSize, startCellPos, self.latticeType, self.Radius,
-                                        self.gradRadius, self.gradDim, self.gradMat)
-                    # Case for hybrid lattice on 1 cell
-                    elif self.latticeType == 1000:
-                        latticeHybridType = [0, 16, 17]
-                        for idx, radiusHybrid in enumerate(self.hybridLatticeData):
-                            if radiusHybrid != 0.0:
-                                if not new_cell:
-                                    new_cell = Cell(posCell, initialCellSize, startCellPos,
-                                                    latticeHybridType[idx], radiusHybrid, self.gradRadius,
-                                                    self.gradDim, self.gradMat)
-                                    for beam in new_cell.beams:
-                                        beam.changeBeamType(idx + 100)
-                                else:
-                                    new_cell.getBeamRadius(self.gradRadius, radiusHybrid)
-                                    new_cell.generateBeamsInCell(latticeHybridType[idx], startCellPos, idx + 100)
-                    # Case for randomized lattice
-                    # else:
-                    #     new_cell.generate_beams_random(self.Radius, self.gradRadius, self.gradDim, self.gradMat,
-                    #                                    posCell)
-                    self.cells.append(new_cell)
+                    if not self.isNotInErasedRegion(startCellPos):
+                        new_cell = []
+                        # Case for normal lattice structures
+                        if self.latticeType != -2 and self.latticeType < 1000:
+                            new_cell = Cell(posCell, initialCellSize, startCellPos, self.latticeType, self.Radius,
+                                            self.gradRadius, self.gradDim, self.gradMat)
+                        # Case for hybrid lattice on 1 cell
+                        elif self.latticeType == 1000:
+                            latticeHybridType = [0, 16, 17]
+                            for idx, radiusHybrid in enumerate(self.hybridLatticeData):
+                                if radiusHybrid != 0.0:
+                                    if not new_cell:
+                                        new_cell = Cell(posCell, initialCellSize, startCellPos,
+                                                        latticeHybridType[idx], radiusHybrid, self.gradRadius,
+                                                        self.gradDim, self.gradMat)
+                                        for beam in new_cell.beams:
+                                            beam.changeBeamType(idx + 100)
+                                    else:
+                                        new_cell.getBeamRadius(self.gradRadius, radiusHybrid)
+                                        new_cell.generateBeamsInCell(latticeHybridType[idx], startCellPos, idx + 100)
+                        # Case for randomized lattice
+                        # else:
+                        #     new_cell.generate_beams_random(self.Radius, self.gradRadius, self.gradDim, self.gradMat,
+                        #                                    posCell)
+                        self.cells.append(new_cell)
         if self.latticeType == 1000:
             self.checkHybridCollision()
 
@@ -436,6 +460,14 @@ class Lattice:
                     beamObjList.append(beam)
         return beamObjList
 
+    import matplotlib.pyplot as plt
+    from mpl_toolkits.mplot3d.art3d import Line3DCollection, Poly3DCollection
+    import numpy as np
+
+    import matplotlib.pyplot as plt
+    from mpl_toolkits.mplot3d.art3d import Line3DCollection
+    import numpy as np
+
     def visualizeLattice3D(self, beamColor: str = "Material"):
         """
         Visualizes the lattice in 3D using matplotlib.
@@ -451,7 +483,10 @@ class Lattice:
         ax.set_title("Lattice généré")
         color = ['blue', 'green', 'red', 'yellow', 'orange']
         beamDraw = []
-        nodeDraw = []
+        lines = []
+        colors = []
+        nodeDraw = set()
+
         for cell in self.cells:
             for beam in cell.beams:
                 if beam not in beamDraw:
@@ -461,11 +496,18 @@ class Lattice:
                         colorBeam = color[int(str(beam.type)[0])]
                     point1 = beam.point1
                     point2 = beam.point2
-                    ax.plot([point1.x, point2.x], [point1.y, point2.y], [point1.z, point2.z], color=colorBeam,
-                            markersize=10)
+                    lines.append([(point1.x, point1.y, point1.z), (point2.x, point2.y, point2.z)])
+                    colors.append(colorBeam)
+                    beamDraw.append(beam)
                 for node in [beam.point1, beam.point2]:
-                    if node not in nodeDraw:
-                        ax.scatter(node.x, node.y, node.z, c='black', s=5)
+                    if (node.x, node.y, node.z) not in nodeDraw:
+                        nodeDraw.add((node.x, node.y, node.z))
+
+        line_collection = Line3DCollection(lines, colors=colors, linewidths=2)
+        ax.add_collection3d(line_collection)
+
+        nodeDraw = np.array(list(nodeDraw))
+        ax.scatter(nodeDraw[:, 0], nodeDraw[:, 1], nodeDraw[:, 2], c='black', s=5)
 
         ax.set_xlabel('X')
         ax.set_ylabel('Y')
@@ -473,9 +515,6 @@ class Lattice:
         ax.set_xlim3d(self.xMin, self.xMax)
         ax.set_ylim3d(self.yMin, self.yMax)
         ax.set_zlim3d(self.zMin, self.zMax)
-        # ax.set_xlim3d(0, self.xMax)
-        # ax.set_ylim3d(0, self.yMax)
-        # ax.set_zlim3d(0, self.zMax)
         plt.show()
 
     def visualize_3d_random(self, ax):
