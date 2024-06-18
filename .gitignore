@@ -29,3 +29,5 @@ a
 *.sel
 .idea
 fort.7
+__pycache__
+
