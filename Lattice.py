@@ -462,14 +462,6 @@ class Lattice:
                     beamObjList.append(beam)
         return beamObjList
 
-    import matplotlib.pyplot as plt
-    from mpl_toolkits.mplot3d.art3d import Line3DCollection, Poly3DCollection
-    import numpy as np
-
-    import matplotlib.pyplot as plt
-    from mpl_toolkits.mplot3d.art3d import Line3DCollection
-    import numpy as np
-
     def visualizeLattice3D(self, beamColor: str = "Material", voxelViz: bool = False):
         """
         Visualizes the lattice in 3D using matplotlib.
