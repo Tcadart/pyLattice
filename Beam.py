@@ -30,6 +30,7 @@ class Beam:
         self.index = None
         self.angle1 = None
         self.angle2 = None
+        self.length = self.getLength()
 
     def __repr__(self):
         return f"Beam({self.point1}, {self.point2}, Radius:{self.radius}, Type:{self.type}, Index:{self.index})"

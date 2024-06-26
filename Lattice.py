@@ -1067,3 +1067,14 @@ class Lattice:
                 movePointAttracted(beam.point1, pointAttractor, alpha)
                 movePointAttracted(beam.point2, pointAttractor, alpha)
         self.getMinMaxValues()
+
+    def getRelativeDensity(self):
+        """
+        Get relative density of the lattice
+        """
+        volumeLattice = self.getSizeLattice()[0] * self.getSizeLattice()[1] * self.getSizeLattice()[2]
+        volumeBeams = 0
+        for cell in self.cells:
+            for beam in cell.beams:
+                volumeBeams += beam.getVolume()
+        return volumeBeams / volumeLattice

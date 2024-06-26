@@ -199,11 +199,11 @@ gradMatProperty = [Multimat, GradMaterialDirection]
 erasedParts = [(1.0, 0.0, 1.0, 2.0, 2.0, 2.0)]
 
 # #Generate data from lattice
-lattice = Lattice(cell_size_X, cell_size_Y, cell_size_Z, number_cell_X, number_cell_Y, number_cell_Z, Lattice_Type,
-                  Radius, gradRadiusProperty, gradDimProperty, gradMatProperty, MethodSim, uncertaintyNode,
-                  erasedParts=None)
+# lattice = Lattice(cell_size_X, cell_size_Y, cell_size_Z, number_cell_X, number_cell_Y, number_cell_Z, Lattice_Type,
+#                   Radius, gradRadiusProperty, gradDimProperty, gradMatProperty, MethodSim, uncertaintyNode,
+#                   erasedParts=None)
 hybridLatticeData = [0.01, 0.01, 0.01]
-# lattice = Lattice.hybridgeometry(cell_size_X, cell_size_Y, cell_size_Z, MethodSim, uncertaintyNode, hybridLatticeData)
+lattice = Lattice.hybridgeometry(cell_size_X, cell_size_Y, cell_size_Z, MethodSim, uncertaintyNode, hybridLatticeData)
 
 # lattice = Lattice.simpleLattice(cell_size_X,cell_size_Y,cell_size_Z, number_cell_X,number_cell_Y,number_cell_Z,
 # Lattice_Type,Radius)
