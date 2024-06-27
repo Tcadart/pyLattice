@@ -18,7 +18,7 @@ class Lattice:
                  Lattice_Type: int, Radius: float,
                  gradRadiusProperty, gradDimProperty, gradMatProperty,
                  simMethod: int = 0, uncertaintyNode: int = 0,
-                 hybridLatticeData=None, periodicity: bool = 0, erasedParts: list = None):
+                 hybridLatticeData=None, hybridGeomType = None, periodicity: bool = 0, erasedParts: list = None):
         """
         Constructor general for the Lattice class.
 
@@ -89,6 +89,7 @@ class Lattice:
         self.sizeX, self.sizeY, self.sizeZ = self.getSizeLattice()
         self.uncertaintyNode = uncertaintyNode
         self.hybridLatticeData = hybridLatticeData
+        self.hybridGeomType = hybridGeomType
         self.periodicity = periodicity  # Not finish to implemented
         self.penalizationCoefficient = 1.5  # Fixed with previous optimization
         self.erasedParts = erasedParts
@@ -135,11 +136,15 @@ class Lattice:
                    gradRadiusProperty, gradDimProperty, gradMatProperty)
 
     @classmethod
-    def hybridgeometry(cls, cell_size_x, cell_size_y, cell_size_z, simMethod, uncertaintyNode, hybridLatticeData):
+    def hybridgeometry(cls, cell_size_x, cell_size_y, cell_size_z, simMethod, uncertaintyNode, hybridLatticeData,
+                       hybridGeomType=None):
         """
         Generate hybrid geometry structure with just some parameters
         """
         # Define Default gradient properties
+        if hybridGeomType is None:
+            hybridGeomType = [0, 16, 17]
+
         GradDimRule = 'constant'
         GradDimDirection = [1, 0, 0]
         GradDimParameters = [0.0, 0.0, 0.0]
@@ -153,7 +158,7 @@ class Lattice:
         gradMatProperty = [Multimat, GradMaterialDirection]
         return cls(cell_size_x, cell_size_y, cell_size_z, 1, 1, 1, 1000,
                    1, gradRadiusProperty, gradDimProperty, gradMatProperty, simMethod, uncertaintyNode,
-                   hybridLatticeData, periodicity=True)
+                   hybridLatticeData, hybridGeomType = hybridGeomType, periodicity=True)
 
     @classmethod
     def latticeHybridForGraph(cls, hybridLatticeData):
@@ -357,18 +362,17 @@ class Lattice:
                                             self.gradRadius, self.gradDim, self.gradMat)
                         # Case for hybrid lattice on 1 cell
                         elif self.latticeType == 1000:
-                            latticeHybridType = [0, 16, 17]
                             for idx, radiusHybrid in enumerate(self.hybridLatticeData):
                                 if radiusHybrid != 0.0:
                                     if not new_cell:
                                         new_cell = Cell(posCell, initialCellSize, startCellPos,
-                                                        latticeHybridType[idx], radiusHybrid, self.gradRadius,
+                                                        self.hybridGeomType[idx], radiusHybrid, self.gradRadius,
                                                         self.gradDim, self.gradMat)
                                         for beam in new_cell.beams:
                                             beam.changeBeamType(idx + 100)
                                     else:
                                         new_cell.getBeamRadius(self.gradRadius, radiusHybrid)
-                                        new_cell.generateBeamsInCell(latticeHybridType[idx], startCellPos, idx + 100)
+                                        new_cell.generateBeamsInCell(self.hybridGeomType[idx], startCellPos, idx + 100)
                         # Case for randomized lattice
                         # else:
                         #     new_cell.generate_beams_random(self.Radius, self.gradRadius, self.gradDim, self.gradMat,
@@ -1031,6 +1035,9 @@ class Lattice:
         hybridRadiusData: array of dim 3
             Array of radius data of hybrid lattice
         """
+        if len(hybridRadiusData) != 3:
+            raise ValueError("Invalid hybrid radius data.")
+
         radiusDict = {
             100: hybridRadiusData[0],
             101: hybridRadiusData[1],
