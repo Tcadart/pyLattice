@@ -161,9 +161,16 @@ class Lattice:
                    hybridLatticeData, hybridGeomType = hybridGeomType, periodicity=True)
 
     @classmethod
-    def latticeHybridForGraph(cls, hybridLatticeData):
+    def latticeHybridForGraph(cls, hybridLatticeData, hybridGeomType):
         """
         Generate unit cell lattice structure with uniquely hybrid parameter for GNN dataset generation
+
+        Parameters:
+        -----------
+        hybridLatticeData: list of float
+            List of radius for each geometry
+        hybridGeomType: list of integer
+            List of geometry type for each radius
         """
         cell_size_x = 1
         cell_size_y = 1
@@ -183,7 +190,7 @@ class Lattice:
         gradMatProperty = [Multimat, GradMaterialDirection]
         return cls(cell_size_x, cell_size_y, cell_size_z, 1, 1, 1, 1000,
                    1, gradRadiusProperty, gradDimProperty, gradMatProperty, simMethod, uncertaintyNode,
-                   hybridLatticeData)
+                   hybridLatticeData, hybridGeomType=hybridGeomType)
 
     @property
     def nodes(self):
