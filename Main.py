@@ -12,15 +12,15 @@ import math
 # *******************************************************************************************************************
 # *******************************************************************************************************************
 # Lattice properties
-Radius = 0.05
-cell_size = 1
+Radius = 0.8
+cell_size = 10
 cell_size_X = cell_size
 cell_size_Y = cell_size
 cell_size_Z = cell_size
 number_cell = 2
-number_cell_X = 3
-number_cell_Y = 3
-number_cell_Z = 3
+number_cell_X = 1
+number_cell_Y = 10
+number_cell_Z = 10
 
 Lattice_Type = 0
 # -2 => Method random cell
@@ -66,7 +66,7 @@ AnalysisType = 0
 # 0 Modelisation lattice only
 # 1 Compression Z
 
-MethodSim = 1
+MethodSim = 0
 # 0 No modification
 # 1 Node Modification
 
@@ -84,15 +84,19 @@ gradDimProperty = [GradDimRule, GradDimDirection, GradDimParameters]
 gradRadiusProperty = [GradRadRule, GradRadDirection, GradRadParameters]
 gradMatProperty = [Multimat, GradMaterialDirection]
 
-erasedParts = [(1.0, 0.0, 1.0, 2.0, 2.0, 2.0)]
+erasedParts = [(30.0, 0.0, 0.0, 19.0, 50.0, 19.0)]
+
 
 # #Generate data from lattice
-# lattice = Lattice(cell_size_X, cell_size_Y, cell_size_Z, number_cell_X, number_cell_Y, number_cell_Z, Lattice_Type,
-#                   Radius, gradRadiusProperty, gradDimProperty, gradMatProperty, MethodSim, uncertaintyNode,
-#                   erasedParts=None)
-hybridLatticeData = [0.01]
-lattice = Lattice.hybridgeometry(cell_size_X, cell_size_Y, cell_size_Z, MethodSim, uncertaintyNode,
-                                 hybridLatticeData, hybridGeomType=[0])
+lattice = Lattice(cell_size_X, cell_size_Y, cell_size_Z, number_cell_X, number_cell_Y, number_cell_Z, Lattice_Type,
+                  Radius, gradRadiusProperty, gradDimProperty, gradMatProperty, MethodSim, uncertaintyNode,
+                  erasedParts=None)
+# lattice.cylindrical_transform(5)
+# lattice.curveLattice(40,25, -20, curvature_strength=0.002)
+# lattice.attractorLattice((40, 25, 0), alpha=0.005)
+# hybridLatticeData = [0.01]
+# lattice = Lattice.hybridgeometry(cell_size_X, cell_size_Y, cell_size_Z, MethodSim, uncertaintyNode,
+#                                  hybridLatticeData, hybridGeomType=[0])
 
 # lattice = Lattice.simpleLattice(cell_size_X,cell_size_Y,cell_size_Z, number_cell_X,number_cell_Y,number_cell_Z,
 # Lattice_Type,Radius)

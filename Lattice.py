@@ -65,6 +65,8 @@ class Lattice(object):
             Data of radius of each geometry on the hybrid lattice
         periodicity: boolean (0: off / 1: on)
             Applying periodicity on the outer box of the lattice structure to calculate penalization method
+        erasedParts: list of float in dim 6
+            (xStart, yStart, zStart, xDim, yDim, zDim) of the erased region
         """
         self.name = None
         self.yMin = None
@@ -537,9 +539,14 @@ class Lattice(object):
         ax.set_xlabel('X')
         ax.set_ylabel('Y')
         ax.set_zlabel('Z')
-        ax.set_xlim3d(self.xMin, self.xMax)
-        ax.set_ylim3d(self.yMin, self.yMax)
-        ax.set_zlim3d(self.zMin, self.zMax)
+        limMin = min(self.xMin, self.yMin, self.zMin)
+        limMax = max(self.xMax, self.yMax, self.zMax)
+        ax.set_xlim3d(limMin, limMax)
+        ax.set_ylim3d(limMin, limMax)
+        ax.set_zlim3d(limMin, limMax)
+        # ax.set_xlim3d(self.xMin, self.zMax)
+        # ax.set_ylim3d(self.yMin, self.yMax)
+        # ax.set_zlim3d(self.zMin, self.zMax)
         plt.show()
 
     def visualize_3d_random(self, ax):
@@ -1059,40 +1066,101 @@ class Lattice(object):
                 if beam.type in radiusDict:
                     beam.radius = radiusDict[beam.type]
 
-    def attractorLattice(self, PointAttractor=None):
+    def attractorLattice(self, PointAttractorList=None, alpha=0.5, inverse=False):
         """
         Attract lattice to a specific point
 
         Parameters:
         -----------
-        PointAttractor: Point object
-            Point to attract the lattice to
+        PointAttractor: list of float in dim 3
+            Coordinates of the attractor point (default: None)
+        alpha: float
+            Coefficient of attraction (default: 0.5)
+        inverse: bool
+            If True, points farther away are attracted less (default: False)
         """
+
         def distance(point1, point2):
             """
             Calculate distance between two points
             """
             return math.sqrt((point2.x - point1.x) ** 2 + (point2.y - point1.y) ** 2 + (point2.z - point1.z) ** 2)
 
-        def movePointAttracted(point1, attractorPoint, alpha):
+        def movePointAttracted(point, attractorPoint, alpha, inverse):
             """
             Move point1 relative from attractorPoint with coefficient alpha
             """
-            Length = distance(point1, attractorPoint)
-            DR = [(attractorPoint.x - point1.x) / Length, (attractorPoint.y - point1.y) / Length,
-                  (attractorPoint.z - point1.z) / Length]
-            factor = [(alpha) * dr for dr in DR]
-            pointMod = [point1.x, point1.y, point1.z]
-            pointMod = [p1 + p2 for p1, p2 in zip(pointMod, factor)]
-            point1.movePoint(pointMod[0], pointMod[1], pointMod[2])
+            Length = distance(point, attractorPoint)
+            if inverse:
+                factor = alpha / Length if Length != 0 else alpha
+            else:
+                factor = alpha * Length
 
-        if PointAttractor is None:
+            DR = [(attractorPoint.x - point.x) * factor, (attractorPoint.y - point.y) * factor,
+                  (attractorPoint.z - point.z) * factor]
+
+            pointMod = [point.x, point.y, point.z]
+            pointMod = [p1 + p2 for p1, p2 in zip(pointMod, DR)]
+            point.movePoint(pointMod[0], pointMod[1], pointMod[2])
+
+        if PointAttractorList is None:
             pointAttractor = Point(5, 0.5, -2)
-        alpha = 0.5
+        else:
+            pointAttractor = Point(PointAttractorList[0], PointAttractorList[1], PointAttractorList[2])
+
         for cell in self.cells:
             for beam in cell.beams:
-                movePointAttracted(beam.point1, pointAttractor, alpha)
-                movePointAttracted(beam.point2, pointAttractor, alpha)
+                movePointAttracted(beam.point1, pointAttractor, alpha, inverse)
+                movePointAttracted(beam.point2, pointAttractor, alpha, inverse)
+        self.getMinMaxValues()
+
+    def curveLattice(self, center_x, center_y, center_z, curvature_strength=0.1):
+        """
+        Curve the lattice structure around a given center.
+
+        Parameters:
+        -----------
+        center_x: float
+            The x-coordinate of the center of the curvature.
+        center_y: float
+            The y-coordinate of the center of the curvature.
+        center_z: float
+            The z-coordinate of the center of the curvature.
+        curvature_strength: float (default: 0.1)
+            The strength of the curvature applied to the lattice.
+            Positive values curve upwards, negative values curve downwards.
+        """
+        for cell in self.cells:
+            for beam in cell.beams:
+                for node in [beam.point1, beam.point2]:
+                    x, y, z = node.x, node.y, node.z
+                    # Calculate the distance from the center of curvature
+                    dx = x - center_x
+                    dy = y - center_y
+                    dz = z - center_z
+                    new_z = z - curvature_strength * (dx ** 2 + dy ** 2 + dz ** 2)
+                    node.movePoint(x, y, new_z)
+        self.getMinMaxValues()
+
+    def cylindrical_transform(self, radius):
+        """
+        Apply cylindrical transformation to the lattice structure.
+
+        Parameters:
+        -----------
+        radius: float
+            Radius of the cylinder.
+        """
+        max_y = self.sizeY
+        for cell in self.cells:
+            for beam in cell.beams:
+                for node in [beam.point1, beam.point2]:
+                    x, y, z = node.x, node.y, node.z
+                    # Convert Cartesian coordinates (x, y, z) to cylindrical coordinates (r, θ, z)
+                    theta = (y / max_y) * 2 * math.pi  # θ = (y / total height) * 2π
+                    new_x = radius * math.cos(theta)
+                    new_y = radius * math.sin(theta)
+                    node.movePoint(new_x, new_y, z)
         self.getMinMaxValues()
 
     def getRelativeDensity(self):
@@ -1105,3 +1173,4 @@ class Lattice(object):
             for beam in cell.beams:
                 volumeBeams += beam.getVolume()
         return volumeBeams / volumeLattice
+
