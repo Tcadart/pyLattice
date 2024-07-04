@@ -1,22 +1,27 @@
+from __future__ import print_function, division
 import math
 
-
-class Beam:
+class Beam(object):
     """
     Class Beam represente beam element in structures
     """
 
-    def __init__(self, point1, point2, Radius: float, Material: int, Type: int):
+    def __init__(self, point1, point2, Radius, Material, Type):
         """
         Beam object represent a beam by 2 points a radius and a beam type
 
         Parameters:
         ------------
         point1: Point object
+            First point of the beam
         point2: Point object
+            Second point of the beam
         Radius: float
+            Radius of the beam
+        Material: int
+            Material of the beam
         Type: int
-            Center beam = 0; Modified beam = 1
+            Type of the beam
         """
         self.point1 = point1
         self.point2 = point2
@@ -33,7 +38,7 @@ class Beam:
         self.length = self.getLength()
 
     def __repr__(self):
-        return f"Beam({self.point1}, {self.point2}, Radius:{self.radius}, Type:{self.type}, Index:{self.index})"
+        return "Beam({}, {}, Radius:{}, Type:{}, Index:{})".format(self.point1, self.point2, self.radius, self.type, self.index)
 
     def __eq__(self, other):
         return isinstance(other, Beam) and self.point1 == other.point1 and self.point2 == other.point2
@@ -60,12 +65,12 @@ class Beam:
         """
         return math.pi * (self.radius ** 2) * self.length
 
-    def changeBeamType(self, newType: int):
+    def changeBeamType(self, newType):
         """
         Change beam type
 
         Parameters:
-        newtype: integer
+        newtype: int
             beam type wanted to assign
         """
         self.type = newType
@@ -166,7 +171,7 @@ class Beam:
         L2 = self.functionPenalizationLzone(self.angle2)
         return L1, L2
 
-    def functionPenalizationLzone(self, radiusAngleData: list):
+    def functionPenalizationLzone(self, radiusAngleData):
         """
         Calculate the penalization length based on radius and angle data.
 

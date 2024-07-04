@@ -1,32 +1,32 @@
-from mpl_toolkits.mplot3d.art3d import Line3DCollection
-
+from __future__ import print_function, division
 from Cell import *
 import math
 import random
-import torch
-from torch_geometric.data import Data
-import matplotlib.pyplot as plt
+import sys
+if sys.version_info[0] == 3:
+    import matplotlib.pyplot as plt
+    from mpl_toolkits.mplot3d.art3d import Line3DCollection
 
 
-class Lattice:
+class Lattice(object):
     """
     Generate lattice structures with a lot of different parameters
     """
 
-    def __init__(self, cell_size_x: float, cell_size_y: float, cell_size_z: float,
-                 num_cells_x: int, num_cells_y: int, num_cells_z: int,
-                 Lattice_Type: int, Radius: float,
+    def __init__(self, cell_size_x, cell_size_y, cell_size_z,
+                 num_cells_x, num_cells_y, num_cells_z,
+                 Lattice_Type, Radius,
                  gradRadiusProperty, gradDimProperty, gradMatProperty,
-                 simMethod: int = 0, uncertaintyNode: int = 0,
-                 hybridLatticeData=None, hybridGeomType = None, periodicity: bool = 0, erasedParts: list = None):
+                 simMethod=0, uncertaintyNode=0,
+                 hybridLatticeData=None, hybridGeomType=None, periodicity=0, erasedParts=None):
         """
         Constructor general for the Lattice class.
 
         Parameter:
         -----------
-        cellSizeX: integer
-        cellSizeY: integer
-        cellSizeZ: integer
+        cellSizeX: float
+        cellSizeY: float
+        cellSizeZ: float
             Dimension in each direction of the intial cell in the structure
 
         num_cells_x: integer
@@ -158,7 +158,7 @@ class Lattice:
         gradMatProperty = [Multimat, GradMaterialDirection]
         return cls(cell_size_x, cell_size_y, cell_size_z, 1, 1, 1, 1000,
                    1, gradRadiusProperty, gradDimProperty, gradMatProperty, simMethod, uncertaintyNode,
-                   hybridLatticeData, hybridGeomType = hybridGeomType, periodicity=True)
+                   hybridLatticeData, hybridGeomType=hybridGeomType, periodicity=True)
 
     @classmethod
     def latticeHybridForGraph(cls, hybridLatticeData, hybridGeomType):
@@ -323,7 +323,7 @@ class Lattice:
         counterIn = 0
         for delPart in self.erasedParts:
             for direction in range(3):
-                if delPart[direction] <= startCellPos[direction] <= delPart[direction+3] + delPart[direction]:
+                if delPart[direction] <= startCellPos[direction] <= delPart[direction + 3] + delPart[direction]:
                     counterIn += 1
         return counterIn == 3
 
@@ -461,6 +461,7 @@ class Lattice:
             for beam in cell.beams:
                 if beam not in self._beams:
                     self._beams.append(beam.getData())
+
     def getBeamObject(self):
         """
         Retrieves beam object for the lattice.
@@ -473,7 +474,7 @@ class Lattice:
                     beamObjList.append(beam)
         return beamObjList
 
-    def visualizeLattice3D(self, beamColor: str = "Material", voxelViz: bool = False):
+    def visualizeLattice3D(self, beamColor="Material", voxelViz=False):
         """
         Visualizes the lattice in 3D using matplotlib.
 
@@ -488,13 +489,16 @@ class Lattice:
         """
         fig = plt.figure()
         ax = fig.add_subplot(111, projection='3d')
-        ax.set_title("Lattice généré")
+        ax.set_title("Lattice generated")
         color = ['blue', 'green', 'red', 'yellow', 'orange']
 
         if not voxelViz:
             beamDraw = []
             lines = []
             colors = []
+            nodeX = []
+            nodeY = []
+            nodeZ = []
             nodeDraw = set()
             for cell in self.cells:
                 for beam in cell.beams:
@@ -511,12 +515,14 @@ class Lattice:
                     for node in [beam.point1, beam.point2]:
                         if (node.x, node.y, node.z) not in nodeDraw:
                             nodeDraw.add((node.x, node.y, node.z))
+                            nodeX.append(node.x)
+                            nodeY.append(node.y)
+                            nodeZ.append(node.z)
 
             line_collection = Line3DCollection(lines, colors=colors, linewidths=2)
             ax.add_collection3d(line_collection)
 
-            nodeDraw = np.array(list(nodeDraw))
-            ax.scatter(nodeDraw[:, 0], nodeDraw[:, 1], nodeDraw[:, 2], c='black', s=5)
+            ax.scatter(nodeX, nodeY, nodeZ, c='black', s=5)
         elif voxelViz:
             for cell in self.cells:
                 x, y, z = cell.coordinateCell
@@ -527,8 +533,6 @@ class Lattice:
                 elif beamColor == "Type":
                     colorCell = color[int(str(cell.latticeType)[0])]
                 ax.bar3d(x, y, z, dx, dy, dz, color=colorCell, alpha=1, shade=True, edgecolor='k')
-
-
 
         ax.set_xlabel('X')
         ax.set_ylabel('Y')
@@ -575,7 +579,6 @@ class Lattice:
         ax.set_xlim3d(0, self.xMax)
         ax.set_ylim3d(0, self.yMax)
         ax.set_zlim3d(0, self.zMax)
-
 
     def getListAngleBeam(self, beam, pointbeams):
         """
@@ -788,7 +791,7 @@ class Lattice:
         # Update index
         self.defineBeamNodeIndex()
 
-    def functionPenalizationLzone(self, radius: float, angle: float):
+    def functionPenalizationLzone(self, radius, angle):
         """
         Definition of the penalization function
 
@@ -890,20 +893,20 @@ class Lattice:
                     connectedNode.append(beam.point1)
         return connectedNode
 
-    def toucanLatticeModifier(self):
-        """
-        Fun lattice bio inspired toucan
-        """
-        toucanPourcent = 10
-        for i in range(int(math.ceil(len(self.beams_obj) * toucanPourcent / 100))):
-            nodeInit = random.choice(self.nodes_obj)
-            node1 = random.choice(self.getConnectedNode(nodeInit))
-            node2 = node1
-            while (node2 == node1):
-                node2 = random.choice(self.getConnectedNode(node1))
-            self.toucanModifier.append(
-                [[nodeInit.x, nodeInit.y, nodeInit.z], [node1.x, node1.y, node1.z], [node2.x, node2.y, node2.z]])
-        return self.toucanModifier
+    # def toucanLatticeModifier(self):
+    #     """
+    #     Fun lattice bio inspired toucan
+    #     """
+    #     toucanPourcent = 10
+    #     for i in range(int(math.ceil(len(self.beams_obj) * toucanPourcent / 100))):
+    #         nodeInit = random.choice(self.nodes_obj)
+    #         node1 = random.choice(self.getConnectedNode(nodeInit))
+    #         node2 = node1
+    #         while (node2 == node1):
+    #             node2 = random.choice(self.getConnectedNode(node1))
+    #         self.toucanModifier.append(
+    #             [[nodeInit.x, nodeInit.y, nodeInit.z], [node1.x, node1.y, node1.z], [node2.x, node2.y, node2.z]])
+    #     return self.toucanModifier
 
     def findBoundaryBeams(self):
         """
@@ -923,7 +926,8 @@ class Lattice:
 
     def isNodeOnBoundary(self, node):
         return (node.x == self.xMin or node.x == self.xMax or node.y == self.yMin or node.y == self.yMax or
-                            node.z == self.zMin or node.z == self.zMax)
+                node.z == self.zMin or node.z == self.zMax)
+
     def findBoundaryNodes(self):
         """
         Find boundary nodes
@@ -1055,7 +1059,15 @@ class Lattice:
                 if beam.type in radiusDict:
                     beam.radius = radiusDict[beam.type]
 
-    def attractorLattice(self, ):
+    def attractorLattice(self, PointAttractor=None):
+        """
+        Attract lattice to a specific point
+
+        Parameters:
+        -----------
+        PointAttractor: Point object
+            Point to attract the lattice to
+        """
         def distance(point1, point2):
             """
             Calculate distance between two points
@@ -1074,7 +1086,8 @@ class Lattice:
             pointMod = [p1 + p2 for p1, p2 in zip(pointMod, factor)]
             point1.movePoint(pointMod[0], pointMod[1], pointMod[2])
 
-        pointAttractor = Point(5, 0.5, -2)
+        if PointAttractor is None:
+            pointAttractor = Point(5, 0.5, -2)
         alpha = 0.5
         for cell in self.cells:
             for beam in cell.beams:

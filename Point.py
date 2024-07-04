@@ -1,8 +1,20 @@
-import numpy as np
-
-
-class Point:
+class Point(object):
+    """
+    Point object represent a point by 3 coordinates x, y, z
+    """
     def __init__(self, x, y, z):
+        """
+        Create a point object
+
+        Parameters:
+        ------------
+        x: float
+            x coordinate of the point
+        y: float
+            y coordinate of the point
+        z: float
+            z coordinate of the point
+        """
         self.x = x
         self.y = y
         self.z = z
@@ -16,10 +28,10 @@ class Point:
         return hash((self.x, self.y, self.z))
 
     def __sub__(self, other):
-        return np.array([self.x - other.x, self.y - other.y, self.z - other.z])
+        return [self.x - other.x, self.y - other.y, self.z - other.z]
 
     def __repr__(self):
-        return f"Point({self.x}, {self.y}, {self.z}, Index:{self.index})"
+        return "Point({}, {}, {})".format(self.x, self.y, self.z)
 
     def movePoint(self, xNew, yNew, zNew):
         """
