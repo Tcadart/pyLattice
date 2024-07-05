@@ -224,37 +224,45 @@ class Lattice(object):
 
         Parameters:
         -----------
-        Properties: list[Rule, Direction, Parameters]
+        gradProperties: list[Rule, Direction, Parameters]
             All types of properties for gradient definition
 
         Return:
         ---------
-        gradientData: list[integer]
-        Generated gradient settings (list of lists)
+        gradientData: list[list[float]]
+            Generated gradient settings (list of lists)
         """
 
-        def applyRule(i, numberCell, dirValue, paramValue, rule):
-            if i < numberCell:
-                if i >= 1 and dirValue == 1:
-                    if rule == 'constant':
-                        return 1.0
-                    elif rule == 'linear':
-                        return i * paramValue
-                    elif rule == 'parabolic':
-                        return i * paramValue if i < numberCell / 2 else (numberCell - i - 1) * paramValue
-                    elif rule == 'sinusoide':
-                        if i < numberCell / 4:
-                            return i * parameters
-                        elif i < numberCell / 2:
-                            return (numberCell / 2 - i) * parameters
-                        elif i == numberCell / 2:
-                            return 1.0
-                        elif i < 3 / 4 * numberCell:
-                            return (3 / 4 * numberCell - i) * (1 / parameters)
-                    elif rule == 'exponential':
-                        return math.exp(i * paramValue)
+        def apply_constant_rule(i, paramValue):
+            return 1.0
+
+        def apply_linear_rule(i, paramValue):
+            return i * paramValue
+
+        def apply_parabolic_rule(i, numberCell, paramValue):
+            return i * paramValue if i < numberCell / 2 else (numberCell - i - 1) * paramValue
+
+        def apply_sinusoide_rule(i, numberCell, paramValue):
+            if i < numberCell / 4:
+                return i * paramValue
+            elif i < numberCell / 2:
+                return (numberCell / 2 - i) * paramValue
+            elif i == numberCell / 2:
                 return 1.0
-            return 0.0
+            elif i < 3 / 4 * numberCell:
+                return (3 / 4 * numberCell - i) * (1 / paramValue)
+            return 1.0
+
+        def apply_exponential_rule(i, paramValue):
+            return math.exp(i * paramValue)
+
+        rule_functions = {
+            'constant': apply_constant_rule,
+            'linear': apply_linear_rule,
+            'parabolic': apply_parabolic_rule,
+            'sinusoide': apply_sinusoide_rule,
+            'exponential': apply_exponential_rule
+        }
 
         # Extract gradient properties
         rule = gradProperties[0]
@@ -269,9 +277,15 @@ class Lattice(object):
         for i in range(maxCells):
             numberCells = [self.numCellsX, self.numCellsY, self.numCellsZ]
             for dimIndex in range(3):
-                gradientData[i][dimIndex] = applyRule(i, numberCells[dimIndex], direction[dimIndex],
-                                                      parameters[dimIndex],
-                                                      rule)
+                if i < numberCells[dimIndex] and direction[dimIndex] == 1:
+                    rule_function = rule_functions.get(rule, apply_constant_rule)
+                    if rule == 'parabolic' or rule == 'sinusoide':
+                        gradientData[i][dimIndex] = rule_function(i, numberCells[dimIndex], parameters[dimIndex])
+                    else:
+                        gradientData[i][dimIndex] = rule_function(i, parameters[dimIndex])
+                else:
+                    gradientData[i][dimIndex] = 1.0
+        print(gradientData)
         return gradientData
 
     def gradMaterialSetting(self, gradMatProperty):
