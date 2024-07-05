@@ -31,7 +31,7 @@ class Point(object):
         return [self.x - other.x, self.y - other.y, self.z - other.z]
 
     def __repr__(self):
-        return "Point({}, {}, {})".format(self.x, self.y, self.z)
+        return "Point({}, {}, {}, , Index:{})".format(self.x, self.y, self.z, self.index)
 
     def movePoint(self, xNew, yNew, zNew):
         """

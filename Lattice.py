@@ -1145,6 +1145,8 @@ class Lattice(object):
     def cylindrical_transform(self, radius):
         """
         Apply cylindrical transformation to the lattice structure.
+        To create stent structures, 1 cell in the X direction is required and you can choose any number of cells in
+        the Y and Z direction.
 
         Parameters:
         -----------
@@ -1162,6 +1164,19 @@ class Lattice(object):
                     new_y = radius * math.sin(theta)
                     node.movePoint(new_x, new_y, z)
         self.getMinMaxValues()
+        self.deleteDuplicatedBeams()
+
+    def deleteDuplicatedBeams(self):
+        """
+        Delete duplicated beams in the lattice
+        """
+        beamList = []
+        for cell in self.cells:
+            for beam in cell.beams:
+                if beam not in beamList:
+                    beamList.append(beam)
+                else:
+                    cell.removeBeam(beam)
 
     def getRelativeDensity(self):
         """
@@ -1173,4 +1188,53 @@ class Lattice(object):
             for beam in cell.beams:
                 volumeBeams += beam.getVolume()
         return volumeBeams / volumeLattice
+
+    def getNumberOfBeams(self):
+        """
+        Get number of beams in the lattice
+
+        Returns:
+        --------
+        numBeams: int
+            Number of beams in the lattice
+        """
+        numBeams = 0
+        for cell in self.cells:
+            numBeams += len(cell.beams)
+        return numBeams
+
+    def getNumberOfNodes(self):
+        """
+        Get number of nodes in the lattice
+
+        Returns:
+        --------
+        numNodes: int
+            Number of nodes in the lattice
+        """
+        numNodes = 0
+        nodeIndexList = []
+        for cell in self.cells:
+            for beam in cell.beams:
+                for node in [beam.point1, beam.point2]:
+                    if node.index not in nodeIndexList:
+                        nodeIndexList.append(node.index)
+                        numNodes += 1
+        return numNodes
+
+    def latticeInfo(self):
+        """
+        Get information about the lattice
+        """
+        self.getName()
+        print("Lattice name: ", self.name)
+        latticeDim = self.getSizeLattice()
+        print("Lattice size X: ", latticeDim[0])
+        print("Lattice size Y: ", latticeDim[1])
+        print("Lattice size Z: ", latticeDim[2])
+
+        print("Number of beams: ", self.getNumberOfBeams())
+        print("Number of nodes: ", self.getNumberOfNodes())
+
+
 
