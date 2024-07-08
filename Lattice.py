@@ -285,7 +285,6 @@ class Lattice(object):
                         gradientData[i][dimIndex] = rule_function(i, parameters[dimIndex])
                 else:
                     gradientData[i][dimIndex] = 1.0
-        print(gradientData)
         return gradientData
 
     def gradMaterialSetting(self, gradMatProperty):
@@ -1172,13 +1171,38 @@ class Lattice(object):
             for beam in cell.beams:
                 for node in [beam.point1, beam.point2]:
                     x, y, z = node.x, node.y, node.z
-                    # Convert Cartesian coordinates (x, y, z) to cylindrical coordinates (r, θ, z)
-                    theta = (y / max_y) * 2 * math.pi  # θ = (y / total height) * 2π
+                    # Convert Cartesian coordinates (x, y, z) to cylindrical coordinates (r, theta, z)
+                    theta = (y / max_y) * 2 * math.pi  # theta = (y / total height) * 2 * pi
                     new_x = radius * math.cos(theta)
                     new_y = radius * math.sin(theta)
                     node.movePoint(new_x, new_y, z)
         self.getMinMaxValues()
         self.deleteDuplicatedBeams()
+
+    def moveToCylinderForm(self, radius):
+        """
+        Move the lattice to a cylindrical form.
+
+        Parameters:
+        -----------
+        radius: float
+            Radius of the cylinder.
+        """
+        if radius <= self.xMax/2:
+            raise ValueError("The radius of the cylinder is too small: minimum value = ", self.xMax/2)
+
+        # Find moving distance
+        def formula(x): # formula of arc of circle
+            return radius - math.sqrt(radius ** 2 - (x - self.xMax/2) ** 2)
+
+        for cell in self.cells:
+            for beam in cell.beams:
+                for node in [beam.point1, beam.point2]:
+                    x, y, z = node.x, node.y, node.z
+                    new_z = z - formula(x)
+                    node.movePoint(x, y, new_z)
+        self.getMinMaxValues()
+
 
     def deleteDuplicatedBeams(self):
         """

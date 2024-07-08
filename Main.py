@@ -18,9 +18,9 @@ cell_size_X = cell_size
 cell_size_Y = cell_size
 cell_size_Z = cell_size
 number_cell = 2
-number_cell_X = 1
-number_cell_Y = 10
-number_cell_Z = 10
+number_cell_X = 8
+number_cell_Y = 8
+number_cell_Z = 2
 
 Lattice_Type = 0
 # -2 => Method random cell
@@ -42,7 +42,7 @@ Lattice_Type = 0
 # 14 => Auxetic
 
 # Gradient on cell dimensions
-GradDimRule = 'parabolic'
+GradDimRule = 'constant'
 GradDimDirection = [0, 0, 1]
 GradDimParameters = [1.5, 0.0, 2.0]  # Float
 # Gradient on radius of beams
@@ -91,7 +91,7 @@ erasedParts = [(30.0, 0.0, 0.0, 19.0, 50.0, 19.0)]
 lattice = Lattice(cell_size_X, cell_size_Y, cell_size_Z, number_cell_X, number_cell_Y, number_cell_Z, Lattice_Type,
                   Radius, gradRadiusProperty, gradDimProperty, gradMatProperty, MethodSim, uncertaintyNode,
                   erasedParts=None)
-lattice.cylindrical_transform(50)
+lattice.moveToCylinderForm(45)
 # lattice.curveLattice(40,25, -20, curvature_strength=0.002)
 # lattice.attractorLattice((40, 25, 0), alpha=0.005)
 # hybridLatticeData = [0.01]
