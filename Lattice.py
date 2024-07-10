@@ -1057,6 +1057,19 @@ class Lattice(object):
                     beamType.append([beam.type])
         return beamType
 
+    def getAllBeamLength(self):
+        """
+        Retrieves beam type data for the lattice.
+        data structure: each line is the type of the beam with index the line index
+        """
+        beamLength = []
+        beamAlreadyAdded = []
+        for cell in self.cells:
+            for beam in cell.beams:
+                if beam not in beamAlreadyAdded:
+                    beamLength.append([beam.length])
+        return beamLength
+
     def changeHybridData(self, hybridRadiusData):
         """
         Change radius data of the hybrid lattice to efficiently generate graph from training neural network
