@@ -17,10 +17,10 @@ cell_size = 10
 cell_size_X = cell_size
 cell_size_Y = cell_size
 cell_size_Z = cell_size
-number_cell = 2
-number_cell_X = 8
-number_cell_Y = 8
-number_cell_Z = 2
+number_cell = 1
+number_cell_X = 1
+number_cell_Y = 1
+number_cell_Z = 1
 
 Lattice_Type = 0
 # -2 => Method random cell
@@ -91,8 +91,7 @@ erasedParts = [(30.0, 0.0, 0.0, 19.0, 50.0, 19.0)]
 lattice = Lattice(cell_size_X, cell_size_Y, cell_size_Z, number_cell_X, number_cell_Y, number_cell_Z, Lattice_Type,
                   Radius, gradRadiusProperty, gradDimProperty, gradMatProperty, MethodSim, uncertaintyNode,
                   erasedParts=None)
-lattice.moveToCylinderForm(45)
-# lattice.curveLattice(40,25, -20, curvature_strength=0.002)
+
 # lattice.attractorLattice((40, 25, 0), alpha=0.005)
 # hybridLatticeData = [0.01]
 # lattice = Lattice.hybridgeometry(cell_size_X, cell_size_Y, cell_size_Z, MethodSim, uncertaintyNode,

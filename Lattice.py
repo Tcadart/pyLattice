@@ -882,6 +882,25 @@ class Lattice(object):
                         nodeAlreadyAdded.append(node)
         return tagList
 
+    def getTagListBoundary(self):
+        """
+        Get the tag for all points in lattice
+
+        Returns:
+        --------
+        tagList: list of int
+            List of all tags of each point in lattice
+        """
+        tagList = []
+        nodeAlreadyAdded = []
+        for cell in self.cells:
+            for beam in cell.beams:
+                for node in [beam.point1, beam.point2]:
+                    if node not in nodeAlreadyAdded and self.isNodeOnBoundary(node):
+                        tagList.append(node.tag)
+                        nodeAlreadyAdded.append(node)
+        return tagList
+
     def applyTagToAllPoint(self):
         """
         Generate tag to all nodes in lattice
