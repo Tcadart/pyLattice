@@ -618,7 +618,6 @@ class Lattice(object):
 
         Special case when pointbeams is empty return max angle to minimize penalization zone
         """
-
         def getAngleBetweenBeams(beam1, beam2):
             """
             Calculates angle between 2 beams
@@ -628,11 +627,23 @@ class Lattice(object):
             Angle: float
                 angle in degrees
             """
-            u = beam1.point2 - beam1.point1
             if beam1.point1 == beam2.point1:
+                u = beam1.point2 - beam1.point1
                 v = beam2.point2 - beam2.point1
-            else:
+            elif beam1.point1 == beam2.point2:
+                u = beam1.point2 - beam1.point1
                 v = beam2.point1 - beam2.point2
+            elif beam1.point2 == beam2.point1:
+                u = beam1.point1 - beam1.point2
+                v = beam2.point2 - beam2.point1
+            elif beam1.point2 == beam2.point2:
+                u = beam1.point1 - beam1.point2
+                v = beam2.point1 - beam2.point2
+            else:
+                # This case should not occur if beams are connected at one point,
+                # but you may handle it if needed
+                raise ValueError("Beams are not connected at any point")
+
             dot_product = sum(a * b for a, b in zip(u, v))
             u_norm = math.sqrt(sum(a * a for a in u))
             v_norm = math.sqrt(sum(b * b for b in v))
@@ -734,7 +745,6 @@ class Lattice(object):
         for beam in beamList:
             # Determine beams on nodes
             point1beams, point2beams = self.getConnectedBeams(beamList, beam)
-
             # Determine angle for all beams connected at the node
             non_zero_anglebeam1, non_zero_radiusbeam1 = self.getListAngleBeam(beam, point1beams)
             non_zero_anglebeam2, non_zero_radiusbeam2 = self.getListAngleBeam(beam, point2beams)

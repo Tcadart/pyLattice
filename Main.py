@@ -12,15 +12,15 @@ import math
 # *******************************************************************************************************************
 # *******************************************************************************************************************
 # Lattice properties
-Radius = 0.8
-cell_size = 10
+Radius = 0.1
+cell_size = 1
 cell_size_X = cell_size
 cell_size_Y = cell_size
 cell_size_Z = cell_size
 number_cell = 1
-number_cell_X = 1
-number_cell_Y = 1
-number_cell_Z = 1
+number_cell_X = 2
+number_cell_Y = 2
+number_cell_Z = 2
 
 Lattice_Type = 0
 # -2 => Method random cell
@@ -62,11 +62,7 @@ Multimat = 0
 # 1 -> multimat par couche
 GradMaterialDirection = 3  # 1:X / 2:Y / 3:Z
 
-AnalysisType = 0
-# 0 Modelisation lattice only
-# 1 Compression Z
-
-MethodSim = 0
+MethodSim = 1
 # 0 No modification
 # 1 Node Modification
 
