@@ -535,3 +535,27 @@ class Cell(object):
                     if tag in originalTags:
                         tag_dict[tag] = point
         return tag_dict
+
+    def getDisplacementAtBoundaryNodes(self, nodeList):
+        """
+        Get the displacement at nodes.
+
+        Parameters:
+        -----------
+        nodeList: list of Point objects
+            List of nodes to get the displacement.
+
+        Returns:
+        --------
+        list
+            A flattened list of displacement values.
+        """
+        displacementList = []
+        for node in nodeList.values():
+            if node:
+                displacement = node.getDisplacementValue()
+                if isinstance(displacement, (list, tuple)):  # Check if the displacement is a list or tuple
+                    displacementList.extend(displacement)  # Extend the list with the displacement values
+                else:
+                    displacementList.append(displacement)  # Append the single displacement value
+        return displacementList

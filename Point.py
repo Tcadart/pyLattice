@@ -2,6 +2,7 @@ class Point(object):
     """
     Point object represent a point by 3 coordinates x, y, z
     """
+
     def __init__(self, x, y, z):
         """
         Create a point object
@@ -20,7 +21,7 @@ class Point(object):
         self.z = z
         self.index = None
         self.tag = []
-        self.displacementValue = None # Displacement vector of Dimension 6 to simulate lattice behavior
+        self.displacementValue = [0, 0, 0, 0, 0, 0]  # Displacement vector of Dimension 6 to simulate lattice behavior
 
     def __eq__(self, other):
         return isinstance(other, Point) and self.x == other.x and self.y == other.y and self.z == other.z
@@ -151,3 +152,8 @@ class Point(object):
         """
         self.displacementValue = displacementVector
 
+    def getDisplacementValue(self):
+        """
+        Return displacement value
+        """
+        return self.displacementValue
