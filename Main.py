@@ -86,6 +86,9 @@ erasedParts = [(30.0, 0.0, 0.0, 19.0, 50.0, 19.0)]
 lattice = Lattice(cell_size_X, cell_size_Y, cell_size_Z, number_cell_X, number_cell_Y, number_cell_Z, Lattice_Type,
                   Radius, gradRadiusProperty, gradDimProperty, gradMatProperty, MethodSim, uncertaintyNode,
                   erasedParts=None)
+
+lattice.defineNodeIndexBoundary()
+
 # AFAIRE Fonction pour déterminer les cells index dans la structure
 lattice.applyBoundaryConditionsOnSurface([0], "Xmin", [-1, 0, 0, 0, 0, 0])
 lattice.applyBoundaryConditionsOnSurface([6], "Zmax", [0, 0, 0, 0, 0, 0])
@@ -93,6 +96,7 @@ lattice.applyBoundaryConditionsOnSurface([6], "Zmax", [0, 0, 0, 0, 0, 0])
 for cell in lattice.cells:
     nodeInOrder = cell.getNodeOrderToSimulate()
 
+lattice.getDisplacementGlobal()
 lattice.defineNodeIndexBoundary()
 
 # lattice.attractorLattice((40, 25, 0), alpha=0.005)

@@ -1390,6 +1390,18 @@ class Lattice(object):
                     if node.index in nodeList:
                         node.setDisplacementValue(valueDisplacement)
 
+    def getDisplacementGlobal(self):
+        """
+        Get global displacement of the lattice
+        """
+        globalDisplacement = {i: [0, 0, 0, 0, 0, 0] for i in range(self.maxIndexBoundary + 1)}
+        for cell in self.cells:
+            for beam in cell.beams:
+                for node in [beam.point1, beam.point2]:
+                    if node.indexBoundary is not None:
+                        globalDisplacement[node.indexBoundary] = node.getDisplacementValue()
+        return globalDisplacement
+
     def defineNodeIndexBoundary(self):
         """
         Define tag for all boundary nodes
@@ -1420,7 +1432,6 @@ class Lattice(object):
                 for node in [beam.point1, beam.point2]:
                     if node.indexBoundary is not None:
                         globalReactionForce[node.indexBoundary] += node.getReactionForce()
-        print(globalReactionForce)
         return globalReactionForce
 
 
