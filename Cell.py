@@ -528,6 +528,8 @@ class Cell(object):
                     displacementList.extend(displacement)  # Extend the list with the displacement values
                 else:
                     displacementList.append(displacement)  # Append the single displacement value
+            else:
+                displacementList.extend([0, 0, 0, 0, 0, 0])  # Append zeros if the node is not found
         return displacementList
 
     def setReactionForceOnEachNodes(self, nodeList, reactionForce):
