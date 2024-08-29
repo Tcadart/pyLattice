@@ -20,6 +20,7 @@ class Point(object):
         self.z = z
         self.index = None
         self.tag = []
+        self.displacementValue = None # Displacement vector of Dimension 6 to simulate lattice behavior
 
     def __eq__(self, other):
         return isinstance(other, Point) and self.x == other.x and self.y == other.y and self.z == other.z
@@ -136,3 +137,10 @@ class Point(object):
             self.tag.append(1006)  # Corner 6
         elif self.x == xMax and self.y == yMax and self.z == zMax:
             self.tag.append(1007)  # Corner 7
+
+    def applyDisplacementValue(self, displacementVector):
+        """
+        Apply displacementValue to node
+        """
+        self.displacementValue = displacementVector
+

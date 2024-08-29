@@ -43,8 +43,8 @@ Lattice_Type = 0
 
 # Gradient on cell dimensions
 GradDimRule = 'constant'
-GradDimDirection = [0, 0, 1]
-GradDimParameters = [1.5, 0.0, 2.0]  # Float
+GradDimDirection = [1, 0, 1]
+GradDimParameters = [1.5, 0.0, 1.5]  # Float
 # Gradient on radius of beams
 GradRadRule = 'constant'
 GradRadDirection = [0, 0, 1]
@@ -82,11 +82,15 @@ gradMatProperty = [Multimat, GradMaterialDirection]
 
 erasedParts = [(30.0, 0.0, 0.0, 19.0, 50.0, 19.0)]
 
-
 # #Generate data from lattice
 lattice = Lattice(cell_size_X, cell_size_Y, cell_size_Z, number_cell_X, number_cell_Y, number_cell_Z, Lattice_Type,
                   Radius, gradRadiusProperty, gradDimProperty, gradMatProperty, MethodSim, uncertaintyNode,
                   erasedParts=None)
+# AFAIRE Fonction pour déterminer les cells index dans la structure
+lattice.applyBoundaryConditionsOnSurface([0], "Xmin", [-1, 0, 0, 0, 0, 0])
+lattice.applyBoundaryConditionsOnSurface([6], "Zmax", [0, 0, 0, 0, 0, 0])
+
+
 
 # lattice.attractorLattice((40, 25, 0), alpha=0.005)
 # hybridLatticeData = [0.01]

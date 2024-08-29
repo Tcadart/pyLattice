@@ -162,6 +162,12 @@ class Cell(object):
         """
         self.beams.append(beamToAdd)
 
+    def setIndex(self, index):
+        """
+        Set cell index
+        """
+        self.index = index
+
     def random_coordinate(self, coord, mu, sigma):
         """
         Randomize coordinate of a node with a gaussian noise of parameter mu and sigma
@@ -460,3 +466,36 @@ class Cell(object):
         """
         self.display_point(ax, 'r', 'pink', 'black')
         self.display_beams(ax, 'b', 'r')
+
+    def getPointOnSurface(self, surfaceName):
+        """
+        Get the points on the surface specified in the global reference frame.
+
+        Parameters:
+        -----------
+        surfaceName: str
+            Name of the surface. Choose from 'Xmin', 'Xmax', 'Ymin', 'Ymax', 'Zmin', or 'Zmax'.
+
+        Returns:
+        --------
+        list
+=           List of points on the specified surface.
+        """
+        surface_map = {
+            "Xmin": self.coordinateCell[0],
+            "Xmax": self.coordinateCell[0] + self.cellSize[0],
+            "Ymin": self.coordinateCell[1],
+            "Ymax": self.coordinateCell[1] + self.cellSize[1],
+            "Zmin": self.coordinateCell[2],
+            "Zmax": self.coordinateCell[2] + self.cellSize[2]
+        }
+
+        if surfaceName not in surface_map:
+            raise ValueError(
+                f"Surface '{surfaceName}' is not valid. Choose from 'Xmin', 'Xmax', 'Ymin', 'Ymax', 'Zmin', or 'Zmax'.")
+
+        surface_value = surface_map[surfaceName]
+        coord_index = {"Xmin": "x", "Xmax": "x", "Ymin": "y", "Ymax": "y", "Zmin": "z", "Zmax": "z"}
+
+        return [point for beam in self.beams for point in [beam.point1, beam.point2] if getattr(point, coord_index[surfaceName]) == surface_value]
+

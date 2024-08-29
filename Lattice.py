@@ -1,4 +1,7 @@
 from __future__ import print_function, division
+
+import numpy as np
+
 from Cell import *
 import math
 import random
@@ -104,6 +107,7 @@ class Lattice(object):
         self.generateLattice()
         self.getMinMaxValues()
         self.defineBeamNodeIndex()
+        self.defineCellIndex()
 
         self.applyTagToAllPoint()
         self.getAllAngles()
@@ -441,6 +445,24 @@ class Lattice(object):
                             nextNodeIndex += 1
                         else:
                             node.setIndex(nodeIndexed[node])
+
+    def defineCellIndex(self):
+        """
+        Define index at each cell
+        """
+        cellIndexed = {}
+        nextCellIndex = 0
+        for cell in self.cells:
+            if cell.index is not None:
+                cellIndexed[cell] = nextCellIndex
+                nextCellIndex += 1
+
+        for cell in self.cells:
+            if cell.index is None:
+                if cell not in cellIndexed:
+                    cell.setIndex(nextCellIndex)
+                    cellIndexed[cell] = nextCellIndex
+                    nextCellIndex += 1
 
     def getNodeData(self):
         """
@@ -1315,6 +1337,59 @@ class Lattice(object):
 
         print("Number of beams: ", self.getNumberOfBeams())
         print("Number of nodes: ", self.getNumberOfNodes())
+
+    def applyBoundaryConditionsOnSurface(self, cellList, surface, valueDisplacement):
+        """
+        Apply boundary conditions to the lattice
+
+        Parameters:
+        -----------
+        cellList: list of int
+            List of cell index to apply boundary conditions
+        surface: str
+            Surface to apply boundary conditions (Xmin, Xmax, Ymin, Ymax, Zmin, Zmax)
+        valueDisplacement: np.array dim 6
+            Displacement value to apply to the boundary conditions
+        """
+        if surface not in ["Xmin", "Xmax", "Ymin", "Ymax", "Zmin", "Zmax"]:
+            raise ValueError("Invalid surface name.")
+        if len(valueDisplacement) != 6:
+            raise ValueError("Invalid displacement value, need dimension 6.")
+        if self.cells[-1].index < max(cellList):
+            raise ValueError("Invalid cell index, cell do not exist.")
+
+        pointList = []
+        for cell in self.cells:
+            if cell.index in cellList:
+                pointList = cell.getPointOnSurface(surface)
+        for point in pointList:
+            point.applyDisplacementValue(valueDisplacement)
+
+    def applyBoundaryConditionsOnNode(self, nodeList, valueDisplacement):
+        """
+        Apply boundary conditions to the lattice
+
+        Parameters:
+        -----------
+        nodeList: list of int
+            List of node index to apply boundary conditions
+        valueDisplacement: np.array dim 6
+            Displacement value to apply to the boundary conditions
+        """
+        if len(valueDisplacement) != 6:
+            raise ValueError("Invalid displacement value.")
+        if self.getNumberOfNodes() < max(nodeList):
+            raise ValueError("Invalid node index, node do not exist.")
+
+        for cell in self.cells:
+            for beam in cell.beams:
+                for node in [beam.point1, beam.point2]:
+                    if node.index in nodeList:
+                        node.applyDisplacementValue(valueDisplacement)
+
+
+
+
 
 
 
