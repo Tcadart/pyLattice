@@ -120,6 +120,7 @@ class Lattice(object):
         self.getNodeData()
         self.getBeamData()
 
+
     @classmethod
     def simpleLattice(cls, cell_size_x, cell_size_y, cell_size_z, num_cells_x, num_cells_y, num_cells_z, Lattice_Type,
                       Radius):
@@ -1389,7 +1390,38 @@ class Lattice(object):
                     if node.index in nodeList:
                         node.setDisplacementValue(valueDisplacement)
 
+    def defineNodeIndexBoundary(self):
+        """
+        Define tag for all boundary nodes
+        """
+        IndexCounter = 0
+        nodeAlreadyIndexed = {}
+        for cell in self.cells:
+            for beam in cell.beams:
+                for node in [beam.point1, beam.point2]:
+                    if node.tagPoint(cell.coordinateCell[0], cell.coordinateCell[0] + cell.cellSize[0],
+                                     cell.coordinateCell[1], cell.coordinateCell[1] + cell.cellSize[1],
+                                     cell.coordinateCell[2], cell.coordinateCell[2] + cell.cellSize[2]):
+                        if node in nodeAlreadyIndexed:
+                            node.setIndexBoundary(nodeAlreadyIndexed[node])
+                        else:
+                            nodeAlreadyIndexed[node] = IndexCounter
+                            node.setIndexBoundary(IndexCounter)
+                            IndexCounter += 1
+        self.maxIndexBoundary = IndexCounter - 1
 
+    def getGlobalReactionForce(self):
+        """
+        Get local reaction force of the lattice and sum if identical TagIndex
+        """
+        globalReactionForce = {i: [0, 0, 0, 0, 0, 0] for i in range(self.maxIndexBoundary + 1)}
+        for cell in self.cells:
+            for beam in cell.beams:
+                for node in [beam.point1, beam.point2]:
+                    if node.indexBoundary is not None:
+                        globalReactionForce[node.indexBoundary] += node.getReactionForce()
+        print(globalReactionForce)
+        return globalReactionForce
 
 
 

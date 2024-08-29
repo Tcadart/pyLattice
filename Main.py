@@ -92,8 +92,8 @@ lattice.applyBoundaryConditionsOnSurface([6], "Zmax", [0, 0, 0, 0, 0, 0])
 
 for cell in lattice.cells:
     nodeInOrder = cell.getNodeOrderToSimulate()
-    print(nodeInOrder)
-    print(cell.getDisplacementAtBoundaryNodes(nodeInOrder))
+
+lattice.defineNodeIndexBoundary()
 
 # lattice.attractorLattice((40, 25, 0), alpha=0.005)
 # hybridLatticeData = [0.01]
