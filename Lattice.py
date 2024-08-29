@@ -1365,7 +1365,7 @@ class Lattice(object):
             if cell.index in cellList:
                 pointList = cell.getPointOnSurface(surface)
         for point in pointList:
-            point.applyDisplacementValue(valueDisplacement)
+            point.setDisplacementValue(valueDisplacement)
 
     def applyBoundaryConditionsOnNode(self, nodeList, valueDisplacement):
         """
@@ -1387,7 +1387,7 @@ class Lattice(object):
             for beam in cell.beams:
                 for node in [beam.point1, beam.point2]:
                     if node.index in nodeList:
-                        node.applyDisplacementValue(valueDisplacement)
+                        node.setDisplacementValue(valueDisplacement)
 
 
 

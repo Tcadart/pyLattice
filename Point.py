@@ -22,6 +22,7 @@ class Point(object):
         self.index = None
         self.tag = []
         self.displacementValue = [0, 0, 0, 0, 0, 0]  # Displacement vector of Dimension 6 to simulate lattice behavior
+        self.reactionForceValue = [0, 0, 0, 0, 0, 0]  # Reaction force vector of Dimension 6 to simulate lattice behavior
 
     def __eq__(self, other):
         return isinstance(other, Point) and self.x == other.x and self.y == other.y and self.z == other.z
@@ -146,7 +147,7 @@ class Point(object):
         """
         self.tag = tag
 
-    def applyDisplacementValue(self, displacementVector):
+    def setDisplacementValue(self, displacementVector):
         """
         Apply displacementValue to node
         """
@@ -157,3 +158,15 @@ class Point(object):
         Return displacement value
         """
         return self.displacementValue
+
+    def setReactionForce(self, reactionForce):
+        """
+        Set reaction force to node
+        """
+        self.reactionForceValue = reactionForce
+
+    def getReactionForce(self):
+        """
+        Return reaction force
+        """
+        return self.reactionForceValue

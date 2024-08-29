@@ -415,27 +415,6 @@ class Cell(object):
             total_connections += beam.num_connections()
         return total_connections
 
-    def display_point(self, ax, color1=None, color2=None, color3=None):
-        """
-        Display nodes in the 3D plot.
-
-        :param ax: Matplotlib 3D axis object
-        :param color1: Color for corner points
-        :param color2: Color for corner-edge points
-        :param color3: Color for edge points
-        """
-        for point in self.nodes:
-            x, y, z = point.x, point.y, point.z
-            color = color1
-            if z == 0 or z == self.cellSizeZ:
-                if (x == 0 or x == self.cellSizeX) and (y == 0 or y == self.cellSizeY):
-                    color = color2
-                else:
-                    color = 'y'
-            elif (x == 0 or x == self.cellSizeX) or (y == 0 or y == self.cellSizeY):
-                color = color3
-            ax.scatter(x, y, z, c=color)
-
     def display_point_simple(self, ax, color):
         """
         Display nodes in the 3D plot using a simple color.
@@ -459,15 +438,6 @@ class Cell(object):
             point2 = beam.point2
             ax.plot([point1.x, point2.x], [point1.y, point2.y], [point1.z, point2.z], color=color[beam.material])
 
-    def visualize_3d(self, ax):
-        """
-        Visualize the cell in a 3D plot.
-
-        :param ax: Matplotlib 3D axis object
-        """
-        self.display_point(ax, 'r', 'pink', 'black')
-        self.display_beams(ax, 'b', 'r')
-
     def getPointOnSurface(self, surfaceName):
         """
         Get the points on the surface specified in the global reference frame.
@@ -480,7 +450,7 @@ class Cell(object):
         Returns:
         --------
         list
-=           List of points on the specified surface.
+           List of points on the specified surface.
         """
         surface_map = {
             "Xmin": self.coordinateCell[0],
@@ -559,3 +529,23 @@ class Cell(object):
                 else:
                     displacementList.append(displacement)  # Append the single displacement value
         return displacementList
+
+    def setReactionForceOnEachNodes(self, nodeList, reactionForce):
+        """
+        Set reaction force on each nodes.
+
+        Parameters:
+        -----------
+        nodeList: list of Point objects
+            List of nodes to set the reaction force.
+        reactionForce: list
+            List of reaction force values.
+        """
+        tagList = list(nodeList.keys())
+        for beam in self.beams:
+            for point in [beam.point1, beam.point2]:
+                for tag, node in nodeList.items():
+                    if node == point:
+                        print(reactionForce[tagList.index(tag)])
+                        point.setReactionForce(reactionForce[tagList.index(tag)])
+                        break
