@@ -541,11 +541,12 @@ class Cell(object):
         reactionForce: list
             List of reaction force values.
         """
+        tagAlreadySet = []
         tagList = list(nodeList.keys())
         for beam in self.beams:
             for point in [beam.point1, beam.point2]:
                 for tag, node in nodeList.items():
-                    if node == point:
-                        print(reactionForce[tagList.index(tag)])
+                    if node == point and tag not in tagAlreadySet:
                         point.setReactionForce(reactionForce[tagList.index(tag)])
+                        tagAlreadySet.append(tag)
                         break
