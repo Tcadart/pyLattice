@@ -399,6 +399,7 @@ class Lattice(object):
                                     else:
                                         new_cell.getBeamRadius(self.gradRadius, radiusHybrid)
                                         new_cell.generateBeamsInCell(self.hybridGeomType[idx], startCellPos, idx + 100)
+                            new_cell.defineHybridRadius(self.hybridLatticeData)
                         # Case for randomized lattice
                         # else:
                         #     new_cell.generate_beams_random(self.Radius, self.gradRadius, self.gradDim, self.gradMat,
@@ -940,7 +941,8 @@ class Lattice(object):
         for cell in self.cells:
             for beam in cell.beams:
                 for node in [beam.point1, beam.point2]:
-                    node.tagPoint(self.xMin, self.xMax, self.yMin, self.yMax, self.zMin, self.zMax)
+                    tag = node.tagPoint(self.xMin, self.xMax, self.yMin, self.yMax, self.zMin, self.zMax)
+                    node.setTag(tag)
 
     def getConnectedNode(self, node):
         """

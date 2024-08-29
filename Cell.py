@@ -43,6 +43,7 @@ class Cell(object):
         self.beams = []
         self.index = None
         self.latticeType = latticeType
+        self.hybridRadius = None
 
         self.getBeamMaterial(gradMat)
         self.getBeamRadius(gradRadius, Radius)
@@ -497,5 +498,40 @@ class Cell(object):
         surface_value = surface_map[surfaceName]
         coord_index = {"Xmin": "x", "Xmax": "x", "Ymin": "y", "Ymax": "y", "Zmin": "z", "Zmax": "z"}
 
-        return [point for beam in self.beams for point in [beam.point1, beam.point2] if getattr(point, coord_index[surfaceName]) == surface_value]
+        return [point for beam in self.beams for point in [beam.point1, beam.point2] if
+                getattr(point, coord_index[surfaceName]) == surface_value]
 
+    def defineHybridRadius(self, hybridRadius):
+        """
+        Define hybrid radius for the cell
+
+        Parameters:
+        -----------
+        hybridRadius: list of float dim 3
+            Hybrid radius of the cell
+        """
+        self.hybridRadius = hybridRadius
+
+    def getHybridRadius(self):
+        """
+        Return hybrid radius of the cell
+        """
+        return self.hybridRadius
+
+    def getNodeOrderToSimulate(self):
+        """
+        Get the order of nodes to simulate in the cell
+        """
+        originalTags = [1000, 1001, 1002, 1003, 1004, 1005, 1006, 1007, 100, 101, 102, 103, 104, 105, 106, 107,
+                        108, 109, 110, 111]
+        tag_dict = {tag: None for tag in originalTags}
+        for beam in self.beams:
+            for point in [beam.point1, beam.point2]:
+                tag = point.tagPoint(self.coordinateCell[0], self.coordinateCell[0] + self.cellSize[0],
+                                     self.coordinateCell[1], self.coordinateCell[1] + self.cellSize[1],
+                                     self.coordinateCell[2], self.coordinateCell[2] + self.cellSize[2])
+                if tag:  # Ensure tags is not an empty list
+                    tag = tag[0]  # Take the first tag from the list
+                    if tag in originalTags:
+                        tag_dict[tag] = point
+        return tag_dict
