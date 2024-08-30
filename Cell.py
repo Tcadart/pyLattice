@@ -541,10 +541,7 @@ class Cell(object):
         for node in nodeList.values():
             if node:
                 displacement = node.getDisplacementValue()
-                if isinstance(displacement, (list, tuple)):  # Check if the displacement is a list or tuple
-                    displacementList.extend(displacement)  # Extend the list with the displacement values
-                else:
-                    displacementList.append(displacement)  # Append the single displacement value
+                displacementList.extend(displacement)  # Extend the list with the displacement values
             else:
                 displacementList.extend([0, 0, 0, 0, 0, 0])  # Append zeros if the node is not found
         return displacementList
