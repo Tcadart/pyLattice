@@ -1393,6 +1393,11 @@ class Lattice(object):
     def getDisplacementGlobal(self):
         """
         Get global displacement of the lattice
+
+        Returns:
+        --------
+        globalDisplacement: dict
+            Dictionary of global displacement with indexBoundary as key and displacement vector as value
         """
         globalDisplacement = {i: [0, 0, 0, 0, 0, 0] for i in range(self.maxIndexBoundary + 1)}
         for cell in self.cells:

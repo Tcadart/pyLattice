@@ -93,11 +93,17 @@ lattice.defineNodeIndexBoundary()
 lattice.applyBoundaryConditionsOnSurface([0], "Xmin", [-1, 0, 0, 0, 0, 0])
 lattice.applyBoundaryConditionsOnSurface([6], "Zmax", [0, 0, 0, 0, 0, 0])
 
+
+lattice.defineNodeIndexBoundary()
+globalDisplacement = lattice.getDisplacementGlobal()
+print(globalDisplacement)
+
 for cell in lattice.cells:
     nodeInOrder = cell.getNodeOrderToSimulate()
-
-lattice.getDisplacementGlobal()
-lattice.defineNodeIndexBoundary()
+    print(nodeInOrder)
+    cell.setDisplacementAtBoundaryNodes(nodeInOrder, globalDisplacement)
+    displacement = cell.getDisplacementAtBoundaryNodes(nodeInOrder)
+    print(displacement)
 
 # lattice.attractorLattice((40, 25, 0), alpha=0.005)
 # hybridLatticeData = [0.01]

@@ -497,14 +497,33 @@ class Cell(object):
         tag_dict = {tag: None for tag in originalTags}
         for beam in self.beams:
             for point in [beam.point1, beam.point2]:
-                tag = point.tagPoint(self.coordinateCell[0], self.coordinateCell[0] + self.cellSize[0],
-                                     self.coordinateCell[1], self.coordinateCell[1] + self.cellSize[1],
-                                     self.coordinateCell[2], self.coordinateCell[2] + self.cellSize[2])
-                if tag:  # Ensure tags is not an empty list
-                    tag = tag[0]  # Take the first tag from the list
-                    if tag in originalTags:
-                        tag_dict[tag] = point
+                if point.indexBoundary is not None:
+                    tag = point.tagPoint(self.coordinateCell[0], self.coordinateCell[0] + self.cellSize[0],
+                                         self.coordinateCell[1], self.coordinateCell[1] + self.cellSize[1],
+                                         self.coordinateCell[2], self.coordinateCell[2] + self.cellSize[2])
+                    if tag:  # Ensure tags is not an empty list
+                        tag = tag[0]  # Take the first tag from the list
+                        if tag in originalTags:
+                            tag_dict[tag] = point
         return tag_dict
+
+    def setDisplacementAtBoundaryNodes(self, nodeList, displacementDict):
+        """
+        Set displacement at nodes.
+
+        Parameters:
+        -----------
+        nodeList: list of Point objects
+            List of nodes to set the displacement.
+        displacementDict: dict
+            Dictionary of displacement values.
+        """
+        for beam in self.beams:
+            for point in [beam.point1, beam.point2]:
+                if point.indexBoundary is not None:
+                    point.setDisplacementValue(displacementDict[point.indexBoundary])
+                    print(f"Node {point.indexBoundary} has displacement {displacementDict[point.indexBoundary]}")
+
 
     def getDisplacementAtBoundaryNodes(self, nodeList):
         """
