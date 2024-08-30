@@ -513,7 +513,7 @@ class Lattice(object):
                     beamObjList.append(beam)
         return beamObjList
 
-    def visualizeLattice3D(self, beamColor="Material", voxelViz=False):
+    def visualizeLattice3D(self, beamColor="Material", voxelViz=False, deformedForm=False):
         """
         Visualizes the lattice in 3D using matplotlib.
 
@@ -525,6 +525,8 @@ class Lattice(object):
         voxelViz: boolean (default: False)
             True -> voxel visualization
             False -> beam visualization
+        deformedForm: boolean (default: False)
+            True -> deformed form
         """
         fig = plt.figure()
         ax = fig.add_subplot(111, projection='3d')
@@ -541,22 +543,26 @@ class Lattice(object):
             nodeDraw = set()
             for cell in self.cells:
                 for beam in cell.beams:
+                    if deformedForm:
+                        node1 = beam.point1.getDeformedPos()
+                        node2 = beam.point2.getDeformedPos()
+                    else:
+                        node1 = beam.point1.x, beam.point1.y, beam.point1.z
+                        node2 = beam.point2.x, beam.point2.y, beam.point2.z
                     if beam not in beamDraw:
                         if beamColor == "Material":
                             colorBeam = color[beam.material]
                         elif beamColor == "Type":
                             colorBeam = color[int(str(beam.type)[0])]
-                        point1 = beam.point1
-                        point2 = beam.point2
-                        lines.append([(point1.x, point1.y, point1.z), (point2.x, point2.y, point2.z)])
+                        lines.append([(node1[0], node1[1], node1[2]), (node2[0], node2[1], node2[2])])
                         colors.append(colorBeam)
                         beamDraw.append(beam)
-                    for node in [beam.point1, beam.point2]:
-                        if (node.x, node.y, node.z) not in nodeDraw:
-                            nodeDraw.add((node.x, node.y, node.z))
-                            nodeX.append(node.x)
-                            nodeY.append(node.y)
-                            nodeZ.append(node.z)
+                    for node in [node1, node2]:
+                        if (node[0], node[1], node[2]) not in nodeDraw:
+                            nodeDraw.add((node[0], node[1], node[2]))
+                            nodeX.append(node[0])
+                            nodeY.append(node[1])
+                            nodeZ.append(node[2])
 
             line_collection = Line3DCollection(lines, colors=colors, linewidths=2)
             ax.add_collection3d(line_collection)

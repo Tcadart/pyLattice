@@ -113,4 +113,4 @@ for cell in lattice.cells:
 # lattice = Lattice.simpleLattice(cell_size_X,cell_size_Y,cell_size_Z, number_cell_X,number_cell_Y,number_cell_Z,
 # Lattice_Type,Radius)
 # display_only_cell_random()
-lattice.visualizeLattice3D("Type")
+lattice.visualizeLattice3D("Type", deformedForm=True)

@@ -183,3 +183,9 @@ class Point(object):
         Return tag
         """
         return self.indexBoundary
+
+    def getDeformedPos(self):
+        """
+        Return list of node position
+        """
+        return self.x + self.displacementValue[0], self.y + self.displacementValue[1], self.z + self.displacementValue[2]
