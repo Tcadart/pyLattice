@@ -1455,8 +1455,6 @@ class Lattice(object):
             for beam in cell.beams:
                 for node in [beam.point1, beam.point2]:
                     if node.indexBoundary is not None:
-                        print(node.indexBoundary)
-                        print(node.getDisplacementValue())
                         globalDisplacement[node.indexBoundary] = node.getDisplacementValue()
         return np.concatenate(list(globalDisplacement.values()))
 
