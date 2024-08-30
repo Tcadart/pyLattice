@@ -1405,7 +1405,7 @@ class Lattice(object):
                 for node in [beam.point1, beam.point2]:
                     if node.indexBoundary is not None:
                         globalDisplacement[node.indexBoundary] = node.getDisplacementValue()
-        return globalDisplacement
+        return np.concatenate(list(globalDisplacement.values()))
 
     def defineNodeIndexBoundary(self):
         """

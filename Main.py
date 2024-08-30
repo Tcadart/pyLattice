@@ -101,7 +101,7 @@ print(globalDisplacement)
 for cell in lattice.cells:
     nodeInOrder = cell.getNodeOrderToSimulate()
     print(nodeInOrder)
-    cell.setDisplacementAtBoundaryNodes(nodeInOrder, globalDisplacement)
+    cell.setDisplacementAtBoundaryNodes(globalDisplacement)
     displacement = cell.getDisplacementAtBoundaryNodes(nodeInOrder)
     print(displacement)
 
