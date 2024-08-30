@@ -521,7 +521,14 @@ class Cell(object):
                 if point.indexBoundary is not None:
                     index = point.indexBoundary * 6
                     displacement = displacementArray[index:index + 6]
-                    point.setDisplacementValue(displacement)
+
+                    # Filtrer les déplacements en fonction de fixedDOF
+                    filtered_displacement = [
+                        displacement[i] if point.fixedDOF[i] == 0 else 0
+                        for i in range(6)
+                    ]
+
+                    point.setDisplacementValue(filtered_displacement)
 
     def getDisplacementAtBoundaryNodes(self, nodeList):
         """

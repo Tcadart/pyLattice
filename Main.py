@@ -97,7 +97,8 @@ lattice.fixDOFOnSurface([3], "Zmax", [0, 1, 2])
 
 globalDisplacement = lattice.getDisplacementGlobal()
 print(globalDisplacement)
-
+total_dof = lattice.getTotalDOF()
+print(total_dof)
 for cell in lattice.cells:
     nodeInOrder = cell.getNodeOrderToSimulate()
     cell.setDisplacementAtBoundaryNodes(globalDisplacement)

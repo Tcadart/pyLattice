@@ -1499,7 +1499,7 @@ class Lattice(object):
             for beam in cell.beams:
                 for node in [beam.point1, beam.point2]:
                     if node.indexBoundary is not None:
-                        totalDOF += np.sum(node.fixDOF == 0)
+                        totalDOF += node.fixedDOF.count(0)
         return totalDOF
 
 
