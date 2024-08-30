@@ -522,8 +522,6 @@ class Cell(object):
             for point in [beam.point1, beam.point2]:
                 if point.indexBoundary is not None:
                     point.setDisplacementValue(displacementDict[point.indexBoundary])
-                    print(f"Node {point.indexBoundary} has displacement {displacementDict[point.indexBoundary]}")
-
 
     def getDisplacementAtBoundaryNodes(self, nodeList):
         """
