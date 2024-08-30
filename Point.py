@@ -171,7 +171,11 @@ class Point(object):
         """
         Return reaction force
         """
-        return self.reactionForceValue
+        reactionForce = []
+        for idx, RF in enumerate(self.reactionForceValue):
+            if self.fixedDOF[idx] == 0:
+                reactionForce.append(RF)
+        return reactionForce
 
     def setIndexBoundary(self, index):
         """
