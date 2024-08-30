@@ -1370,9 +1370,16 @@ class Lattice(object):
         pointList = []
         for cell in self.cells:
             if cell.index in cellList:
-                pointList = cell.getPointOnSurface(surface)
+                pointList.append(cell.getPointOnSurface(surface))
+        pointList = [point for sublist in pointList for point in sublist]
+        indexBoundaryList = []
         for point in pointList:
-            point.setDisplacementValue(valueDisplacement)
+            indexBoundaryList.append(point.indexBoundary)
+        for cell in self.cells:
+            for beam in cell.beams:
+                for node in [beam.point1, beam.point2]:
+                    if node.indexBoundary in indexBoundaryList:
+                        node.setDisplacementValue(valueDisplacement)
 
     def applyBoundaryConditionsOnNode(self, nodeList, valueDisplacement):
         """
@@ -1386,15 +1393,53 @@ class Lattice(object):
             Displacement value to apply to the boundary conditions
         """
         if len(valueDisplacement) != 6:
-            raise ValueError("Invalid displacement value.")
+            raise ValueError("Invalid displacement value, need dimension 6.")
         if self.getNumberOfNodes() < max(nodeList):
             raise ValueError("Invalid node index, node do not exist.")
+
+        indexBoundaryList = []
+        for node in nodeList:
+            if node < 0 or node >= self.getNumberOfNodes():
+                raise ValueError("Node index out of range.")
+            indexBoundaryList.append(node)
 
         for cell in self.cells:
             for beam in cell.beams:
                 for node in [beam.point1, beam.point2]:
-                    if node.index in nodeList:
+                    if node.index in indexBoundaryList:
                         node.setDisplacementValue(valueDisplacement)
+
+    def fixDOFOnSurface(self, cellList, surface, dofFixed):
+        """
+        Fix degree of freedom on the surface of the lattice
+
+        Parameters:
+        -----------
+        cellList: list of int
+            List of cell index to apply boundary conditions
+        surface: str
+            Surface to apply boundary conditions (Xmin, Xmax, Ymin, Ymax, Zmin, Zmax)
+        dofFixed: list of int
+            List of degree of freedom to fix (0: x, 1: y, 2: z, 3: Rx, 4: Ry, 5: Rz)
+        """
+        if surface not in ["Xmin", "Xmax", "Ymin", "Ymax", "Zmin", "Zmax"]:
+            raise ValueError("Invalid surface name.")
+        if self.cells[-1].index < max(cellList):
+            raise ValueError("Invalid cell index, cell do not exist.")
+
+        pointList = []
+        for cell in self.cells:
+            if cell.index in cellList:
+                pointList.append(cell.getPointOnSurface(surface))
+        pointList = [point for sublist in pointList for point in sublist]
+        indexBoundaryList = []
+        for point in pointList:
+            indexBoundaryList.append(point.indexBoundary)
+        for cell in self.cells:
+            for beam in cell.beams:
+                for node in [beam.point1, beam.point2]:
+                    if node.indexBoundary in indexBoundaryList:
+                        node.fixDOF(dofFixed)
 
     def getDisplacementGlobal(self):
         """
@@ -1410,6 +1455,8 @@ class Lattice(object):
             for beam in cell.beams:
                 for node in [beam.point1, beam.point2]:
                     if node.indexBoundary is not None:
+                        print(node.indexBoundary)
+                        print(node.getDisplacementValue())
                         globalDisplacement[node.indexBoundary] = node.getDisplacementValue()
         return np.concatenate(list(globalDisplacement.values()))
 

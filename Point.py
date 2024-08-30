@@ -24,6 +24,7 @@ class Point(object):
         self.indexBoundary = None
         self.displacementValue = [0, 0, 0, 0, 0, 0]  # Displacement vector of Dimension 6 to simulate lattice behavior
         self.reactionForceValue = [0, 0, 0, 0, 0, 0]  # Reaction force vector of Dimension 6 to simulate lattice behavior
+        self.fixedDOF = [0, 0, 0, 0, 0, 0]  # Fixed DOF vector of Dimension 6 to simulate lattice behavior
 
     def __eq__(self, other):
         return isinstance(other, Point) and self.x == other.x and self.y == other.y and self.z == other.z
@@ -189,3 +190,10 @@ class Point(object):
         Return list of node position
         """
         return self.x + self.displacementValue[0], self.y + self.displacementValue[1], self.z + self.displacementValue[2]
+
+    def fixDOF(self, DOF):
+        """
+        Fix DOF
+        """
+        for i in DOF:
+            self.fixedDOF[i] = 1

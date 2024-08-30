@@ -91,19 +91,17 @@ lattice.defineNodeIndexBoundary()
 
 # AFAIRE Fonction pour déterminer les cells index dans la structure
 lattice.applyBoundaryConditionsOnSurface([0], "Xmin", [-1, 0, 0, 0, 0, 0])
-lattice.applyBoundaryConditionsOnSurface([6], "Zmax", [0, 0, 0, 0, 0, 0])
+# lattice.applyBoundaryConditionsOnSurface([6], "Zmax", [0, 0, 0, 0, 0, 0])
+lattice.fixDOFOnSurface([3], "Zmax", [0, 1, 2])
 
 
-lattice.defineNodeIndexBoundary()
 globalDisplacement = lattice.getDisplacementGlobal()
 print(globalDisplacement)
 
 for cell in lattice.cells:
     nodeInOrder = cell.getNodeOrderToSimulate()
-    print(nodeInOrder)
     cell.setDisplacementAtBoundaryNodes(globalDisplacement)
     displacement = cell.getDisplacementAtBoundaryNodes(nodeInOrder)
-    print(displacement)
 
 # lattice.attractorLattice((40, 25, 0), alpha=0.005)
 # hybridLatticeData = [0.01]
