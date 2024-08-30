@@ -1490,6 +1490,18 @@ class Lattice(object):
                         globalReactionForce[node.indexBoundary] += node.getReactionForce()
         return globalReactionForce
 
+    def getTotalDOF(self):
+        """
+        Get total number of degree of freedom in the lattice
+        """
+        totalDOF = 0
+        for cell in self.cells:
+            for beam in cell.beams:
+                for node in [beam.point1, beam.point2]:
+                    if node.indexBoundary is not None:
+                        totalDOF += np.sum(node.fixDOF == 0)
+        return totalDOF
+
 
 
 
