@@ -1487,7 +1487,9 @@ class Lattice(object):
             for beam in cell.beams:
                 for node in [beam.point1, beam.point2]:
                     if node.indexBoundary is not None:
-                        globalReactionForce[node.indexBoundary] += node.getReactionForce()
+                        globalReactionForce[node.indexBoundary] = [
+                            x + y for x, y in zip(globalReactionForce[node.indexBoundary], node.getReactionForce())
+                        ]
         return globalReactionForce
 
     def getTotalDOF(self):
