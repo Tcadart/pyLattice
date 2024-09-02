@@ -1504,7 +1504,7 @@ class Lattice(object):
                         globalReactionForceWithoutFixedDOF.append([v1 for v1, v2 in
                                                                    zip(globalReactionForce[node.indexBoundary],
                                                                        node.fixedDOF) if v2 == 0])
-        return globalReactionForceWithoutFixedDOF
+        return np.concatenate(globalReactionForceWithoutFixedDOF)
 
     def getTotalDOF(self):
         """
