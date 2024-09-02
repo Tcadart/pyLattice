@@ -1492,6 +1492,20 @@ class Lattice(object):
                         ]
         return globalReactionForce
 
+    def getGlobalReactionForceWithoutFixedDOF(self, globalReactionForce):
+        """
+        Get global reaction force without fixed degree of freedom
+        """
+        globalReactionForceWithoutFixedDOF = []
+        for cell in self.cells:
+            for beam in cell.beams:
+                for node in [beam.point1, beam.point2]:
+                    if node.indexBoundary is not None:
+                        globalReactionForceWithoutFixedDOF.append([v1 for v1, v2 in
+                                                                   zip(globalReactionForce[node.indexBoundary],
+                                                                       node.fixedDOF) if v2 == 0])
+        return globalReactionForceWithoutFixedDOF
+
     def getTotalDOF(self):
         """
         Get total number of degree of freedom in the lattice
