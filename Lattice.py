@@ -513,7 +513,7 @@ class Lattice(object):
                     beamObjList.append(beam)
         return beamObjList
 
-    def visualizeLattice3D(self, beamColor="Material", voxelViz=False, deformedForm=False):
+    def visualizeLattice3D(self, beamColor="Material", voxelViz=False, deformedForm=False, nameSave=None):
         """
         Visualizes the lattice in 3D using matplotlib.
 
@@ -590,7 +590,10 @@ class Lattice(object):
         # ax.set_xlim3d(self.xMin, self.zMax)
         # ax.set_ylim3d(self.yMin, self.yMax)
         # ax.set_zlim3d(self.zMin, self.zMax)
-        plt.show()
+        if nameSave is not None:
+            plt.savefig(nameSave)
+        else:
+            plt.show()
 
     def visualize_3d_random(self, ax):
         """
