@@ -171,7 +171,8 @@ class Point(object):
         """
         Set reaction force to node
         """
-        self.reactionForceValue += reactionForce
+        for i in range(len(self.reactionForceValue)):
+            self.reactionForceValue[i] += reactionForce[i]
 
     def getReactionForce(self):
         """
