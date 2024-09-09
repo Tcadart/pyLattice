@@ -161,11 +161,17 @@ class Point(object):
         """
         return self.displacementValue
 
+    def initializeReactionForce(self):
+        """
+        Initialize reaction force
+        """
+        self.reactionForceValue = [0, 0, 0, 0, 0, 0]
+
     def setReactionForce(self, reactionForce):
         """
         Set reaction force to node
         """
-        self.reactionForceValue = reactionForce
+        self.reactionForceValue += reactionForce
 
     def getReactionForce(self):
         """

@@ -1518,7 +1518,14 @@ class Lattice(object):
                         totalDOF += node.fixedDOF.count(0)
         return totalDOF
 
-
+    def initializeReactionForce(self):
+        """
+        Initialize reaction force of all nodes
+        """
+        for cell in self.cells:
+            for beam in cell.beams:
+                for node in [beam.point1, beam.point2]:
+                    node.initializeReactionForce()
 
 
 
