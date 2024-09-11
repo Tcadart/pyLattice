@@ -1509,17 +1509,17 @@ class Lattice(object):
                                                                        node.fixedDOF) if v2 == 0])
         return np.concatenate(globalReactionForceWithoutFixedDOF)
 
-    def getTotalDOF(self):
+    def getFreeDOF(self):
         """
         Get total number of degree of freedom in the lattice
         """
-        totalDOF = 0
+        freeDOF = 0
         for cell in self.cells:
             for beam in cell.beams:
                 for node in [beam.point1, beam.point2]:
                     if node.indexBoundary is not None:
-                        totalDOF += node.fixedDOF.count(0)
-        return totalDOF
+                        freeDOF += node.fixedDOF.count(0)
+        return freeDOF
 
     def initializeReactionForce(self):
         """
