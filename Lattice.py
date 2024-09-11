@@ -1367,8 +1367,6 @@ class Lattice(object):
         """
         if surface not in ["Xmin", "Xmax", "Ymin", "Ymax", "Zmin", "Zmax"]:
             raise ValueError("Invalid surface name.")
-        if len(valueDisplacement) != 6:
-            raise ValueError("Invalid displacement value, need dimension 6.")
         if self.cells[-1].index < max(cellList):
             raise ValueError("Invalid cell index, cell do not exist.")
 
@@ -1400,8 +1398,6 @@ class Lattice(object):
         DOF: int
             Degree of freedom to fix (0: x, 1: y, 2: z, 3: Rx, 4: Ry, 5: Rz)
         """
-        if len(valueDisplacement) != 6:
-            raise ValueError("Invalid displacement value, need dimension 6.")
         if self.getNumberOfNodes() < max(nodeList):
             raise ValueError("Invalid node index, node do not exist.")
 
