@@ -1383,6 +1383,7 @@ class Lattice(object):
                 for node in [beam.point1, beam.point2]:
                     if node.indexBoundary in indexBoundaryList:
                         node.setDisplacementValue(valueDisplacement)
+                        node.fixDOF(np.nonzero(valueDisplacement)[0])
 
     def applyBoundaryConditionsOnNode(self, nodeList, valueDisplacement):
         """
@@ -1411,6 +1412,8 @@ class Lattice(object):
                 for node in [beam.point1, beam.point2]:
                     if node.index in indexBoundaryList:
                         node.setDisplacementValue(valueDisplacement)
+                        node.fixDOF(np.nonzero(valueDisplacement)[0])
+
 
     def fixDOFOnSurface(self, cellList, surface, dofFixed):
         """
