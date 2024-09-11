@@ -149,11 +149,18 @@ class Point(object):
         """
         self.tag = tag
 
-    def setDisplacementValue(self, displacementVector):
+    def setDisplacementValue(self, displacementValue, DOF):
         """
         Apply displacementValue to node
+
+        Parameters:
+        ------------
+        displacementValue: float
+            Displacement value
+        DOF: int
+            Degree of freedom
         """
-        self.displacementValue = displacementVector
+        self.displacementValue[DOF] = displacementValue
 
     def getDisplacementValue(self):
         """

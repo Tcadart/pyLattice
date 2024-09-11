@@ -1350,7 +1350,7 @@ class Lattice(object):
         print("Number of beams: ", self.getNumberOfBeams())
         print("Number of nodes: ", self.getNumberOfNodes())
 
-    def applyBoundaryConditionsOnSurface(self, cellList, surface, valueDisplacement):
+    def applyBoundaryConditionsOnSurface(self, cellList, surface, valueDisplacement, DOF):
         """
         Apply boundary conditions to the lattice
 
@@ -1360,8 +1360,10 @@ class Lattice(object):
             List of cell index to apply boundary conditions
         surface: str
             Surface to apply boundary conditions (Xmin, Xmax, Ymin, Ymax, Zmin, Zmax)
-        valueDisplacement: np.array dim 6
+        valueDisplacement: float
             Displacement value to apply to the boundary conditions
+        DOF: int
+            Degree of freedom to fix (0: x, 1: y, 2: z, 3: Rx, 4: Ry, 5: Rz)
         """
         if surface not in ["Xmin", "Xmax", "Ymin", "Ymax", "Zmin", "Zmax"]:
             raise ValueError("Invalid surface name.")
@@ -1382,10 +1384,10 @@ class Lattice(object):
             for beam in cell.beams:
                 for node in [beam.point1, beam.point2]:
                     if node.indexBoundary in indexBoundaryList:
-                        node.setDisplacementValue(valueDisplacement)
-                        node.fixDOF(np.nonzero(valueDisplacement)[0])
+                        node.setDisplacementValue(valueDisplacement, DOF)
+                        node.fixDOF(DOF)
 
-    def applyBoundaryConditionsOnNode(self, nodeList, valueDisplacement):
+    def applyBoundaryConditionsOnNode(self, nodeList, valueDisplacement, DOF):
         """
         Apply boundary conditions to the lattice
 
@@ -1393,8 +1395,10 @@ class Lattice(object):
         -----------
         nodeList: list of int
             List of node index to apply boundary conditions
-        valueDisplacement: np.array dim 6
+        valueDisplacement: float
             Displacement value to apply to the boundary conditions
+        DOF: int
+            Degree of freedom to fix (0: x, 1: y, 2: z, 3: Rx, 4: Ry, 5: Rz)
         """
         if len(valueDisplacement) != 6:
             raise ValueError("Invalid displacement value, need dimension 6.")
@@ -1411,8 +1415,8 @@ class Lattice(object):
             for beam in cell.beams:
                 for node in [beam.point1, beam.point2]:
                     if node.index in indexBoundaryList:
-                        node.setDisplacementValue(valueDisplacement)
-                        node.fixDOF(np.nonzero(valueDisplacement)[0])
+                        node.setDisplacementValue(valueDisplacement, DOF)
+                        node.fixDOF(DOF)
 
 
     def fixDOFOnSurface(self, cellList, surface, dofFixed):
