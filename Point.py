@@ -67,6 +67,7 @@ class Point(object):
     def tagPoint(self, xMin, xMax, yMin, yMax, zMin, zMax):
         """
         Define standardized tags for a point
+        link : https://docs.fenicsproject.org/basix/v0.2.0/index.html
 
         Parameter:
         ----------
