@@ -1414,7 +1414,6 @@ class Lattice(object):
                         node.setDisplacementValue(valueDisplacement, DOF)
                         node.fixDOF([DOF])
 
-
     def fixDOFOnSurface(self, cellList, surface, dofFixed):
         """
         Fix degree of freedom on the surface of the lattice
@@ -1445,6 +1444,30 @@ class Lattice(object):
             for beam in cell.beams:
                 for node in [beam.point1, beam.point2]:
                     if node.indexBoundary in indexBoundaryList:
+                        node.fixDOF(dofFixed)
+
+    def fixDOFOnNode(self, nodeList, dofFixed):
+        """
+        Fix degree of freedom on the surface of the lattice
+
+        Parameters:
+        -----------
+        nodeList: list of int
+            List of node index to apply boundary conditions
+        dofFixed: list of int
+            List of degree of freedom to fix (0: x, 1: y, 2: z, 3: Rx, 4: Ry, 5: Rz)
+        """
+        if self.getNumberOfNodes() < max(nodeList):
+            raise ValueError("Invalid node index, node do not exist.")
+
+        for node in nodeList:
+            if node < 0 or node >= self.getNumberOfNodes():
+                raise ValueError("Node index out of range.")
+
+        for cell in self.cells:
+            for beam in cell.beams:
+                for node in [beam.point1, beam.point2]:
+                    if node.index in nodeList:
                         node.fixDOF(dofFixed)
 
     def getDisplacementGlobal(self):
