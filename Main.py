@@ -18,11 +18,11 @@ cell_size_X = cell_size
 cell_size_Y = cell_size
 cell_size_Z = cell_size
 number_cell = 1
-number_cell_X = 2
-number_cell_Y = 2
-number_cell_Z = 2
+number_cell_X = 1
+number_cell_Y = 1
+number_cell_Z = 1
 
-Lattice_Type = 0
+Lattice_Type = 1000
 # -2 => Method random cell
 # -1 => Full random
 # 0 => BCC
@@ -83,31 +83,31 @@ gradMatProperty = [Multimat, GradMaterialDirection]
 erasedParts = [(30.0, 0.0, 0.0, 19.0, 50.0, 19.0)]
 
 # #Generate data from lattice
-lattice = Lattice(cell_size_X, cell_size_Y, cell_size_Z, number_cell_X, number_cell_Y, number_cell_Z, Lattice_Type,
-                  Radius, gradRadiusProperty, gradDimProperty, gradMatProperty, MethodSim, uncertaintyNode,
-                  erasedParts=None)
+# lattice = Lattice(cell_size_X, cell_size_Y, cell_size_Z, number_cell_X, number_cell_Y, number_cell_Z, Lattice_Type,
+#                   Radius, gradRadiusProperty, gradDimProperty, gradMatProperty, MethodSim, uncertaintyNode,
+#                   erasedParts=None)
 
-lattice.defineNodeIndexBoundary()
-
-# AFAIRE Fonction pour déterminer les cells index dans la structure
-lattice.applyBoundaryConditionsOnSurface([0], "Xmin", [-1, 0, 0, 0, 0, 0])
-# lattice.applyBoundaryConditionsOnSurface([6], "Zmax", [0, 0, 0, 0, 0, 0])
-lattice.fixDOFOnSurface([3], "Zmax", [0, 1, 2])
-
-
-globalDisplacement = lattice.getDisplacementGlobal()
-print(globalDisplacement)
-total_dof = lattice.getTotalDOF()
-print(total_dof)
-for cell in lattice.cells:
-    nodeInOrder = cell.getNodeOrderToSimulate()
-    cell.setDisplacementAtBoundaryNodes(globalDisplacement)
-    displacement = cell.getDisplacementAtBoundaryNodes(nodeInOrder)
+# lattice.defineNodeIndexBoundary()
+#
+# # AFAIRE Fonction pour déterminer les cells index dans la structure
+# lattice.applyBoundaryConditionsOnSurface([0], "Xmin", [-1, 0, 0, 0, 0, 0])
+# # lattice.applyBoundaryConditionsOnSurface([6], "Zmax", [0, 0, 0, 0, 0, 0])
+# lattice.fixDOFOnSurface([3], "Zmax", [0, 1, 2])
+#
+#
+# globalDisplacement = lattice.getDisplacementGlobal()
+# print(globalDisplacement)
+# total_dof = lattice.getTotalDOF()
+# print(total_dof)
+# for cell in lattice.cells:
+#     nodeInOrder = cell.getNodeOrderToSimulate()
+#     cell.setDisplacementAtBoundaryNodes(globalDisplacement)
+#     displacement = cell.getDisplacementAtBoundaryNodes(nodeInOrder)
 
 # lattice.attractorLattice((40, 25, 0), alpha=0.005)
-# hybridLatticeData = [0.01]
-# lattice = Lattice.hybridgeometry(cell_size_X, cell_size_Y, cell_size_Z, MethodSim, uncertaintyNode,
-#                                  hybridLatticeData, hybridGeomType=[0])
+hybridLatticeData = [0.1, 0, 0]
+lattice = Lattice.hybridgeometry(cell_size_X, cell_size_Y, cell_size_Z, MethodSim, uncertaintyNode,
+                                 hybridLatticeData, periodicity=False)
 
 # lattice = Lattice.simpleLattice(cell_size_X,cell_size_Y,cell_size_Z, number_cell_X,number_cell_Y,number_cell_Z,
 # Lattice_Type,Radius)

@@ -144,7 +144,7 @@ class Lattice(object):
 
     @classmethod
     def hybridgeometry(cls, cell_size_x, cell_size_y, cell_size_z, simMethod, uncertaintyNode, hybridLatticeData,
-                       hybridGeomType=None):
+                       hybridGeomType=None, periodicity=True):
         """
         Generate hybrid geometry structure with just some parameters
         """
@@ -165,7 +165,7 @@ class Lattice(object):
         gradMatProperty = [Multimat, GradMaterialDirection]
         return cls(cell_size_x, cell_size_y, cell_size_z, 1, 1, 1, 1000,
                    1, gradRadiusProperty, gradDimProperty, gradMatProperty, simMethod, uncertaintyNode,
-                   hybridLatticeData, hybridGeomType=hybridGeomType, periodicity=True)
+                   hybridLatticeData, hybridGeomType=hybridGeomType, periodicity=periodicity)
 
     @classmethod
     def latticeHybridForGraph(cls, hybridLatticeData, hybridGeomType):
