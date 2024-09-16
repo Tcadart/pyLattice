@@ -1545,11 +1545,13 @@ class Lattice(object):
         Get total number of degree of freedom in the lattice
         """
         freeDOF = 0
+        processed_nodes = set()
         for cell in self.cells:
             for beam in cell.beams:
                 for node in [beam.point1, beam.point2]:
-                    if node.indexBoundary is not None:
+                    if node.indexBoundary is not None and node.indexBoundary not in processed_nodes:
                         freeDOF += node.fixedDOF.count(0)
+                        processed_nodes.add(node.indexBoundary)
         return freeDOF
 
     def initializeReactionForce(self):
