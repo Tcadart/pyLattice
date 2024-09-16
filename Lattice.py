@@ -1569,5 +1569,14 @@ class Lattice(object):
                 for node in [beam.point1, beam.point2]:
                     node.initializeReactionForce()
 
+    def initializeDisplacementToZero(self):
+        """
+        Initialize displacement of all nodes to zero
+        """
+        for cell in self.cells:
+            for beam in cell.beams:
+                for node in [beam.point1, beam.point2]:
+                    node.initializeDisplacementToZero()
+
 
 

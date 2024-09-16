@@ -213,3 +213,9 @@ class Point(object):
         """
         for i in DOF:
             self.fixedDOF[i] = 1
+
+    def initializeDisplacementToZero(self):
+        """
+        Initialize displacement to zero
+        """
+        self.displacementValue = [0, 0, 0, 0, 0, 0]
