@@ -21,6 +21,7 @@ class Point(object):
         self.z = z
         self.index = None
         self.tag = []
+        self.localTag = []
         self.indexBoundary = None
         self.displacementValue = [0, 0, 0, 0, 0, 0]  # Displacement vector of Dimension 6 to simulate lattice behavior
         self.reactionForceValue = [0, 0, 0, 0, 0, 0]  # Reaction force vector of Dimension 6 to simulate lattice behavior
