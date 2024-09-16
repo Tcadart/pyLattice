@@ -507,7 +507,7 @@ class Cell(object):
                             tag_dict[tag] = point
         return tag_dict
 
-    def setDisplacementAtBoundaryNodes(self, displacementArray):
+    def setDisplacementAtBoundaryNodes(self, displacementArray, displacementIndex):
         """
         Set displacement at nodes.
 
@@ -515,16 +515,18 @@ class Cell(object):
         ------------
         displacementArray: list or array-like
             Flattened array of displacement values.
+        displacementIndex: array of int
+            Boundary node index of each displacement value.
         """
         for beam in self.beams:
             for point in [beam.point1, beam.point2]:
-                if point.indexBoundary is not None:
-                    index = point.indexBoundary * 6
-                    displacement = displacementArray[index:index + 6]
-
+                if point.indexBoundary is not None and point.indexBoundary in displacementIndex:
+                    index = displacementIndex.index(point.indexBoundary)
+                    indexActual = 0
                     for i in range(6):
                         if point.fixedDOF[i] == 0: # Filter out the fixed DOF
-                            point.setDisplacementValue(displacement[i], i)
+                            point.setDisplacementValue(displacementArray[index + indexActual], i)
+                            indexActual += 1
 
     def getDisplacementAtBoundaryNodes(self, nodeList):
         """

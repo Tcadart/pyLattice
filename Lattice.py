@@ -1479,13 +1479,19 @@ class Lattice(object):
         globalDisplacement: dict
             Dictionary of global displacement with indexBoundary as key and displacement vector as value
         """
-        globalDisplacement = {i: [0, 0, 0, 0, 0, 0] for i in range(self.maxIndexBoundary + 1)}
+        globalDisplacement = []
+        globalDisplacementIndex = []
+        processed_nodes = set()
         for cell in self.cells:
             for beam in cell.beams:
                 for node in [beam.point1, beam.point2]:
-                    if node.indexBoundary is not None:
-                        globalDisplacement[node.indexBoundary] = node.getDisplacementValue()
-        return np.concatenate(list(globalDisplacement.values()))
+                    if node.indexBoundary is not None and node.indexBoundary not in processed_nodes:
+                        for i in range(6):
+                            if node.fixedDOF[i] == 0:
+                                globalDisplacement.append(node.displacementValue[i])
+                                globalDisplacementIndex.append(node.indexBoundary)
+                        processed_nodes.add(node.indexBoundary)
+        return globalDisplacement, globalDisplacementIndex
 
     def defineNodeIndexBoundary(self):
         """
