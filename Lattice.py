@@ -1523,16 +1523,21 @@ class Lattice(object):
 
     def getGlobalReactionForceWithoutFixedDOF(self, globalReactionForce):
         """
-        Get global reaction force without fixed degree of freedom
+        Get global reaction force without fixed degree of freedom,
+        ensuring each node's reaction force is only appended once.
         """
         globalReactionForceWithoutFixedDOF = []
+        processed_nodes = set()
         for cell in self.cells:
             for beam in cell.beams:
                 for node in [beam.point1, beam.point2]:
-                    if node.indexBoundary is not None:
-                        globalReactionForceWithoutFixedDOF.append([v1 for v1, v2 in
-                                                                   zip(globalReactionForce[node.indexBoundary],
-                                                                       node.fixedDOF) if v2 == 0])
+                    if node.indexBoundary is not None and node.indexBoundary not in processed_nodes:
+                        # Append reaction force components where fixedDOF is 0
+                        globalReactionForceWithoutFixedDOF.append([
+                            v1 for v1, v2 in zip(globalReactionForce[node.indexBoundary], node.fixedDOF) if v2 == 0
+                        ])
+                        # Mark this node as processed
+                        processed_nodes.add(node.indexBoundary)
         return np.concatenate(globalReactionForceWithoutFixedDOF)
 
     def getFreeDOF(self):
