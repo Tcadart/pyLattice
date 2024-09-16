@@ -505,7 +505,8 @@ class Cell(object):
                         tag = tag[0]  # Take the first tag from the list
                         if tag in originalTags:
                             tag_dict[tag] = point
-                            point.localTag.append(tag)
+                            if not point.localTag:
+                                point.localTag.append(tag)
         return tag_dict
 
     def setDisplacementAtBoundaryNodes(self, displacementArray, displacementIndex):
