@@ -49,7 +49,7 @@ class Cell(object):
         self.getBeamRadius(gradRadius, Radius)
         self.getCellSize(initialCellSize, gradDim)
         self.generateBeamsInCell(latticeType, startCellPos)
-        self.getCellCenter(initialCellSize)
+        self.getCellCenter(startCellPos)
 
     def generateBeamsInCell(self, latticeType, startCellPos, beamType=0):
         """
@@ -126,11 +126,11 @@ class Cell(object):
         self.cellSize = [initial_size * gradDim[pos][i] for i, (initial_size, pos) in
                          enumerate(zip(initialCellSize, self.posCell))]
 
-    def getCellCenter(self, initialCellSize):
+    def getCellCenter(self, startCellPos):
         """
         Calculate the center point of the cell
         """
-        self.centerPoint = [initialCellSize[i] + self.cellSize[i] / 2 for i in range(3)]
+        self.centerPoint = [startCellPos[i] + self.cellSize[i] / 2 for i in range(3)]
 
     def getAllPoints(self):
         """

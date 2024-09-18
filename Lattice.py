@@ -513,7 +513,8 @@ class Lattice(object):
                     beamObjList.append(beam)
         return beamObjList
 
-    def visualizeLattice3D(self, beamColor="Material", voxelViz=False, deformedForm=False, nameSave=None):
+    def visualizeLattice3D(self, beamColor="Material", voxelViz=False, deformedForm=False, nameSave=None,
+                           plotCellIndex = False):
         """
         Visualizes the lattice in 3D using matplotlib.
 
@@ -563,6 +564,9 @@ class Lattice(object):
                             nodeX.append(node[0])
                             nodeY.append(node[1])
                             nodeZ.append(node[2])
+                if plotCellIndex:
+                    ax.text(cell.centerPoint[0], cell.centerPoint[1], cell.centerPoint[2], str(cell.index),
+                            color='black', fontsize=25)
 
             line_collection = Line3DCollection(lines, colors=colors, linewidths=2)
             ax.add_collection3d(line_collection)
