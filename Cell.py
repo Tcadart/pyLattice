@@ -573,3 +573,9 @@ class Cell(object):
                         point.setReactionForce(reactionForce[tagList.index(tag)])
                         tagAlreadySet.append(tag)
                         break
+
+    def getNumberOfBoundaryNodes(self):
+        """
+        Get the number of boundary nodes in the cell
+        """
+        return len([beam for beam in self.beams for point in [beam.point1, beam.point2] if point.indexBoundary is not None])

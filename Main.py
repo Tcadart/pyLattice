@@ -18,9 +18,9 @@ cell_size_X = cell_size
 cell_size_Y = cell_size
 cell_size_Z = cell_size
 number_cell = 1
-number_cell_X = 3
-number_cell_Y = 3
-number_cell_Z = 3
+number_cell_X = 1
+number_cell_Y = 1
+number_cell_Z = 2
 
 Lattice_Type = 1000
 # -2 => Method random cell
@@ -112,4 +112,28 @@ lattice = Lattice(cell_size_X, cell_size_Y, cell_size_Z, number_cell_X, number_c
 # lattice = Lattice.simpleLattice(cell_size_X,cell_size_Y,cell_size_Z, number_cell_X,number_cell_Y,number_cell_Z,
 # Lattice_Type,Radius)
 # display_only_cell_random()
-lattice.visualizeLattice3D("Type", deformedForm=True, plotCellIndex=True)
+def applyBoundaryCondition(lattice):
+    """
+    Apply boundary conditions
+
+    Parameters:
+    -----------
+    lattice: Lattice
+        Instance of the lattice
+    """
+    # Set boundary conditions
+    lattice.applyBoundaryConditionsOnSurface([1], "Zmax", 0.1, 0)
+    lattice.applyBoundaryConditionsOnSurface([1], "Zmax", 0.1, 2)
+    lattice.fixDOFOnSurface([1], "Zmax", [1, 3, 4, 5])
+    lattice.applyBoundaryConditionsOnNode([7], 0.05, 0)
+    # # lattice.fixDOFOnNode([7], [1, 2, 3, 4, 5])
+    lattice.fixDOFOnNode([6], [0, 1, 2, 3, 4, 5])
+    lattice.fixDOFOnNode([4], [0, 1, 2, 3, 4, 5])
+    lattice.fixDOFOnNode([2], [0, 1, 2, 3, 4, 5])
+    lattice.fixDOFOnSurface([0], "Zmin", [0, 1, 2, 3, 4, 5])
+
+lattice.defineNodeIndexBoundary()
+applyBoundaryCondition(lattice)
+lattice.getFreeDOF()
+lattice.constructAdjacencyMatrix()
+# lattice.visualizeLattice3D("Type", deformedForm=True, plotCellIndex=True)

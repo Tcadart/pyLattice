@@ -6,6 +6,8 @@ from Cell import *
 import math
 import random
 import sys
+from scipy.sparse import coo_matrix
+
 if sys.version_info[0] == 3:
     import matplotlib.pyplot as plt
     from mpl_toolkits.mplot3d.art3d import Line3DCollection
@@ -1554,6 +1556,7 @@ class Lattice(object):
         """
         Get total number of degree of freedom in the lattice
         """
+        counter = 0
         freeDOF = 0
         processed_nodes = set()
         for cell in self.cells:
@@ -1562,6 +1565,9 @@ class Lattice(object):
                     if node.indexBoundary is not None and node.indexBoundary not in processed_nodes:
                         freeDOF += node.fixedDOF.count(0)
                         processed_nodes.add(node.indexBoundary)
+                        for i in np.where(np.array(node.fixedDOF) == 0)[0]:
+                            node.globalFreeDOFIndex[i] = counter
+                            counter += 1
         return freeDOF
 
     def initializeReactionForce(self):
@@ -1582,5 +1588,31 @@ class Lattice(object):
                 for node in [beam.point1, beam.point2]:
                     node.initializeDisplacementToZero()
 
+    def constructAdjacencyMatrix(self):
+        """
+        Construct adjacency matrix of the lattice
+        """
+        originalTags = [1000, 1001, 1002, 1003, 1004, 1005, 1006, 1007, 100, 101, 102, 103, 104, 105, 106, 107,
+                        108, 109, 110, 111]
+        numberOfBoundaryNodes = 0
+        row_indices = []
+        col_indices = []
+        data = []
 
+        for cell in self.cells:
+            cell.getNodeOrderToSimulate()
+            cellBoundaryNode = cell.getNumberOfBoundaryNodes()
+            if cellBoundaryNode > numberOfBoundaryNodes:
+                numberOfBoundaryNodes = cellBoundaryNode
 
+            for beam in cell.beams:
+                for node in [beam.point1, beam.point2]:
+                    if node.indexBoundary is not None:
+                            row_indices.append(node.indexBoundary)
+                            col_indices.append(originalTags.index(node.localTag[0]))
+                            data.append(True)
+
+        adjacency_matrix = coo_matrix((data, (row_indices, col_indices)), shape=(self.maxIndexBoundary + 1, numberOfBoundaryNodes),
+                                      dtype=np.bool_)
+
+        print(adjacency_matrix.toarray())
