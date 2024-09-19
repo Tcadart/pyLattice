@@ -1,3 +1,5 @@
+from scipy.sparse import coo_matrix
+
 from Point import *
 from Beam import *
 import math
@@ -44,6 +46,7 @@ class Cell(object):
         self.index = None
         self.latticeType = latticeType
         self.hybridRadius = None
+        self.matB = None  # B matrix (Coupling matrix)
 
         self.getBeamMaterial(gradMat)
         self.getBeamRadius(gradRadius, Radius)
@@ -579,3 +582,26 @@ class Cell(object):
         Get the number of boundary nodes in the cell
         """
         return len([beam for beam in self.beams for point in [beam.point1, beam.point2] if point.indexBoundary is not None])
+
+    def buildCouplingOperator(self, nbFreeDOF):
+        """
+        Build the coupling operator for the cell
+        """
+        originalTags = [1000, 1001, 1002, 1003, 1004, 1005, 1006, 1007, 100, 101, 102, 103, 104, 105, 106, 107,
+                        108, 109, 110, 111]
+        data = []
+        row, col = [], []
+        listBndNodes = []
+        for beam in self.beams:
+            for point in [beam.point1, beam.point2]:
+                if point.indexBoundary is not None and not point.indexBoundary in listBndNodes:
+                    localNodeIndex = originalTags.index(point.localTag[0])
+                    listBndNodes.append(point.indexBoundary)
+                    for i in range(6):
+                        if point.fixedDOF[i] == 0:
+                            data.append(1)
+                            col.append(localNodeIndex * 6 + i)
+                            row.append(point.globalFreeDOFIndex[i])
+        nbBndDOFloc = len(listBndNodes) * 6
+        shapeB = (nbFreeDOF, nbBndDOFloc)
+        self.matB = coo_matrix((data, (row, col)), shape=shapeB)
