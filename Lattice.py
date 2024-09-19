@@ -1,6 +1,7 @@
 from __future__ import print_function, division
 
 import numpy as np
+from scipy.sparse.linalg import splu
 
 from Cell import *
 import math
@@ -104,7 +105,7 @@ class Lattice(object):
         self.cells = []
         self._nodes = []
         self._beams = []
-        self.freeDOF = None # Free DOF gradient conjugate gradient method
+        self.freeDOF = None  # Free DOF gradient conjugate gradient method
 
         # Process
         self.generateLattice()
@@ -122,7 +123,6 @@ class Lattice(object):
         # Get some data about lattice structures
         self.getNodeData()
         self.getBeamData()
-
 
     @classmethod
     def simpleLattice(cls, cell_size_x, cell_size_y, cell_size_z, num_cells_x, num_cells_y, num_cells_z, Lattice_Type,
@@ -517,7 +517,7 @@ class Lattice(object):
         return beamObjList
 
     def visualizeLattice3D(self, beamColor="Material", voxelViz=False, deformedForm=False, nameSave=None,
-                           plotCellIndex = False):
+                           plotCellIndex=False):
         """
         Visualizes the lattice in 3D using matplotlib.
 
@@ -658,6 +658,7 @@ class Lattice(object):
 
         Special case when pointbeams is empty return max angle to minimize penalization zone
         """
+
         def getAngleBetweenBeams(beam1, beam2):
             """
             Calculates angle between 2 beams
@@ -1271,12 +1272,12 @@ class Lattice(object):
         radius: float
             Radius of the cylinder.
         """
-        if radius <= self.xMax/2:
-            raise ValueError("The radius of the cylinder is too small: minimum value = ", self.xMax/2)
+        if radius <= self.xMax / 2:
+            raise ValueError("The radius of the cylinder is too small: minimum value = ", self.xMax / 2)
 
         # Find moving distance
-        def formula(x): # formula of arc of circle
-            return radius - math.sqrt(radius ** 2 - (x - self.xMax/2) ** 2)
+        def formula(x):  # formula of arc of circle
+            return radius - math.sqrt(radius ** 2 - (x - self.xMax / 2) ** 2)
 
         for cell in self.cells:
             for beam in cell.beams:
@@ -1285,7 +1286,6 @@ class Lattice(object):
                     new_z = z - formula(x)
                     node.movePoint(x, y, new_z)
         self.getMinMaxValues()
-
 
     def deleteDuplicatedBeams(self):
         """
@@ -1607,10 +1607,9 @@ class Lattice(object):
         # change schur complement matrix type to scipy sparse matrix
         schurComplementMatrix = coo_matrix(schurComplementMatrix)
         preconditioner = coo_matrix((self.freeDOF, self.freeDOF))
-        print("Preconditioner: ")
         print(preconditioner)
         for cell in self.cells:
             preconditioner += cell.buildPreconditioner(schurComplementMatrix)
-            print("Preconditioner: ")
-            print(preconditioner)
+        # Factorize preconditioner
+        preconditioner = splu(preconditioner)
         return preconditioner
