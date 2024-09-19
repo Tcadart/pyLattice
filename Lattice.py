@@ -1607,7 +1607,10 @@ class Lattice(object):
         # change schur complement matrix type to scipy sparse matrix
         schurComplementMatrix = coo_matrix(schurComplementMatrix)
         preconditioner = coo_matrix((self.freeDOF, self.freeDOF))
+        print("Preconditioner: ")
         print(preconditioner)
         for cell in self.cells:
             preconditioner += cell.buildPreconditioner(schurComplementMatrix)
+            print("Preconditioner: ")
             print(preconditioner)
+        return preconditioner
