@@ -104,6 +104,7 @@ class Lattice(object):
         self.cells = []
         self._nodes = []
         self._beams = []
+        self.freeDOF = None # Free DOF gradient conjugate gradient method
 
         # Process
         self.generateLattice()
@@ -1557,21 +1558,21 @@ class Lattice(object):
         Get total number of degree of freedom in the lattice
         """
         counter = 0
-        freeDOF = 0
+        self.freeDOF = 0
         processed_nodes = {}
         for cell in self.cells:
             for beam in cell.beams:
                 for node in [beam.point1, beam.point2]:
                     if node.indexBoundary is not None:
                         if node.indexBoundary not in processed_nodes.keys():
-                            freeDOF += node.fixedDOF.count(0)
+                            self.freeDOF += node.fixedDOF.count(0)
                             for i in np.where(np.array(node.fixedDOF) == 0)[0]:
                                 node.globalFreeDOFIndex[i] = counter
                                 counter += 1
                             processed_nodes[node.indexBoundary] = node.globalFreeDOFIndex
                         else:
                             node.globalFreeDOFIndex[:] = processed_nodes[node.indexBoundary]
-        return freeDOF
+        return self.freeDOF
 
     def initializeReactionForce(self):
         """
@@ -1595,7 +1596,18 @@ class Lattice(object):
         """
         Construct adjacency matrix of the lattice
         """
-        nbFreeDOF = self.getFreeDOF()
         for cell in self.cells:
             cell.getNodeOrderToSimulate()
-            cell.buildCouplingOperator(nbFreeDOF)
+            cell.buildCouplingOperator(self.freeDOF)
+
+    def buildPreconditioner(self, schurComplementMatrix):
+        """
+        Construct preconditioner matrix
+        """
+        # change schur complement matrix type to scipy sparse matrix
+        schurComplementMatrix = coo_matrix(schurComplementMatrix)
+        preconditioner = coo_matrix((self.freeDOF, self.freeDOF))
+        print(preconditioner)
+        for cell in self.cells:
+            preconditioner += cell.buildPreconditioner(schurComplementMatrix)
+            print(preconditioner)

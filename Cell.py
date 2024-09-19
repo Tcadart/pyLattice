@@ -605,3 +605,14 @@ class Cell(object):
         nbBndDOFloc = len(listBndNodes) * 6
         shapeB = (nbFreeDOF, nbBndDOFloc)
         self.matB = coo_matrix((data, (row, col)), shape=shapeB)
+
+    def buildPreconditioner(self, SchurMatrix):
+        """
+        Build the preconditioner part for the cell
+
+        Parameters:
+        -----------
+        SchurMatrix: coo_matrix
+            Schur matrix
+        """
+        return self.matB @ SchurMatrix @ self.matB.transpose()
