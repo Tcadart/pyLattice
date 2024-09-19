@@ -1600,15 +1600,16 @@ class Lattice(object):
             cell.getNodeOrderToSimulate()
             cell.buildCouplingOperator(self.freeDOF)
 
-    def buildPreconditioner(self, schurComplementMatrix):
+    def buildLUSchurComplement(self, schurComplementMatrix):
         """
         Construct preconditioner matrix
         """
         # change schur complement matrix type to scipy sparse matrix
         schurComplementMatrix = coo_matrix(schurComplementMatrix)
-        preconditioner = coo_matrix((self.freeDOF, self.freeDOF))
+        globalSchurComplement = coo_matrix((self.freeDOF, self.freeDOF))
         for cell in self.cells:
-            preconditioner += cell.buildPreconditioner(schurComplementMatrix)
+            globalSchurComplement += cell.buildPreconditioner(schurComplementMatrix)
+        globalSchurComplement = globalSchurComplement.tocsc()
         # Factorize preconditioner
-        # preconditioner = splu(preconditioner)
-        return preconditioner
+        LUSchurComplement = splu(globalSchurComplement)
+        return LUSchurComplement
