@@ -105,7 +105,10 @@ class Lattice(object):
         self.cells = []
         self._nodes = []
         self._beams = []
+
+        # Simulation necessary
         self.freeDOF = None  # Free DOF gradient conjugate gradient method
+        self.maxIndexBoundary = None
 
         # Process
         self.generateLattice()
@@ -123,6 +126,10 @@ class Lattice(object):
         # Get some data about lattice structures
         self.getNodeData()
         self.getBeamData()
+
+        # Simulation FenicsX necessaries
+        # Define global indexation
+        self.defineNodeIndexBoundary()
 
     @classmethod
     def simpleLattice(cls, cell_size_x, cell_size_y, cell_size_z, num_cells_x, num_cells_y, num_cells_z, Lattice_Type,
@@ -1502,7 +1509,7 @@ class Lattice(object):
 
     def defineNodeIndexBoundary(self):
         """
-        Define tag for all boundary nodes
+        Define tag for all boundary nodes and calculate the total number of boundary nodes
         """
         IndexCounter = 0
         nodeAlreadyIndexed = {}
@@ -1536,8 +1543,7 @@ class Lattice(object):
 
     def getGlobalReactionForceWithoutFixedDOF(self, globalReactionForce):
         """
-        Get global reaction force without fixed degree of freedom,
-        ensuring each node's reaction force is only appended once.
+        Get global reaction force of free degree of freedom
         """
         globalReactionForceWithoutFixedDOF = []
         processed_nodes = set()
@@ -1557,26 +1563,37 @@ class Lattice(object):
         """
         Get total number of degree of freedom in the lattice
         """
-        counter = 0
         self.freeDOF = 0
+        processed_nodes = set()  # Use a set for faster lookup
+        for cell in self.cells:
+            for beam in cell.beams:
+                for node in [beam.point1, beam.point2]:
+                    if node.indexBoundary is not None and node.indexBoundary not in processed_nodes:
+                        self.freeDOF += node.fixedDOF.count(0)
+                        processed_nodes.add(node.indexBoundary)
+        return self.freeDOF
+
+    def setGlobalFreeDOFIndex(self):
+        """
+        Set global free degree of freedom index for all nodes in boundary
+        """
+        counter = 0
         processed_nodes = {}
         for cell in self.cells:
             for beam in cell.beams:
                 for node in [beam.point1, beam.point2]:
                     if node.indexBoundary is not None:
                         if node.indexBoundary not in processed_nodes.keys():
-                            self.freeDOF += node.fixedDOF.count(0)
                             for i in np.where(np.array(node.fixedDOF) == 0)[0]:
                                 node.globalFreeDOFIndex[i] = counter
                                 counter += 1
                             processed_nodes[node.indexBoundary] = node.globalFreeDOFIndex
                         else:
                             node.globalFreeDOFIndex[:] = processed_nodes[node.indexBoundary]
-        return self.freeDOF
 
     def initializeReactionForce(self):
         """
-        Initialize reaction force of all nodes
+        Initialize reaction force of all nodes to 0 on each DOF
         """
         for cell in self.cells:
             for beam in cell.beams:
@@ -1585,7 +1602,7 @@ class Lattice(object):
 
     def initializeDisplacementToZero(self):
         """
-        Initialize displacement of all nodes to zero
+        Initialize displacement of all nodes to zero on each DOF
         """
         for cell in self.cells:
             for beam in cell.beams:
@@ -1594,7 +1611,7 @@ class Lattice(object):
 
     def buildCouplingOperatorForEachCells(self):
         """
-        Construct adjacency matrix of the lattice
+        Build coupling operator for each cell in the lattice
         """
         for cell in self.cells:
             cell.getNodeOrderToSimulate()
@@ -1602,9 +1619,9 @@ class Lattice(object):
 
     def buildLUSchurComplement(self, schurComplementMatrix):
         """
-        Construct preconditioner matrix
+        Build LU decomposition of the Schur complement matrix for the lattice
         """
-        # change schur complement matrix type to scipy sparse matrix
+        # Change schur complement matrix type to scipy sparse matrix
         schurComplementMatrix = coo_matrix(schurComplementMatrix)
         globalSchurComplement = coo_matrix((self.freeDOF, self.freeDOF))
         for cell in self.cells:
