@@ -1,10 +1,13 @@
-from scipy.sparse import coo_matrix
 
 from Point import *
 from Beam import *
 import math
 import random
 from Geometry_Lattice import Lattice_geometry
+
+import sys
+if sys.version_info[0] == 3:
+    from scipy.sparse import coo_matrix
 
 
 class Cell(object):

@@ -1,17 +1,16 @@
 from __future__ import print_function, division
 
-import numpy as np
-from scipy.sparse.linalg import splu
-
 from Cell import *
 import math
 import random
 import sys
-from scipy.sparse import coo_matrix
 
 if sys.version_info[0] == 3:
     import matplotlib.pyplot as plt
     from mpl_toolkits.mplot3d.art3d import Line3DCollection
+    import numpy as np
+    from scipy.sparse.linalg import splu
+    from scipy.sparse import coo_matrix
 
 
 class Lattice(object):
