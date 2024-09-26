@@ -221,7 +221,7 @@ class Point(object):
         """
         self.displacementValue = [0, 0, 0, 0, 0, 0]
 
-    def calculateInternalEnergy(self):
+    def calculatePointEnergy(self):
         """
         Calculate internal energy of the node
         """

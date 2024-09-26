@@ -627,5 +627,8 @@ class Cell(object):
         internalEnergy = 0
         for beam in self.beams:
             for point in [beam.point1, beam.point2]:
-                internalEnergy += point.calculateInternalEnergy()
+                internalEnergy += point.calculatePointEnergy()
+                print("Displacement: ", point.getDisplacementValue())
+                print("Reaction Force: ", point.getReactionForce())
+                print("Internal Energy: ", point.calculatePointEnergy())
         return internalEnergy
