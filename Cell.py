@@ -619,3 +619,13 @@ class Cell(object):
             Schur matrix
         """
         return self.matB @ SchurMatrix @ self.matB.transpose()
+
+    def getInternalEnergy(self):
+        """
+        Get the internal energy of the cell
+        """
+        internalEnergy = 0
+        for beam in self.beams:
+            for point in [beam.point1, beam.point2]:
+                internalEnergy += point.calculateInternalEnergy()
+        return internalEnergy

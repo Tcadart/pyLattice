@@ -220,3 +220,9 @@ class Point(object):
         Initialize displacement to zero
         """
         self.displacementValue = [0, 0, 0, 0, 0, 0]
+
+    def calculateInternalEnergy(self):
+        """
+        Calculate internal energy of the node
+        """
+        return sum([self.displacementValue[i] * self.reactionForceValue[i] for i in range(6)])
