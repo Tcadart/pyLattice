@@ -1,6 +1,6 @@
 
-from src import Point
-from src import Beam
+from src.Point import *
+from src.Beam import *
 from src.Geometry_Lattice import Lattice_geometry
 
 import math
