@@ -1,7 +1,7 @@
 
-from src.Point import *
-from src.Beam import *
-from src.Geometry_Lattice import Lattice_geometry
+from .Point import *
+from .Beam import *
+from .Geometry_Lattice import Lattice_geometry
 
 import math
 import random
