@@ -1,9 +1,10 @@
 
-from Point import *
-from Beam import *
+from src import Point
+from src import Beam
+from src.Geometry_Lattice import Lattice_geometry
+
 import math
 import random
-from Geometry_Lattice import Lattice_geometry
 
 import sys
 if sys.version_info[0] == 3:

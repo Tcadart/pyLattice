@@ -1,6 +1,6 @@
 from __future__ import print_function, division
 
-from Cell import *
+from src import Cell
 import math
 import random
 import sys
