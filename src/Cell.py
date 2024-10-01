@@ -630,7 +630,15 @@ class Cell(object):
             for point in [beam.point1, beam.point2]:
                 if point.indexBoundary is not None:
                     internalEnergy += point.calculatePointEnergy()
-                    print("Displacement: ", point.getDisplacementValue())
-                    print("Reaction Force: ", point.getReactionForce())
-                    print("Internal Energy: ", point.calculatePointEnergy())
         return internalEnergy
+
+    def getDisplacementData(self):
+        """
+        Build and return displacement data on cell for dataset generation
+        """
+        allBoundaryDisplacementData = []
+        for beam in self.beams:
+            for point in [beam.point1, beam.point2]:
+                if point.indexBoundary is not None:
+                    allBoundaryDisplacementData.append(point.getDisplacementValue())
+        return allBoundaryDisplacementData
