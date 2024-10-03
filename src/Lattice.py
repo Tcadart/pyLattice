@@ -674,16 +674,27 @@ class Lattice(object):
             Angle: float
                 angle in degrees
             """
-            if beam1.point1 == beam2.point1:
+            p1 = None
+            p2 = None
+            if self.periodicity:
+                for idx, p in enumerate([beam1.point1, beam1.point2]):
+                    if len(p.tag) > 0:
+                        if 1000 <= p.tag[0] <= 1007:
+                            p1 = idx
+                for idx, p in enumerate([beam2.point1, beam2.point2]):
+                    if len(p.tag) > 0:
+                        if 1000 <= p.tag[0] <= 1007:
+                            p2 = idx
+            if beam1.point1 == beam2.point1 or (p1 == 0 and p2 == 0):
                 u = beam1.point2 - beam1.point1
                 v = beam2.point2 - beam2.point1
-            elif beam1.point1 == beam2.point2:
+            elif beam1.point1 == beam2.point2 or (p1 == 0 and p2 == 1):
                 u = beam1.point2 - beam1.point1
                 v = beam2.point1 - beam2.point2
-            elif beam1.point2 == beam2.point1:
+            elif beam1.point2 == beam2.point1 or (p1 == 1 and p2 == 0):
                 u = beam1.point1 - beam1.point2
                 v = beam2.point2 - beam2.point1
-            elif beam1.point2 == beam2.point2:
+            elif beam1.point2 == beam2.point2 or (p1 == 1 and p2 == 1):
                 u = beam1.point1 - beam1.point2
                 v = beam2.point1 - beam2.point2
             else:

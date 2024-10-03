@@ -26,7 +26,7 @@ class Point(object):
         self.displacementValue = [0, 0, 0, 0, 0, 0]  # Displacement vector of Dimension 6 to simulate lattice behavior
         self.reactionForceValue = [0, 0, 0, 0, 0, 0]  # Reaction force vector of Dimension 6 to simulate lattice behavior
         self.fixedDOF = [0, 0, 0, 0, 0, 0]  # Fixed DOF vector of Dimension 6 (0: free, 1: fixed)
-        self.globalFreeDOFIndex = [None] * 6 # Global free DOF index
+        self.globalFreeDOFIndex = [None] * 6  # Global free DOF index
 
     def __eq__(self, other):
         return isinstance(other, Point) and self.x == other.x and self.y == other.y and self.z == other.z

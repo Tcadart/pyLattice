@@ -1,6 +1,5 @@
 from src.Lattice import *
 
-
 # *******************************************************************************************************************
 # *******************************************************************************************************************
 
@@ -9,7 +8,7 @@ from src.Lattice import *
 # *******************************************************************************************************************
 # *******************************************************************************************************************
 # Lattice properties
-Radius = 0.1
+Radius = 0.03
 cell_size = 1
 cell_size_X = cell_size
 cell_size_Y = cell_size
@@ -78,11 +77,11 @@ gradRadiusProperty = [GradRadRule, GradRadDirection, GradRadParameters]
 gradMatProperty = [Multimat, GradMaterialDirection]
 
 erasedParts = [(30.0, 0.0, 0.0, 19.0, 50.0, 19.0)]
-hybridLatticeData = [Radius, 0, 0]
+hybridLatticeData = [Radius, Radius, Radius]
 #Generate data from lattice
 lattice = Lattice(cell_size_X, cell_size_Y, cell_size_Z, number_cell_X, number_cell_Y, number_cell_Z, Lattice_Type,
                   Radius, gradRadiusProperty, gradDimProperty, gradMatProperty, MethodSim, uncertaintyNode,
-                  hybridLatticeData = hybridLatticeData, hybridGeomType = [0, 16, 17], periodicity=True)
+                  hybridLatticeData=hybridLatticeData, hybridGeomType=[0, 16, 17], periodicity=True)
 
 # lattice.defineNodeIndexBoundary()
 #
