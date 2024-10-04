@@ -14,9 +14,9 @@ cell_size_X = cell_size
 cell_size_Y = cell_size
 cell_size_Z = cell_size
 number_cell = 1
-number_cell_X = 1
-number_cell_Y = 1
-number_cell_Z = 1
+number_cell_X = 3
+number_cell_Y = 3
+number_cell_Z = 3
 
 Lattice_Type = 1000
 # -2 => Method random cell
@@ -77,11 +77,13 @@ gradRadiusProperty = [GradRadRule, GradRadDirection, GradRadParameters]
 gradMatProperty = [Multimat, GradMaterialDirection]
 
 erasedParts = [(30.0, 0.0, 0.0, 19.0, 50.0, 19.0)]
-hybridLatticeData = [Radius, Radius, Radius]
+hybridLatticeData = [Radius, 0, 0]
 #Generate data from lattice
 lattice = Lattice(cell_size_X, cell_size_Y, cell_size_Z, number_cell_X, number_cell_Y, number_cell_Z, Lattice_Type,
                   Radius, gradRadiusProperty, gradDimProperty, gradMatProperty, MethodSim, uncertaintyNode,
                   hybridLatticeData=hybridLatticeData, hybridGeomType=[0, 16, 17], periodicity=True)
+
+print(lattice.getCellSurface('Ymin'))
 
 # lattice.defineNodeIndexBoundary()
 #
@@ -132,4 +134,4 @@ lattice = Lattice(cell_size_X, cell_size_Y, cell_size_Z, number_cell_X, number_c
 # applyBoundaryCondition(lattice)
 # lattice.getFreeDOF()
 # lattice.constructAdjacencyMatrix()
-lattice.visualizeLattice3D("Type", deformedForm=True, plotCellIndex=False)
+lattice.visualizeLattice3D("Type", deformedForm=True, plotCellIndex=True)

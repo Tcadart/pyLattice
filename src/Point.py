@@ -226,3 +226,4 @@ class Point(object):
         Calculate internal energy of the node
         """
         return sum([self.displacementValue[i] * self.reactionForceValue[i] for i in range(6)])
+

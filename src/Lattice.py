@@ -1033,6 +1033,17 @@ class Lattice(object):
         return boundaryBeams
 
     def isNodeOnBoundary(self, node):
+        """
+        Get boolean that give an information of boundary node
+
+        Parameters:
+        -----------
+        node : Point object
+
+        Returns:
+        ----------
+        boolean: (True if node on boundary)
+        """
         return (node.x == self.xMin or node.x == self.xMax or node.y == self.yMin or node.y == self.yMax or
                 node.z == self.zMin or node.z == self.zMax)
 
@@ -1640,3 +1651,41 @@ class Lattice(object):
         # Factorize preconditioner
         LUSchurComplement = splu(globalSchurComplement)
         return LUSchurComplement
+
+    def getCellSurface(self, surface):
+        """
+        Get cell list on the surface of the lattice
+
+        Parameters:
+        -----------
+        surface: str
+            Surface to get points (Xmin, Xmax, Ymin, Ymax, Zmin, Zmax)
+
+        Returns:
+        --------
+        cellTagList: list of cell index
+        """
+        if surface not in ["Xmin", "Xmax", "Ymin", "Ymax", "Zmin", "Zmax"]:
+            raise ValueError("Invalid surface name.")
+
+        surface_dict = {
+            "Xmin": ("x", self.xMin),
+            "Xmax": ("x", self.xMax),
+            "Ymin": ("y", self.yMin),
+            "Ymax": ("y", self.yMax),
+            "Zmin": ("z", self.zMin),
+            "Zmax": ("z", self.zMax)
+        }
+
+        axis, valueSurface = surface_dict[surface]
+
+        cellTagList = []
+        for cell in self.cells:
+            listPointOnSurface = cell.getPointOnSurface(surface)
+            for point in listPointOnSurface:
+                if getattr(point, axis) == valueSurface:
+                    cellTagList.append(cell.index)
+                    break
+
+        return cellTagList
+
