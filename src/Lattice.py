@@ -23,7 +23,7 @@ class Lattice(object):
                  Lattice_Type, Radius,
                  gradRadiusProperty, gradDimProperty, gradMatProperty,
                  simMethod=0, uncertaintyNode=0,
-                 hybridLatticeData=None, hybridGeomType=None, periodicity=0, erasedParts=None):
+                 hybridLatticeData=None, hybridGeomType=None, periodicity=0, erasedParts=None, randomHybrid=False):
         """
         Constructor general for the Lattice class.
 
@@ -100,6 +100,7 @@ class Lattice(object):
         self.periodicity = periodicity  # Not finish to implemented
         self.penalizationCoefficient = 1.5  # Fixed with previous optimization
         self.erasedParts = erasedParts
+        self.randomHybrid = randomHybrid
 
         self.cells = []
         self._nodes = []
@@ -356,6 +357,7 @@ class Lattice(object):
                     counterIn += 1
         return counterIn == 3
 
+
     def generateLattice(self):
         """
         Generates lattice structure based on specified parameters.
@@ -365,6 +367,19 @@ class Lattice(object):
         cells: list of Cell objects
             List of cells in the lattice
         """
+
+        def randomWithStep(start, end, step):
+            """
+            Give a random number between start and end with a step
+            :param start: Float lower bound
+            :param end: Float upper bound
+            :param step: float step
+            :return: float random number with step
+            """
+            range_values = int((end - start) / step)
+            random_step_value = random.randint(0, range_values)
+            return start + random_step_value * step
+
         xCellStartInit = 0
         yCellStartInit = 0
         zCellStartInit = 0
@@ -398,7 +413,16 @@ class Lattice(object):
                                             self.gradRadius, self.gradDim, self.gradMat)
                         # Case for hybrid lattice on 1 cell
                         elif self.latticeType == 1000:
-                            for idx, radiusHybrid in enumerate(self.hybridLatticeData):
+                            setRadiusCell = [0.0, 0.0, 0.0]
+                            if self.randomHybrid:  # Randomize hybrid lattice for dataset generation
+                                while all(val == 0 for val in setRadiusCell):
+                                    for idx, radiusHybrid in enumerate(self.hybridLatticeData):
+                                        if radiusHybrid == 0.0:
+                                            setRadiusCell[idx] = randomWithStep(0, 0.1, 0.01)
+                            else:
+                                setRadiusCell = self.hybridLatticeData
+
+                            for idx, radiusHybrid in enumerate(setRadiusCell):
                                 if radiusHybrid != 0.0:
                                     if not new_cell:
                                         new_cell = Cell(posCell, initialCellSize, startCellPos,
@@ -409,7 +433,7 @@ class Lattice(object):
                                     else:
                                         new_cell.getBeamRadius(self.gradRadius, radiusHybrid)
                                         new_cell.generateBeamsInCell(self.hybridGeomType[idx], startCellPos, idx + 100)
-                            new_cell.defineHybridRadius(self.hybridLatticeData)
+                            new_cell.defineHybridRadius(setRadiusCell)
                         # Case for randomized lattice
                         # else:
                         #     new_cell.generate_beams_random(self.Radius, self.gradRadius, self.gradDim, self.gradMat,
