@@ -417,7 +417,7 @@ class Lattice(object):
                             if self.randomHybrid:  # Randomize hybrid lattice for dataset generation
                                 while all(val == 0 for val in setRadiusCell):
                                     for idx, radiusHybrid in enumerate(self.hybridLatticeData):
-                                        if radiusHybrid == 0.0:
+                                        if radiusHybrid != 0.0:
                                             setRadiusCell[idx] = randomWithStep(0, 0.1, 0.01)
                             else:
                                 setRadiusCell = self.hybridLatticeData
