@@ -1479,6 +1479,8 @@ class Lattice(object):
             for beam in cell.beams:
                 for node in [beam.point1, beam.point2]:
                     if node.indexBoundary in indexBoundaryList:
+                        for dofFixedI in dofFixed:  # case where displacement was already set
+                            node.setDisplacementValue(0, dofFixedI)
                         node.fixDOF(dofFixed)
 
     def fixDOFOnNode(self, nodeList, dofFixed):
