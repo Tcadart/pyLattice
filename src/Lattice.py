@@ -11,6 +11,8 @@ if sys.version_info[0] == 3:
     import numpy as np
     from scipy.sparse.linalg import splu
     from scipy.sparse import coo_matrix
+    import plotly.graph_objects as go
+    from plotly.subplots import make_subplots
 
 
 class Lattice(object):
@@ -1714,4 +1716,148 @@ class Lattice(object):
                     break
 
         return cellTagList
+
+    def visualizeLattice3D_interactive(self, beamColor="Material", voxelViz=False, deformedForm=False,
+                                       plotCellIndex=False):
+        """
+        Visualizes the lattice in 3D using Plotly.
+
+        Parameters:
+        -----------
+        beamColor: string (default: "Material")
+            "Material" -> color by material
+            "Type" -> color by type
+        voxelViz: boolean (default: False)
+            True -> voxel visualization
+            False -> beam visualization
+        deformedForm: boolean (default: False)
+            True -> deformed form
+        plotCellIndex: boolean (default: False)
+            True -> plot the index of each cell
+        """
+
+        color_list = ['blue', 'green', 'red', 'yellow', 'orange', 'purple', 'cyan', 'magenta']
+        fig = go.Figure()
+
+        if not voxelViz:
+            beamDraw = set()
+            nodeDraw = set()
+            node_coords = []
+            node_colors = []
+            lines_x = []
+            lines_y = []
+            lines_z = []
+            line_colors = []
+
+            for cell in self.cells:
+                for beam in cell.beams:
+                    if beam not in beamDraw:
+                        if deformedForm:
+                            node1 = beam.point1.getDeformedPos()
+                            node2 = beam.point2.getDeformedPos()
+                        else:
+                            node1 = (beam.point1.x, beam.point1.y, beam.point1.z)
+                            node2 = (beam.point2.x, beam.point2.y, beam.point2.z)
+
+                        # Ajouter les coordonnées pour les lignes
+                        lines_x.extend([node1[0], node2[0], None])
+                        lines_y.extend([node1[1], node2[1], None])
+                        lines_z.extend([node1[2], node2[2], None])
+
+                        # Déterminer la couleur du faisceau
+                        if beamColor == "Material":
+                            colorBeam = color_list[beam.material % len(color_list)]
+                        elif beamColor == "Type":
+                            colorBeam = color_list[beam.type % len(color_list)]
+                        else:
+                            colorBeam = 'grey'
+
+                        line_colors.extend([colorBeam, colorBeam, colorBeam])
+
+                        beamDraw.add(beam)
+
+                    # Ajouter les nœuds
+                    for node in [node1, node2]:
+                        if node not in nodeDraw:
+                            node_coords.append(node)
+                            nodeDraw.add(node)
+                            # Déterminer la couleur du nœud
+                            node_colors.append('black')
+
+                if plotCellIndex:
+                    cell_center = cell.centerPoint
+                    fig.add_trace(go.Scatter3d(
+                        x=[cell_center[0]],
+                        y=[cell_center[1]],
+                        z=[cell_center[2]],
+                        mode='text',
+                        text=str(cell.index),
+                        textposition="top center",
+                        showlegend=False
+                    ))
+
+            # Ajouter les faisceaux (beams) à la figure
+            fig.add_trace(go.Scatter3d(
+                x=lines_x,
+                y=lines_y,
+                z=lines_z,
+                mode='lines',
+                line=dict(color=line_colors, width=5),
+                hoverinfo='none',
+                showlegend=False
+            ))
+
+            # Ajouter les nœuds à la figure
+            if node_coords:
+                node_x, node_y, node_z = zip(*node_coords)
+                fig.add_trace(go.Scatter3d(
+                    x=node_x,
+                    y=node_y,
+                    z=node_z,
+                    mode='markers',
+                    marker=dict(size=4, color=node_colors),
+                    hoverinfo='none',
+                    showlegend=False
+                ))
+
+        else:
+            # Visualisation voxel (barres 3D)
+            for cell in self.cells:
+                x, y, z = cell.coordinateCell
+                dx, dy, dz = cell.cellSize
+
+                if beamColor == "Material":
+                    colorCell = color_list[cell.beams[0].material % len(color_list)]
+                elif beamColor == "Type":
+                    colorCell = color_list[int(str(cell.latticeType)[0]) % len(color_list)]
+                else:
+                    colorCell = 'grey'
+
+                # Créer un cube pour chaque cellule
+                fig.add_trace(go.Mesh3d(
+                    x=[x, x + dx, x + dx, x, x, x + dx, x + dx, x],
+                    y=[y, y, y + dy, y + dy, y, y, y + dy, y + dy],
+                    z=[z, z, z, z, z + dz, z + dz, z + dz, z + dz],
+                    color=colorCell,
+                    opacity=0.5,
+                    showlegend=False
+                ))
+
+        # Configurer les axes
+        limMin = min(self.xMin, self.yMin, self.zMin)
+        limMax = max(self.xMax, self.yMax, self.zMax)
+        fig.update_layout(
+            scene=dict(
+                xaxis=dict(title='X', range=[limMin, limMax], backgroundcolor='white', showgrid=True, zeroline=True),
+                yaxis=dict(title='Y', range=[limMin, limMax], backgroundcolor='white', showgrid=True, zeroline=True),
+                zaxis=dict(title='Z', range=[limMin, limMax], backgroundcolor='white', showgrid=True, zeroline=True),
+                aspectmode='data'
+            ),
+            margin=dict(l=0, r=0, b=0, t=0),
+            showlegend=False
+        )
+
+        # Afficher la figure
+        fig.show()
+        return fig  # Retourner la figure pour utilisation dans Streamlit
 
