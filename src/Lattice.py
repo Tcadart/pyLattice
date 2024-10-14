@@ -1857,7 +1857,5 @@ class Lattice(object):
             showlegend=False
         )
 
-        # Afficher la figure
-        fig.show()
         return fig  # Retourner la figure pour utilisation dans Streamlit
 

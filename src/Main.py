@@ -84,4 +84,5 @@ lattice = Lattice(cell_size_X, cell_size_Y, cell_size_Z, number_cell_X, number_c
                   hybridLatticeData=hybridLatticeData, hybridGeomType=[0, 16, 17], periodicity=True, randomHybrid=True)
 
 
-lattice.visualizeLattice3D_interactive("Type", deformedForm=True, plotCellIndex=False)
+fig = lattice.visualizeLattice3D_interactive("Type", deformedForm=True, plotCellIndex=False)
+fig.show()
