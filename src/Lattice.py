@@ -1851,7 +1851,7 @@ class Lattice(object):
                 xaxis=dict(title='X', range=[limMin, limMax], backgroundcolor='white', showgrid=True, zeroline=True),
                 yaxis=dict(title='Y', range=[limMin, limMax], backgroundcolor='white', showgrid=True, zeroline=True),
                 zaxis=dict(title='Z', range=[limMin, limMax], backgroundcolor='white', showgrid=True, zeroline=True),
-                aspectmode='data'
+                aspectmode='cube'
             ),
             margin=dict(l=0, r=0, b=0, t=0),
             showlegend=False
