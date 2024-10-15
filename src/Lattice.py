@@ -1364,6 +1364,22 @@ class Lattice(object):
                 volumeBeams += beam.getVolume()
         return volumeBeams / volumeLattice
 
+    def changeBeamRadiusForType(self, typeToChange, newRadius):
+        """
+        Change radius of beam for specific type
+
+        Parameters:
+        -----------
+        typeToChange: int
+            Type of beam to change
+        newRadius: float
+            New radius of beam
+        """
+        for cell in self.cells:
+            for beam in cell.beams:
+                if beam.type == typeToChange:
+                    beam.radius = newRadius
+
     def getNumberOfBeams(self):
         """
         Get number of beams in the lattice
