@@ -15,11 +15,11 @@ cell_size_X = cell_size
 cell_size_Y = cell_size
 cell_size_Z = cell_size
 number_cell = 1
-number_cell_X = 2
-number_cell_Y = 2
-number_cell_Z = 2
+number_cell_X = 3
+number_cell_Y = 3
+number_cell_Z = 3
 
-Lattice_Type = 1000
+Lattice_Type = 0
 # -2 => Method random cell
 # -1 => Full random
 # 0 => BCC
@@ -63,7 +63,7 @@ MethodSim = 1
 # 0 No modification
 # 1 Node Modification
 
-uncertaintyNode = 0
+uncertaintyNodeSD = 0.0
 
 # *******************************************************************************************************************
 # *******************************************************************************************************************
@@ -81,11 +81,11 @@ erasedParts = [(30.0, 0.0, 0.0, 19.0, 50.0, 19.0)]
 hybridLatticeData = [Radius, 0.1, 0]
 #Generate data from lattice
 lattice = Lattice(cell_size_X, cell_size_Y, cell_size_Z, number_cell_X, number_cell_Y, number_cell_Z, Lattice_Type,
-                  Radius, gradRadiusProperty, gradDimProperty, gradMatProperty, MethodSim, uncertaintyNode,
+                  Radius, gradRadiusProperty, gradDimProperty, gradMatProperty, MethodSim, uncertaintyNodeSD,
                   hybridLatticeData=hybridLatticeData, hybridGeomType=[0, 16, 17], periodicity=False,
                   randomHybrid=False)
 
-
-fig = lattice.visualizeLattice3D_interactive("Type", deformedForm=True, plotCellIndex=False, voxelViz=False)
+fig = lattice.visualCellZoneBlocker(erasedParts)
+# fig = lattice.visualizeLattice3D("Type", deformedForm=True, plotCellIndex=False, voxelViz=False)
 fig.show()
 

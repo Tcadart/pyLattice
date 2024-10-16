@@ -17,7 +17,7 @@ class Cell(object):
     """
 
     def __init__(self, posCell, initialCellSize, startCellPos, latticeType,
-                 Radius, gradRadius, gradDim, gradMat):
+                 Radius, gradRadius, gradDim, gradMat, uncertaintyNode):
         """
         Initialize a Cell with its dimensions and position
 
@@ -51,6 +51,7 @@ class Cell(object):
         self.latticeType = latticeType
         self.hybridRadius = None
         self.matB = None  # B matrix (Coupling matrix)
+        self.uncertaintyNode = uncertaintyNode
 
         self.getBeamMaterial(gradMat)
         self.getBeamRadius(gradRadius, Radius)
@@ -71,12 +72,21 @@ class Cell(object):
         beamType: int
             Type of beam
         """
+        pointDict = {}
         for line in Lattice_geometry(latticeType):
             x1, y1, z1, x2, y2, z2 = map(float, line)
-            point1 = Point(x1 * self.cellSize[0] + startCellPos[0], y1 * self.cellSize[1] + startCellPos[1],
-                           z1 * self.cellSize[2] + startCellPos[2])
-            point2 = Point(x2 * self.cellSize[0] + startCellPos[0], y2 * self.cellSize[1] + startCellPos[1],
-                           z2 * self.cellSize[2] + startCellPos[2])
+            if (x1,y1,z1) in pointDict:
+                point1 = pointDict[(x1,y1,z1)]
+            else:
+                point1 = Point(x1 * self.cellSize[0] + startCellPos[0], y1 * self.cellSize[1] + startCellPos[1],
+                               z1 * self.cellSize[2] + startCellPos[2], self.uncertaintyNode)
+                pointDict[(x1,y1,z1)] = point1
+            if (x2,y2,z2) in pointDict:
+                point2 = pointDict[(x2,y2,z2)]
+            else:
+                point2 = Point(x2 * self.cellSize[0] + startCellPos[0], y2 * self.cellSize[1] + startCellPos[1],
+                               z2 * self.cellSize[2] + startCellPos[2], self.uncertaintyNode)
+                pointDict[(x2,y2,z2)] = point2
             beam = Beam(point1, point2, self._beamRadius, self._beamMaterial, beamType)
             self.beams.append(beam)
 

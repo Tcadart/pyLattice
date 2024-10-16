@@ -1,9 +1,10 @@
+import random
 class Point(object):
     """
     Point object represent a point by 3 coordinates x, y, z
     """
 
-    def __init__(self, x, y, z):
+    def __init__(self, x, y, z, nodeUncertaintySD = 0.0):
         """
         Create a point object
 
@@ -16,9 +17,9 @@ class Point(object):
         z: float
             z coordinate of the point
         """
-        self.x = x
-        self.y = y
-        self.z = z
+        self.x = x + random.gauss(0, nodeUncertaintySD)
+        self.y = y + random.gauss(0, nodeUncertaintySD)
+        self.z = z + random.gauss(0, nodeUncertaintySD)
         self.index = None
         self.tag = []
         self.localTag = []

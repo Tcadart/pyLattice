@@ -7,7 +7,7 @@ import sys
 
 if sys.version_info[0] == 3:
     import matplotlib.pyplot as plt
-    from mpl_toolkits.mplot3d.art3d import Line3DCollection
+    from mpl_toolkits.mplot3d.art3d import Line3DCollection, Poly3DCollection
     import numpy as np
     from scipy.sparse.linalg import splu
     from scipy.sparse import coo_matrix
@@ -412,7 +412,7 @@ class Lattice(object):
                         # Case for normal lattice structures
                         if self.latticeType != -2 and self.latticeType < 1000:
                             new_cell = Cell(posCell, initialCellSize, startCellPos, self.latticeType, self.Radius,
-                                            self.gradRadius, self.gradDim, self.gradMat)
+                                            self.gradRadius, self.gradDim, self.gradMat, self.uncertaintyNode)
                         # Case for hybrid lattice on 1 cell
                         elif self.latticeType == 1000:
                             setRadiusCell = [0.0, 0.0, 0.0]
@@ -429,7 +429,7 @@ class Lattice(object):
                                     if not new_cell:
                                         new_cell = Cell(posCell, initialCellSize, startCellPos,
                                                         self.hybridGeomType[idx], radiusHybrid, self.gradRadius,
-                                                        self.gradDim, self.gradMat)
+                                                        self.gradDim, self.gradMat, self.uncertaintyNode)
                                         for beam in new_cell.beams:
                                             beam.changeBeamType(idx + 100)
                                     else:
@@ -1875,3 +1875,36 @@ class Lattice(object):
 
         return fig  # Retourner la figure pour utilisation dans Streamlit
 
+    def visualCellZoneBlocker(self, erasedParts):
+        fig = plt.figure()
+        ax = fig.add_subplot(111, projection='3d')
+
+        # Plot global lattice cube
+        x_max = self.xMax
+        y_max = self.yMax
+        z_max = self.zMax
+        vertices_global = [[0, 0, 0], [x_max, 0, 0], [x_max, y_max, 0], [0, y_max, 0],
+                           [0, 0, z_max], [x_max, 0, z_max], [x_max, y_max, z_max], [0, y_max, z_max]]
+        ax.add_collection3d(
+            Poly3DCollection([vertices_global], facecolors='grey', linewidths=1, edgecolors='black', alpha=0.3))
+
+        # Plot erased region cube
+        for erased in erasedParts:
+            x_start, y_start, z_start, x_dim, y_dim, z_dim = erased
+            vertices_erased = [[x_start, y_start, z_start], [x_start + x_dim, y_start, z_start],
+                               [x_start + x_dim, y_start + y_dim, z_start], [x_start, y_start + y_dim, z_start],
+                               [x_start, y_start, z_start + z_dim], [x_start + x_dim, y_start, z_start + z_dim],
+                               [x_start + x_dim, y_start + y_dim, z_start + z_dim],
+                               [x_start, y_start + y_dim, z_start + z_dim]]
+            ax.add_collection3d(
+                Poly3DCollection([vertices_erased], facecolors='red', linewidths=1, edgecolors='black', alpha=0.6))
+
+        # Set labels and limits
+        ax.set_xlabel('X')
+        ax.set_ylabel('Y')
+        ax.set_zlabel('Z')
+        ax.set_xlim([0, x_max])
+        ax.set_ylim([0, y_max])
+        ax.set_zlim([0, z_max])
+
+        plt.show()
