@@ -254,24 +254,20 @@ class Lattice(object):
             return 1.0
 
         def apply_linear_rule(i, paramValue):
-            return i * paramValue
+            return 1.0 + i * paramValue
 
         def apply_parabolic_rule(i, numberCell, paramValue):
-            return i * paramValue if i < numberCell / 2 else (numberCell - i - 1) * paramValue
+            mid = numberCell / 2
+            if i < mid:
+                return 1.0 + (i / mid) * paramValue
+            else:
+                return 1.0 + ((numberCell - i - 1) / mid) * paramValue
 
         def apply_sinusoide_rule(i, numberCell, paramValue):
-            if i < numberCell / 4:
-                return i * paramValue
-            elif i < numberCell / 2:
-                return (numberCell / 2 - i) * paramValue
-            elif i == numberCell / 2:
-                return 1.0
-            elif i < 3 / 4 * numberCell:
-                return (3 / 4 * numberCell - i) * (1 / paramValue)
-            return 1.0
+            return 1.0 + paramValue * math.sin((i / numberCell) * math.pi)
 
         def apply_exponential_rule(i, paramValue):
-            return math.exp(i * paramValue)
+            return 1.0 + math.exp(i * paramValue)
 
         rule_functions = {
             'constant': apply_constant_rule,
@@ -286,9 +282,9 @@ class Lattice(object):
         direction = gradProperties[1]
         parameters = gradProperties[2]
 
-        # Initialization matrix
+        # Initialization matrix for each dimension (X, Y, Z)
         maxCells = max(self.numCellsX, self.numCellsY, self.numCellsZ)
-        gradientData = [[0.0, 0.0, 0.0] for _ in range(maxCells)]
+        gradientData = [[1.0, 1.0, 1.0] for _ in range(maxCells)]
 
         # Processing multiple rules
         for i in range(maxCells):
@@ -296,12 +292,12 @@ class Lattice(object):
             for dimIndex in range(3):
                 if i < numberCells[dimIndex] and direction[dimIndex] == 1:
                     rule_function = rule_functions.get(rule, apply_constant_rule)
-                    if rule == 'parabolic' or rule == 'sinusoide':
+                    if rule in ['parabolic', 'sinusoide']:
                         gradientData[i][dimIndex] = rule_function(i, numberCells[dimIndex], parameters[dimIndex])
                     else:
                         gradientData[i][dimIndex] = rule_function(i, parameters[dimIndex])
                 else:
-                    gradientData[i][dimIndex] = 1.0
+                    gradientData[i][dimIndex] = 1.0  # Default to no gradient if direction is inactive
         return gradientData
 
     def gradMaterialSetting(self, gradMatProperty):
