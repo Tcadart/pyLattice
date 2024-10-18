@@ -67,7 +67,7 @@ uncertaintyNodeSD = 0.0
 
 # erasedParts = [(30.0, 0.0, 0.0, 19.0, 50.0, 19.0)]
 # List of erased parts in the lattice
-# [(x_min, y_min, z_min, x_max, y_max, z_max), ...]
+# [(xStart, yStart, zStart, xDim, yDim, zDim), ...] of the erased region
 
 
 # Gradient properties
