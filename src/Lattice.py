@@ -1771,12 +1771,12 @@ class Lattice(object):
                             node1 = (beam.point1.x, beam.point1.y, beam.point1.z)
                             node2 = (beam.point2.x, beam.point2.y, beam.point2.z)
 
-                        # Ajouter les coordonnées pour les lignes
+                        # Add the beam to the figure
                         lines_x.extend([node1[0], node2[0], None])
                         lines_y.extend([node1[1], node2[1], None])
                         lines_z.extend([node1[2], node2[2], None])
 
-                        # Déterminer la couleur du faisceau
+                        # Determine the color of the beam
                         if beamColor == "Material":
                             colorBeam = color_list[beam.material % len(color_list)]
                         elif beamColor == "Type":
@@ -1788,12 +1788,12 @@ class Lattice(object):
 
                         beamDraw.add(beam)
 
-                    # Ajouter les nœuds
+                    # Add the nodes to the figure
                     for node in [node1, node2]:
                         if node not in nodeDraw:
                             node_coords.append(node)
                             nodeDraw.add(node)
-                            # Déterminer la couleur du nœud
+                            # Determine the color of the node
                             node_colors.append('black')
 
                 if plotCellIndex:
@@ -1808,7 +1808,7 @@ class Lattice(object):
                         showlegend=False
                     ))
 
-            # Ajouter les faisceaux (beams) à la figure
+            # Add the beams to the figure
             fig.add_trace(go.Scatter3d(
                 x=lines_x,
                 y=lines_y,
@@ -1819,7 +1819,7 @@ class Lattice(object):
                 showlegend=False
             ))
 
-            # Ajouter les nœuds à la figure
+            # Add the nodes to the figure
             if node_coords:
                 node_x, node_y, node_z = zip(*node_coords)
                 fig.add_trace(go.Scatter3d(
@@ -1833,7 +1833,7 @@ class Lattice(object):
                 ))
 
         else:
-            # Visualisation voxel (barres 3D)
+            # Vizualize the lattice as a voxel grid
             for cell in self.cells:
                 x, y, z = cell.coordinateCell
                 dx, dy, dz = cell.cellSize
@@ -1845,7 +1845,7 @@ class Lattice(object):
                 else:
                     colorCell = 'grey'
 
-                # Créer un cube pour chaque cellule
+                # Create the voxel
                 fig.add_trace(go.Mesh3d(
                     x=[x, x + dx, x + dx, x, x, x + dx, x + dx, x],
                     y=[y, y, y + dy, y + dy, y, y, y + dy, y + dy],
@@ -1855,7 +1855,7 @@ class Lattice(object):
                     showlegend=False
                 ))
 
-        # Configurer les axes
+        # Configure the layout
         limMin = min(self.xMin, self.yMin, self.zMin)
         limMax = max(self.xMax, self.yMax, self.zMax)
         fig.update_layout(
@@ -1869,7 +1869,7 @@ class Lattice(object):
             showlegend=False
         )
 
-        return fig  # Retourner la figure pour utilisation dans Streamlit
+        return fig  # Return the figure
 
     def visualCellZoneBlocker(self, erasedParts):
         fig = plt.figure()
