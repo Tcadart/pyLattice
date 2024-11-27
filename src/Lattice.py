@@ -355,7 +355,6 @@ class Lattice(object):
                     counterIn += 1
         return counterIn == 3
 
-
     def generateLattice(self):
         """
         Generates lattice structure based on specified parameters.
@@ -709,7 +708,7 @@ class Lattice(object):
 
                 # Vérification pour les arêtes (tags spécifiques)
                 if p1 is None and p2 is None:  # Ne vérifie les arêtes que si aucun coin n'est trouvé
-                    list_tag_edge = [[102, 104, 106, 107], [100, 108, 105,111], [101, 109, 103, 110]]
+                    list_tag_edge = [[102, 104, 106, 107], [100, 108, 105, 111], [101, 109, 103, 110]]
                     for tag_list in list_tag_edge:
                         for idx1, p1_candidate in enumerate([beam1.point1, beam1.point2]):
                             if p1_candidate.tag and p1_candidate.tag[0] in tag_list:
@@ -719,6 +718,16 @@ class Lattice(object):
                                         p2 = idx2  # Enregistrer l'indice pour beam2
                                         break  # Sortir de la boucle si une correspondance est trouvée
 
+                if p1 is None and p2 is None:
+                    list_face_tag = [[10, 15], [11, 14], [12, 13]]
+                    for face_tag in list_face_tag:
+                        for idx1, p1_candidate in enumerate([beam1.point1, beam1.point2]):
+                            if p1_candidate.tag and p1_candidate.tag[0] in face_tag:
+                                p1 = idx1
+                                for idx2, p2_candidate in enumerate([beam2.point1, beam2.point2]):
+                                    if p2_candidate.tag and p2_candidate.tag[0] in face_tag:
+                                        p2 = idx2
+                                        break
 
             if beam1.point1 == beam2.point1 or (p1 == 0 and p2 == 0):
                 u = beam1.point2 - beam1.point1
@@ -802,6 +811,12 @@ class Lattice(object):
                 for edge_tags in edge_tags_list:
                     check_periodic_connection(beam.point1, beamidx, point1beams, edge_tags)
                     check_periodic_connection(beam.point2, beamidx, point2beams, edge_tags)
+
+                face_tags = [[10, 15], [11, 14], [12, 13]]
+                for face_tag in face_tags:
+                    check_periodic_connection(beam.point1, beamidx, point1beams, face_tag)
+                    check_periodic_connection(beam.point2, beamidx, point2beams, face_tag)
+
         return point1beams, point2beams
 
     def getAllAngles(self):
