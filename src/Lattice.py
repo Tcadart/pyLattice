@@ -696,17 +696,30 @@ class Lattice(object):
             Angle: float
                 angle in degrees
             """
-            p1 = None
-            p2 = None
+            p1, p2 = None, None
             if self.periodicity:
-                for idx, p in enumerate([beam1.point1, beam1.point2]):
-                    if len(p.tag) > 0:
-                        if 1000 <= p.tag[0] <= 1007:
-                            p1 = idx
-                for idx, p in enumerate([beam2.point1, beam2.point2]):
-                    if len(p.tag) > 0:
-                        if 1000 <= p.tag[0] <= 1007:
-                            p2 = idx
+                # Vérification pour les coins (tags entre 1000 et 1007)
+                for idx1, p1_candidate in enumerate([beam1.point1, beam1.point2]):
+                    if p1_candidate.tag and 1000 <= p1_candidate.tag[0] <= 1007:
+                        p1 = idx1  # Enregistrer l'indice pour beam1
+                        for idx2, p2_candidate in enumerate([beam2.point1, beam2.point2]):
+                            if p2_candidate.tag and 1000 <= p2_candidate.tag[0] <= 1007:
+                                p2 = idx2  # Enregistrer l'indice pour beam2
+                                break  # Sortir de la boucle si une correspondance est trouvée
+
+                # Vérification pour les arêtes (tags spécifiques)
+                if p1 is None and p2 is None:  # Ne vérifie les arêtes que si aucun coin n'est trouvé
+                    list_tag_edge = [[102, 104, 106, 107], [100, 108, 105,111], [101, 109, 103, 110]]
+                    for tag_list in list_tag_edge:
+                        for idx1, p1_candidate in enumerate([beam1.point1, beam1.point2]):
+                            if p1_candidate.tag and p1_candidate.tag[0] in tag_list:
+                                p1 = idx1  # Enregistrer l'indice pour beam1
+                                for idx2, p2_candidate in enumerate([beam2.point1, beam2.point2]):
+                                    if p2_candidate.tag and p2_candidate.tag[0] in tag_list:
+                                        p2 = idx2  # Enregistrer l'indice pour beam2
+                                        break  # Sortir de la boucle si une correspondance est trouvée
+
+
             if beam1.point1 == beam2.point1 or (p1 == 0 and p2 == 0):
                 u = beam1.point2 - beam1.point1
                 v = beam2.point2 - beam2.point1
@@ -720,8 +733,6 @@ class Lattice(object):
                 u = beam1.point1 - beam1.point2
                 v = beam2.point1 - beam2.point2
             else:
-                # This case should not occur if beams are connected at one point,
-                # but you may handle it if needed
                 raise ValueError("Beams are not connected at any point")
 
             dot_product = sum(a * b for a, b in zip(u, v))
@@ -769,24 +780,28 @@ class Lattice(object):
                 point1beams.append(beamidx)
             if beam.point2 == beamidx.point1 or beam.point2 == beamidx.point2:
                 point2beams.append(beamidx)
-            if self.periodicity:  # Periodicity is not finish
-                tag1 = beam.point1.tag
-                tag2 = beam.point2.tag
-                tag1 = tag1[0] if len(tag1) == 1 else None
-                tag2 = tag2[0] if len(tag2) == 1 else None
-                point1_tag = beamidx.point1.tag
-                point2_tag = beamidx.point2.tag
-                if tag1 is not None and 999 < tag1 < 1008:  # Corner
-                    if any(999 < tag < 1008 for tag in point1_tag):
-                        point1beams.append(beamidx)
-                    if any(999 < tag < 1008 for tag in point2_tag):
-                        point1beams.append(beamidx)
+            # Gestion de la périodicité
+            if self.periodicity:
+                def check_periodic_connection(point, beamidx, connected_beams, tag_range):
+                    """
+                    Vérifie les connexions périodiques pour un point donné.
+                    """
+                    if point.tag and point.tag[0] in tag_range:  # Coin ou arête spécifique
+                        if any(tag in tag_range for tag in beamidx.point1.tag):
+                            connected_beams.append(beamidx)
+                        if any(tag in tag_range for tag in beamidx.point2.tag):
+                            connected_beams.append(beamidx)
 
-                if tag2 is not None and 999 < tag2 < 1008:  # Corner
-                    if any(999 < tag < 1008 for tag in point1_tag):
-                        point2beams.append(beamidx)
-                    if any(999 < tag < 1008 for tag in point2_tag):
-                        point2beams.append(beamidx)
+                # Vérification pour les coins
+                corner_tags = range(1000, 1008)
+                check_periodic_connection(beam.point1, beamidx, point1beams, corner_tags)
+                check_periodic_connection(beam.point2, beamidx, point2beams, corner_tags)
+
+                # Vérification pour les arêtes
+                edge_tags_list = [[102, 104, 106, 107], [100, 108, 105, 111], [101, 109, 103, 110]]
+                for edge_tags in edge_tags_list:
+                    check_periodic_connection(beam.point1, beamidx, point1beams, edge_tags)
+                    check_periodic_connection(beam.point2, beamidx, point2beams, edge_tags)
         return point1beams, point2beams
 
     def getAllAngles(self):

@@ -10,15 +10,15 @@
 # Lattice properties
 Radius = 0.08
 cell_size = 1
-cell_size_X = 2
+cell_size_X = 1
 cell_size_Y = cell_size
 cell_size_Z = cell_size
 number_cell = 1
-number_cell_X = 3
-number_cell_Y = 3
-number_cell_Z = 3
+number_cell_X = 1
+number_cell_Y = 1
+number_cell_Z = 1
 
-Lattice_Type = 5
+Lattice_Type = 4
 # -2 => Method random cell
 # -1 => Full random
 # 0 => BCC
@@ -36,6 +36,8 @@ Lattice_Type = 5
 # 12 => New lattice (non connu) GPT generated
 # 13 => Diamond
 # 14 => Auxetic
+# 1000 => Hybrid Lattice with data in hybridLatticeData
+hybridLatticeData = [0.0, 0.0, 0.01]
 
 # Gradient on cell dimensions
 GradDimRule = 'constant'
