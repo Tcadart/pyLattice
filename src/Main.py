@@ -7,8 +7,7 @@ if Lattice_Type != 1000:
                       Radius, gradRadiusProperty, gradDimProperty, gradMatProperty, MethodSim, uncertaintyNodeSD)
 else:
     lattice = Lattice.hybridgeometry(cell_size_X, cell_size_Y, cell_size_Z, MethodSim, uncertaintyNodeSD,
-                                  hybridLatticeData)
+                                     hybridLatticeData, hybridGeomType = [0, 16, 19])
 
 fig = lattice.visualizeLattice3D("Type", deformedForm=True, plotCellIndex=False, voxelViz=False)
 # fig.show()
-
