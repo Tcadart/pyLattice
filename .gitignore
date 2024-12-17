@@ -3,7 +3,6 @@ a
 *.rpt
 *.exception
 *.job
-*.txt
 *.com
 *.dat
 *.inp
