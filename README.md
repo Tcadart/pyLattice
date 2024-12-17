@@ -2,7 +2,10 @@
 
 ## Overview
 
-This Python project generates 3D lattice structures with customizable geometry, material properties, gradient, and specific modification for simualtions (More information on An optimal penalty method for the joint stiffening in beam models of additively manufactured lattice structures). The structures are defined by cells, beams, and nodes. The code supports various lattice types, including Body-Centered Cubic (BCC), Octet, Diamond, and more (You can also add your own to personalized).
+This Python project generates 3D lattice structures with customizable geometry, material properties, gradient, and 
+specific modification for simualtions (More information on An optimal penalty method for the joint stiffening in 
+beam models of additively manufactured lattice structures: [Paper Link](https://doi.org/10.1016/j.ijsolstr.2024.113107)). 
+The structures are defined by cells, beams, and nodes. The code supports various lattice types, including Body-Centered Cubic (BCC), Octet, Diamond, and more (You can also add your own to personalized).
 
 ## Key Features
 - **Lattice Types**: Generate lattice structures of different geometric configurations, including:
@@ -33,7 +36,7 @@ This Python project generates 3D lattice structures with customizable geometry, 
    ```
 2. Set up the project:
    ```bash
-   python setup.py install
+   pip install -r requirements.txt
    ```
 
 ## Usage
