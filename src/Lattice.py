@@ -19,7 +19,6 @@ class Lattice(object):
     """
     Generate lattice structures with a lot of different parameters
     """
-
     def __init__(self, cell_size_x, cell_size_y, cell_size_z,
                  num_cells_x, num_cells_y, num_cells_z,
                  Lattice_Type, Radius,
