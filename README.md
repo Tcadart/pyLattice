@@ -29,13 +29,9 @@ This Python project generates 3D lattice structures with customizable geometry, 
 
 1. Clone the repository:
    ```bash
-   git clone https://github.com/yourusername/lattice-generator.git
+   git clone https://github.com/yourusername/Lattice.git
    ```
-2. Navigate to the project directory and install dependencies:
-   ```bash
-   pip install -r requirements.txt
-   ```
-3. Set up the project:
+2. Set up the project:
    ```bash
    python setup.py install
    ```
