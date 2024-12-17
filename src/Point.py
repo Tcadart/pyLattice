@@ -19,9 +19,9 @@ class Point(object):
         z: float
             z coordinate of the point
         """
-        self.x = x + random.gauss(0, nodeUncertaintySD)
-        self.y = y + random.gauss(0, nodeUncertaintySD)
-        self.z = z + random.gauss(0, nodeUncertaintySD)
+        self.x = float(x) + random.gauss(0, nodeUncertaintySD)
+        self.y = float(y) + random.gauss(0, nodeUncertaintySD)
+        self.z = float(z) + random.gauss(0, nodeUncertaintySD)
         self.index = None
         self.tag = []
         self.localTag = []
