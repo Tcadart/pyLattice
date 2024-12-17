@@ -1,6 +1,7 @@
 from __future__ import print_function, division
 import math
 
+
 class Beam(object):
     """
     Class Beam represente beam element in structures
@@ -38,7 +39,8 @@ class Beam(object):
         self.length = self.getLength()
 
     def __repr__(self):
-        return "Beam({}, {}, Radius:{}, Type:{}, Index:{})".format(self.point1, self.point2, self.radius, self.type, self.index)
+        return "Beam({}, {}, Radius:{}, Type:{}, Index:{})".format(self.point1, self.point2, self.radius, self.type,
+                                                                   self.index)
 
     def __eq__(self, other):
         return isinstance(other, Beam) and self.point1 == other.point1 and self.point2 == other.point2

@@ -1,10 +1,12 @@
 import random
+
+
 class Point(object):
     """
     Point object represent a point by 3 coordinates x, y, z
     """
 
-    def __init__(self, x, y, z, nodeUncertaintySD = 0.0):
+    def __init__(self, x, y, z, nodeUncertaintySD=0.0):
         """
         Create a point object
 
@@ -25,7 +27,8 @@ class Point(object):
         self.localTag = []
         self.indexBoundary = None
         self.displacementValue = [0, 0, 0, 0, 0, 0]  # Displacement vector of Dimension 6 to simulate lattice behavior
-        self.reactionForceValue = [0, 0, 0, 0, 0, 0]  # Reaction force vector of Dimension 6 to simulate lattice behavior
+        self.reactionForceValue = [0, 0, 0, 0, 0,
+                                   0]  # Reaction force vector of Dimension 6 to simulate lattice behavior
         self.fixedDOF = [0, 0, 0, 0, 0, 0]  # Fixed DOF vector of Dimension 6 (0: free, 1: fixed)
         self.globalFreeDOFIndex = [None] * 6  # Global free DOF index
 
@@ -207,7 +210,8 @@ class Point(object):
         """
         Return list of node position
         """
-        return self.x + self.displacementValue[0], self.y + self.displacementValue[1], self.z + self.displacementValue[2]
+        return self.x + self.displacementValue[0], self.y + self.displacementValue[1], self.z + self.displacementValue[
+            2]
 
     def fixDOF(self, DOF):
         """
@@ -227,4 +231,3 @@ class Point(object):
         Calculate internal energy of the node
         """
         return sum([self.displacementValue[i] * self.reactionForceValue[i] for i in range(6)])
-

@@ -37,10 +37,10 @@ Lattice_Type = 1000
 # 13 => Diamond
 # 14 => Auxetic
 # 1000 => Hybrid Lattice with data in hybridLatticeData
-hybridLatticeData = [0.000, 0.000, 0.01]
+hybridLatticeData = [0.1, 0.1, 0.01]
 
 # Gradient on cell dimensions
-GradDimRule = 'exponential'
+GradDimRule = 'constant'
 GradDimDirection = [1, 0, 0]
 GradDimParameters = [2.5, 0.0, 1.5]  # Float
 # Gradient on radius of beams

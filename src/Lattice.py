@@ -179,38 +179,6 @@ class Lattice(object):
                    1, gradRadiusProperty, gradDimProperty, gradMatProperty, simMethod, uncertaintyNode,
                    hybridLatticeData, hybridGeomType=hybridGeomType, periodicity=periodicity)
 
-    @classmethod
-    def latticeHybridForGraph(cls, hybridLatticeData, hybridGeomType):
-        """
-        Generate unit cell lattice structure with uniquely hybrid parameter for GNN dataset generation
-
-        Parameters:
-        -----------
-        hybridLatticeData: list of float
-            List of radius for each geometry
-        hybridGeomType: list of integer
-            List of geometry type for each radius
-        """
-        cell_size_x = 1
-        cell_size_y = 1
-        cell_size_z = 1
-        simMethod = 0
-        uncertaintyNode = 0
-        GradDimRule = 'constant'
-        GradDimDirection = [1, 0, 0]
-        GradDimParameters = [0.0, 0.0, 0.0]
-        GradRadRule = 'constant'
-        GradRadDirection = [1, 0, 0]
-        GradRadParameters = [0.0, 0.0, 0.0]
-        Multimat = 0
-        GradMaterialDirection = 1
-        gradDimProperty = [GradDimRule, GradDimDirection, GradDimParameters]
-        gradRadiusProperty = [GradRadRule, GradRadDirection, GradRadParameters]
-        gradMatProperty = [Multimat, GradMaterialDirection]
-        return cls(cell_size_x, cell_size_y, cell_size_z, 1, 1, 1, 1000,
-                   1, gradRadiusProperty, gradDimProperty, gradMatProperty, simMethod, uncertaintyNode,
-                   hybridLatticeData, hybridGeomType=hybridGeomType)
-
     @property
     def nodes(self):
         return self._nodes
@@ -311,13 +279,14 @@ class Lattice(object):
 
         Returns:
         --------
-        gradMat: list of integer
-            list of material type in the structure
+        gradMat: list of an integer
+            list of a material type in the structure
         """
 
         # Extract properties
         multimat = gradMatProperty[0]
         direction = gradMatProperty[1]
+        gradMat = None
 
         if multimat == -1:  # Random
             gradMat = [[[random.randint(1, 3) for X in range(self.numCellsX)] for Y in range(self.numCellsY)] for Z in
@@ -367,11 +336,16 @@ class Lattice(object):
 
         def randomWithStep(start, end, step):
             """
-            Give a random number between start and end with a step
-            :param start: Float lower bound
-            :param end: Float upper bound
-            :param step: float step
-            :return: float random number with step
+            Randomize a value with a step
+
+            Parameters:
+            -----------
+            start: float
+                Start value
+            end: float
+                End value
+            step: float
+                Step value
             """
             range_values = int((end - start) / step)
             random_step_value = random.randint(0, range_values)
@@ -499,7 +473,7 @@ class Lattice(object):
     def getNodeData(self):
         """
         Retrieves node data for the lattice.
-        data structure: each line represent a node with data [indexNode, X, Y, Z]
+        data structure: each line represents a node with data [indexNode, X, Y, Z]
         """
         self._nodes = []
         for cell in self.cells:
@@ -510,7 +484,7 @@ class Lattice(object):
 
     def getNodeObject(self):
         """
-        Retrieves node object for the lattice.
+        Retrieves a node object for the lattice.
         """
         nodeObjList = []
         for cell in self.cells:
@@ -523,7 +497,7 @@ class Lattice(object):
     def getBeamData(self):
         """
         Retrieves beam data for the lattice.
-        data structure: each line represent a beam with data [beamIndex, IndexPoint1, IndexPoint2, beamType]
+        data structure: each line represents a beam with data [beamIndex, IndexPoint1, IndexPoint2, beamType]
         """
         self._beams = []
         for cell in self.cells:
@@ -581,6 +555,7 @@ class Lattice(object):
                         node1 = beam.point1.x, beam.point1.y, beam.point1.z
                         node2 = beam.point2.x, beam.point2.y, beam.point2.z
                     if beam not in beamDraw:
+                        colorBeam = 'blue'
                         if beamColor == "Material":
                             colorBeam = color[beam.material]
                         elif beamColor == "Type":
@@ -607,6 +582,7 @@ class Lattice(object):
                 x, y, z = cell.coordinateCell
                 dx, dy, dz = cell.cellSize
 
+                colorCell = 'blue'
                 if beamColor == "Material":
                     colorCell = color[cell.beams[0].material]
                 elif beamColor == "Type":
@@ -629,61 +605,24 @@ class Lattice(object):
         else:
             plt.show()
 
-    def visualize_3d_random(self, ax):
-        """
-        Visualizes the lattice in 3D using matplotlib.
-
-        Parameter:
-        -----------
-        ax: Axes3D object
-        """
-
-        def findColorPoint(x, y, z):
-            """
-            Define color node with position in lattice structure
-            """
-            # Coin
-            if (x in [0, 1] and y in [0, 1] and z in [0, 1]):
-                return 'red'
-            elif x > 0 and x < 1 and y > 0 and y < 1 and z > 0 and z < 1:
-                return 'black'
-            else:
-                return 'blue'
-
-        for point in self.nodes_obj:
-            x, y, z = point.x, point.y, point.z
-            color_point = self.findColorPoint(x, y, z)
-            ax.scatter(x, y, z, c=color_point, s=5)
-        color = ['blue', 'green', 'red', 'yellow', 'orange']
-        for beam in self.beams_obj:
-            point1 = beam.point1
-            point2 = beam.point2
-            ax.plot([point1.x, point2.x], [point1.y, point2.y], [point1.z, point2.z], color=color[beam.material],
-                    markersize=10)
-        ax.set_xlabel('X')
-        ax.set_ylabel('Y')
-        ax.set_zlabel('Z')
-        ax.set_xlim3d(0, self.xMax)
-        ax.set_ylim3d(0, self.yMax)
-        ax.set_zlim3d(0, self.zMax)
 
     def getListAngleBeam(self, beam, pointbeams):
         """
-        Calculate angle between the considerate beam and beams contains in pointbeams
+        Calculate an angle between the considerate beam and beams contains in pointbeams
 
         Parameters:
         -----------
         beam: Beam object
-            Beam where angle is computed on
+            Beam where an angle is computed on
         pointbeams: list of Beam object
-            List of beam to calculate angle with considered beam
+            List of beam to calculate an angle with considered beam
 
         Return:
         ---------
-        non_zero_anglebeam: list of angle between considered beam and pointbeams beam list
-        non_zero_radiusbeam: list of radius between considered beam and pointbeams beam list
+        non_zero_anglebeam: list of an angle between considered beam and pointbeams beam list
+        non_zero_radiusbeam: list of radius between a considered beam and pointbeams beam list
 
-        Special case when pointbeams is empty return max angle to minimize penalization zone
+        Special case when pointbeams is an empty return max angle to minimize penalization zone
         """
 
         def getAngleBetweenBeams(beam1, beam2):
@@ -791,15 +730,15 @@ class Lattice(object):
                 point2beams.append(beamidx)
             # Gestion de la périodicité
             if self.periodicity:
-                def check_periodic_connection(point, beamidx, connected_beams, tag_range):
+                def check_periodic_connection(point, beam_idx, connected_beams, tag_range):
                     """
                     Vérifie les connexions périodiques pour un point donné.
                     """
                     if point.tag and point.tag[0] in tag_range:  # Coin ou arête spécifique
-                        if any(tag in tag_range for tag in beamidx.point1.tag):
-                            connected_beams.append(beamidx)
-                        if any(tag in tag_range for tag in beamidx.point2.tag):
-                            connected_beams.append(beamidx)
+                        if any(tag in tag_range for tag in beam_idx.point1.tag):
+                            connected_beams.append(beam_idx)
+                        if any(tag in tag_range for tag in beam_idx.point2.tag):
+                            connected_beams.append(beam_idx)
 
                 # Vérification pour les coins
                 corner_tags = range(1000, 1008)
@@ -974,7 +913,7 @@ class Lattice(object):
         Returns:
         --------
         minLength: float
-            Length of smallest beam in the lattice
+            Length of the smallest beam in the lattice
         """
         minLength = 100000
         for cell in self.cells:
@@ -1041,7 +980,7 @@ class Lattice(object):
 
         Return:
         --------
-        connectedNode: List of point object
+        connectedNode: List of a point object
         """
         connectedNode = []
         nodeIndexRef = node.index
@@ -1053,28 +992,13 @@ class Lattice(object):
                     connectedNode.append(beam.point1)
         return connectedNode
 
-    # def toucanLatticeModifier(self):
-    #     """
-    #     Fun lattice bio inspired toucan
-    #     """
-    #     toucanPourcent = 10
-    #     for i in range(int(math.ceil(len(self.beams_obj) * toucanPourcent / 100))):
-    #         nodeInit = random.choice(self.nodes_obj)
-    #         node1 = random.choice(self.getConnectedNode(nodeInit))
-    #         node2 = node1
-    #         while (node2 == node1):
-    #             node2 = random.choice(self.getConnectedNode(node1))
-    #         self.toucanModifier.append(
-    #             [[nodeInit.x, nodeInit.y, nodeInit.z], [node1.x, node1.y, node1.z], [node2.x, node2.y, node2.z]])
-    #     return self.toucanModifier
-
     def findBoundaryBeams(self):
         """
-        Find boundary beams and change type of beam
+        Find boundary beams and change the type of beam
 
         Return:
         -------
-        boundaryBeams: List of beam object
+        boundaryBeams: List of a beam object
         """
         boundaryBeams = []
         for cell in self.cells:
@@ -1086,7 +1010,7 @@ class Lattice(object):
 
     def isNodeOnBoundary(self, node):
         """
-        Get boolean that give an information of boundary node
+        Get boolean that give information of boundary node
 
         Parameters:
         -----------
@@ -1105,7 +1029,7 @@ class Lattice(object):
 
         Returns:
         ---------
-        boundaryNodes: List of point object
+        boundaryNodes: List of a point object
         """
         boundaryNodes = []
         for cell in self.cells:
@@ -1118,7 +1042,7 @@ class Lattice(object):
 
     def getName(self):
         """
-        Determine name of the lattice
+        Determine the name of the lattice
 
         Returns:
         ---------
@@ -1168,8 +1092,12 @@ class Lattice(object):
 
     def getPosData(self):
         """
-        Retrieves node position data for the lattice
-        data structure : each line represent a node with data [X, Y, Z]
+        Retrieves position data for the lattice.
+
+        Returns:
+        --------
+        posData: list of list of float
+            List of node positions
         """
         posData = []
         nodeAlreadyAdded = []
@@ -1184,7 +1112,11 @@ class Lattice(object):
     def getEdgeIndex(self):
         """
         Retrieves edge index data for the lattice.
-        data structure: each line represent a beam with data [IndexPoint1, IndexPoint2]
+
+        Returns:
+        --------
+        edgeIndex: list of list of int
+            List of edge index
         """
         edgeIndex = []
         beamAlreadyAdded = []
@@ -1198,7 +1130,11 @@ class Lattice(object):
     def getBeamType(self):
         """
         Retrieves beam type data for the lattice.
-        data structure: each line is the type of the beam with index the line index
+
+        Returns:
+        --------
+        beamType: list of int
+            List of beam types
         """
         beamType = []
         beamAlreadyAdded = []
@@ -1210,8 +1146,12 @@ class Lattice(object):
 
     def getAllBeamLength(self):
         """
-        Retrieves beam type data for the lattice.
-        data structure: each line is the type of the beam with index the line index
+        Retrieves beam length data for the lattice.
+
+        Returns:
+        --------
+        beamLength: list of float
+            List of beam lengths
         """
         beamLength = []
         beamAlreadyAdded = []
@@ -1263,15 +1203,26 @@ class Lattice(object):
             """
             return math.sqrt((point2.x - point1.x) ** 2 + (point2.y - point1.y) ** 2 + (point2.z - point1.z) ** 2)
 
-        def movePointAttracted(point, attractorPoint, alpha, inverse):
+        def movePointAttracted(point, attractorPoint, alpha_coeff, inverse_bool):
             """
             Move point1 relative from attractorPoint with coefficient alpha
+
+            Parameters:
+            -----------
+            point: Point object
+                Point to move
+            attractorPoint: Point object
+                Attractor point
+            alpha_coeff: float
+                Coefficient of attraction
+            inverse: bool
+                If True, points farther away are attracted less
             """
             Length = distance(point, attractorPoint)
-            if inverse:
-                factor = alpha / Length if Length != 0 else alpha
+            if inverse_bool:
+                factor = alpha_coeff / Length if Length != 0 else alpha_coeff
             else:
-                factor = alpha * Length
+                factor = alpha_coeff * Length
 
             DR = [(attractorPoint.x - point.x) * factor, (attractorPoint.y - point.y) * factor,
                   (attractorPoint.z - point.z) * factor]
@@ -1356,8 +1307,16 @@ class Lattice(object):
             raise ValueError("The radius of the cylinder is too small: minimum value = ", self.xMax / 2)
 
         # Find moving distance
-        def formula(x):  # formula of arc of circle
-            return radius - math.sqrt(radius ** 2 - (x - self.xMax / 2) ** 2)
+        def formula(x_coords):
+            """
+            Formula to calculate the new z-coordinate of the node.
+
+            Parameters:
+            -----------
+            x: float
+                x-coordinate of the node.
+            """
+            return radius - math.sqrt(radius ** 2 - (x_coords - self.xMax / 2) ** 2)
 
         for cell in self.cells:
             for beam in cell.beams:
@@ -1652,7 +1611,7 @@ class Lattice(object):
 
     def getFreeDOF(self):
         """
-        Get total number of degree of freedom in the lattice
+        Get total number of degrees of freedom in the lattice
         """
         self.freeDOF = 0
         processed_nodes = set()  # Use a set for faster lookup
@@ -1790,6 +1749,8 @@ class Lattice(object):
             lines_y = []
             lines_z = []
             line_colors = []
+            node1 = None
+            node2 = None
 
             for cell in self.cells:
                 for beam in cell.beams:
@@ -1902,6 +1863,14 @@ class Lattice(object):
         return fig  # Return the figure
 
     def visualCellZoneBlocker(self, erasedParts):
+        """
+        Visualize the lattice with erased parts
+
+        Parameters:
+        -----------
+        erasedParts: list of tuple
+            List of erased parts with (x_start, y_start, z_start, x_dim, y_dim
+        """
         fig = plt.figure()
         ax = fig.add_subplot(111, projection='3d')
 
