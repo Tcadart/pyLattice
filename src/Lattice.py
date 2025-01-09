@@ -1411,14 +1411,12 @@ class Lattice(object):
         print("Number of beams: ", self.getNumberOfBeams())
         print("Number of nodes: ", self.getNumberOfNodes())
 
-    def applyBoundaryConditionsOnSurface(self, cellList, surface, valueDisplacement, DOF):
+    def applyBoundaryConditionsOnSurface(self, surfaceName, valueDisplacement, DOF):
         """
         Apply boundary conditions to the lattice
 
         Parameters:
         -----------
-        cellList: list of int
-            List of cell index to apply boundary conditions
         surface: str
             Surface to apply boundary conditions (Xmin, Xmax, Ymin, Ymax, Zmin, Zmax)
         valueDisplacement: float
@@ -1426,15 +1424,17 @@ class Lattice(object):
         DOF: int
             Degree of freedom to fix (0: x, 1: y, 2: z, 3: Rx, 4: Ry, 5: Rz)
         """
-        if surface not in ["Xmin", "Xmax", "Ymin", "Ymax", "Zmin", "Zmax"]:
+        if surfaceName not in ["Xmin", "Xmax", "Ymin", "Ymax", "Zmin", "Zmax"]:
             raise ValueError("Invalid surface name.")
+
+        cellList = self.getCellSurface(surfaceName)
         if self.cells[-1].index < max(cellList):
             raise ValueError("Invalid cell index, cell do not exist.")
 
         pointList = []
         for cell in self.cells:
             if cell.index in cellList:
-                pointList.append(cell.getPointOnSurface(surface))
+                pointList.append(cell.getPointOnSurface(surfaceName))
         pointList = [point for sublist in pointList for point in sublist]
         indexBoundaryList = []
         for point in pointList:
@@ -1475,7 +1475,7 @@ class Lattice(object):
                         node.setDisplacementValue(valueDisplacement, DOF)
                         node.fixDOF([DOF])
 
-    def fixDOFOnSurface(self, cellList, surface, dofFixed):
+    def fixDOFOnSurface(self, surfaceName, dofFixed):
         """
         Fix degree of freedom on the surface of the lattice
 
@@ -1488,15 +1488,17 @@ class Lattice(object):
         dofFixed: list of int
             List of degree of freedom to fix (0: x, 1: y, 2: z, 3: Rx, 4: Ry, 5: Rz)
         """
-        if surface not in ["Xmin", "Xmax", "Ymin", "Ymax", "Zmin", "Zmax"]:
+        if surfaceName not in ["Xmin", "Xmax", "Ymin", "Ymax", "Zmin", "Zmax"]:
             raise ValueError("Invalid surface name.")
+
+        cellList = self.getCellSurface(surfaceName)
         if self.cells[-1].index < max(cellList):
             raise ValueError("Invalid cell index, cell do not exist.")
 
         pointList = []
         for cell in self.cells:
             if cell.index in cellList:
-                pointList.append(cell.getPointOnSurface(surface))
+                pointList.append(cell.getPointOnSurface(surfaceName))
         pointList = [point for sublist in pointList for point in sublist]
         indexBoundaryList = []
         for point in pointList:
