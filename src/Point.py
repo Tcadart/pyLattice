@@ -216,6 +216,11 @@ class Point(object):
     def fixDOF(self, DOF):
         """
         Fix DOF
+
+        Parameters:
+        ------------
+        DOF: list of int
+            Degree of freedom to fix
         """
         for i in DOF:
             self.fixedDOF[i] = 1

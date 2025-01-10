@@ -1535,6 +1535,22 @@ class Lattice(object):
                     if node.index in nodeList:
                         node.fixDOF(dofFixed)
 
+    def setRandomDisplacementOnCell(self):
+        """
+        Set random displacement on the lattice cells
+        """
+        for cell in self.cells:
+            for beam in cell.beams:
+                for node in [beam.point1, beam.point2]:
+                    if node.indexBoundary is not None:
+                        for dof in range(6):
+                            if dof < 3:
+                                node.setDisplacementValue(random.uniform(-0.1, 0.1), dof)
+                            else:
+                                node.setDisplacementValue(random.uniform(-0.01, 0.01), dof)
+                            node.fixDOF([dof])
+
+
     def getDisplacementGlobal(self):
         """
         Get global displacement of the lattice
