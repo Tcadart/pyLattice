@@ -1550,6 +1550,17 @@ class Lattice(object):
                                 node.setDisplacementValue(random.uniform(-0.01, 0.01), dof)
                             node.fixDOF([dof])
 
+    def setDisplacementWithVector(self, displacementVector):
+        displacementVector = np.array(displacementVector).flatten()
+        index = 0
+        for cell in self.cells:
+            for beam in cell.beams:
+                for node in [beam.point1, beam.point2]:
+                    if node.indexBoundary is not None:
+                        for dof in range(6):
+                            node.setDisplacementValue(displacementVector[index], dof)
+                            node.fixDOF([dof])
+                            index += 1
 
     def getDisplacementGlobal(self):
         """
