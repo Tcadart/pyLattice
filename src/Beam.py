@@ -191,3 +191,9 @@ class Beam(object):
         if angle > 170:
             return 0.0000001
         return radius / math.tan(math.radians(angle) / 2)
+
+    def setRadius(self, radius):
+        """
+        Set the radius of the beam
+        """
+        self.radius = radius

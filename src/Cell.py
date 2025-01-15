@@ -385,3 +385,23 @@ class Cell(object):
                 if point.indexBoundary is not None:
                     allBoundaryDisplacementData.append(point.getDisplacementValue())
         return allBoundaryDisplacementData
+
+    def changeBeamRadius(self, newRadius, hybridData=None, gradRadius=None):
+        """
+        Change beam radius
+
+        Parameters:
+        -----------
+        newRadius: list
+            beam radius wanted to assign
+        """
+        if len(newRadius) == 1:
+            for beam in self.beams:
+                beam.setRadius(newRadius[0])
+        if len(newRadius) == 3:
+            self.beams = []
+            self.defineHybridRadius(newRadius)
+            for idx, hybridDataLattice in enumerate(hybridData):
+                self.getBeamRadius(gradRadius, hybridDataLattice)
+                if self._beamRadius != 0:
+                    self.generateBeamsInCell(hybridDataLattice, self.coordinateCell, idx + 100)

@@ -1,9 +1,13 @@
 from __future__ import print_function, division
 
+import os
+
 from .Cell import *
 import math
 import random
 import sys
+import pickle
+
 
 if sys.version_info[0] == 3:
     import matplotlib.pyplot as plt
@@ -177,6 +181,58 @@ class Lattice(object):
         return cls(cell_size_x, cell_size_y, cell_size_z, 1, 1, 1, 1000,
                    1, gradRadiusProperty, gradDimProperty, gradMatProperty, simMethod, uncertaintyNode,
                    hybridLatticeData, hybridGeomType=hybridGeomType, periodicity=periodicity)
+
+    @classmethod
+    def loadLatticeObject(cls, file_name="LatticeObject"):
+        """
+        Load a lattice object from a file.
+
+        Parameters:
+        -----------
+        file_name: str
+            Name of the file to load (with or without the '.pkl' extension).
+
+        Returns:
+        --------
+        Lattice
+            The loaded lattice object.
+        """
+        folder = "Saved_Lattice"
+        if not file_name.endswith(".pkl"):
+            file_name += ".pkl"
+
+        file_path = os.path.join(folder, file_name)
+
+        if not os.path.exists(file_path):
+            raise FileNotFoundError(f"The file {file_path} does not exist.")
+
+        with open(file_path, "rb") as file:
+            lattice = pickle.load(file)
+
+        print(f"Lattice loaded successfully from {file_path}")
+        return lattice
+
+    def saveLatticeObject(self, nameLattice="LatticeObject"):
+        """
+        Save the current lattice object to a file.
+
+        Parameters:
+        -----------
+        nameLattice: str
+            Name of the lattice file to save.
+        """
+        # Créer le dossier s'il n'existe pas
+        folder = "Saved_Lattice"
+        if not os.path.exists(folder):
+            os.makedirs(folder)
+
+        # Chemin complet du fichier
+        file_path = os.path.join(folder, nameLattice + ".pkl")
+
+        # Sauvegarder l'objet
+        with open(file_path, "wb") as file:
+            pickle.dump(self, file)
+        print(f"Lattice saved successfully in {file_path}")
 
     @property
     def nodes(self):
@@ -526,6 +582,7 @@ class Lattice(object):
         beamColor: string (default: "Material")
             "Material" -> color by material
             "Type" -> color by type
+            "Radius" -> color by radius
         voxelViz: boolean (default: False)
             True -> voxel visualization
             False -> beam visualization
@@ -536,6 +593,8 @@ class Lattice(object):
         ax = fig.add_subplot(111, projection='3d')
         ax.set_title("Lattice generated")
         color = ['blue', 'green', 'red', 'yellow', 'orange']
+        if beamColor == "Radius":
+            idxColor = []
 
         if not voxelViz:
             beamDraw = []
@@ -559,6 +618,10 @@ class Lattice(object):
                             colorBeam = color[beam.material]
                         elif beamColor == "Type":
                             colorBeam = color[int(str(beam.type)[0])]
+                        elif beamColor == "Radius":
+                            if beam.radius not in idxColor:
+                                idxColor.append(beam.radius)
+                            colorBeam = color[idxColor.index(beam.radius)]
                         lines.append([(node1[0], node1[1], node1[2]), (node2[0], node2[1], node2[2])])
                         colors.append(colorBeam)
                         beamDraw.append(beam)
@@ -1945,3 +2008,25 @@ class Lattice(object):
         for cell in self.cells:
             for beam in cell.beams:
                 return beam.radius
+
+    def changeCellRadiusProperties(self, cellIndex, radius):
+        """
+        Change Cell radius properties
+
+        Parameters:
+        -----------
+        cellIndex: int
+            Index of the cell
+        radius: float or list of float
+            Radius of beams in the cell (necessary list in hybrid cells)
+        """
+        flagChangingCell = False
+        for cell in self.cells:
+            if cell.index == cellIndex:
+                flagChangingCell = True
+                cell.changeBeamRadius(radius, radius, self.gradRadius)
+        if not flagChangingCell:
+            raise ValueError("Cell index not found for changing beam radius data on cell : ", cellIndex)
+
+
+
