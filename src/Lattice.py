@@ -1931,3 +1931,17 @@ class Lattice(object):
         ax.set_zlim([0, z_max])
 
         plt.show()
+
+    def getRadius(self):
+        """
+        ################### TEMPORARY FUNCTION ###################
+        Get the radius of the lattice
+
+        Returns:
+        --------
+        radius: float
+            Radius of the lattice
+        """
+        for cell in self.cells:
+            for beam in cell.beams:
+                return beam.radius
