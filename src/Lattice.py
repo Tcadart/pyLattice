@@ -457,8 +457,9 @@ class Lattice(object):
                                         for beam in new_cell.beams:
                                             beam.changeBeamType(idx + 100)
                                     else:
-                                        new_cell.getBeamRadius(self.gradRadius, radiusHybrid)
-                                        new_cell.generateBeamsInCell(self.hybridGeomType[idx], startCellPos, idx + 100)
+                                        hybridRadius = new_cell.getBeamRadius(self.gradRadius, radiusHybrid)
+                                        new_cell.generateBeamsInCell(self.hybridGeomType[idx], startCellPos,
+                                                                      hybridRadius,idx + 100)
                             new_cell.defineHybridRadius(setRadiusCell)
                         # Case for randomized lattice
                         # else:
@@ -2024,7 +2025,7 @@ class Lattice(object):
         for cell in self.cells:
             if cell.index == cellIndex:
                 flagChangingCell = True
-                cell.changeBeamRadius(radius, radius, self.gradRadius)
+                cell.changeBeamRadius(radius, self.hybridGeomType, self.gradRadius)
         if not flagChangingCell:
             raise ValueError("Cell index not found for changing beam radius data on cell : ", cellIndex)
 

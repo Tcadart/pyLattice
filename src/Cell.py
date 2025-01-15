@@ -42,7 +42,6 @@ class Cell(object):
         """
         self.centerPoint = None
         self._beamMaterial = None
-        self._beamRadius = None
         self.cellSize = None
         self.posCell = posCell
         self.coordinateCell = startCellPos
@@ -54,12 +53,12 @@ class Cell(object):
         self.uncertaintyNode = uncertaintyNode
 
         self.getBeamMaterial(gradMat)
-        self.getBeamRadius(gradRadius, Radius)
+        beamRadius = self.getBeamRadius(gradRadius, Radius)
         self.getCellSize(initialCellSize, gradDim)
-        self.generateBeamsInCell(latticeType, startCellPos)
+        self.generateBeamsInCell(latticeType, startCellPos, beamRadius)
         self.getCellCenter(startCellPos)
 
-    def generateBeamsInCell(self, latticeType, startCellPos, beamType=0):
+    def generateBeamsInCell(self, latticeType, startCellPos, beamRadius, beamType=0):
         """
         Generate beams and nodes using a given lattice type and parameters.
 
@@ -87,7 +86,7 @@ class Cell(object):
                 point2 = Point(x2 * self.cellSize[0] + startCellPos[0], y2 * self.cellSize[1] + startCellPos[1],
                                z2 * self.cellSize[2] + startCellPos[2], self.uncertaintyNode)
                 pointDict[(x2, y2, z2)] = point2
-            beam = Beam(point1, point2, self._beamRadius, self._beamMaterial, beamType)
+            beam = Beam(point1, point2, beamRadius, self._beamMaterial, beamType)
             self.beams.append(beam)
 
     def getBeamMaterial(self, gradMat):
@@ -122,8 +121,9 @@ class Cell(object):
         actualBeamRadius: float
             Calculated beam radius
         """
-        self._beamRadius = (BaseRadius * gradRadius[self.posCell[0]][0] * gradRadius[self.posCell[1]][1] *
-                            gradRadius[self.posCell[2]][2])
+        beamRadius = (BaseRadius * gradRadius[self.posCell[0]][0] * gradRadius[self.posCell[1]][1] *
+                      gradRadius[self.posCell[2]][2])
+        return beamRadius
 
     def getCellSize(self, initialCellSize, gradDim):
         """
@@ -402,6 +402,7 @@ class Cell(object):
             self.beams = []
             self.defineHybridRadius(newRadius)
             for idx, hybridDataLattice in enumerate(hybridData):
-                self.getBeamRadius(gradRadius, hybridDataLattice)
-                if self._beamRadius != 0:
-                    self.generateBeamsInCell(hybridDataLattice, self.coordinateCell, idx + 100)
+                beamRadius = self.getBeamRadius(gradRadius, hybridDataLattice)
+                print(hybridDataLattice)
+                if beamRadius != 0:
+                    self.generateBeamsInCell(hybridDataLattice, self.coordinateCell, beamRadius, idx + 100)
