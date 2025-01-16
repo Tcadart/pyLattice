@@ -14,7 +14,6 @@ lattice = Lattice(cell_size_X, cell_size_Y, cell_size_Z, number_cell_X, number_c
                   Radius, gradRadiusProperty, gradDimProperty, gradMatProperty, MethodSim, uncertaintyNodeSD,
                   hybridLatticeData, hybridGeomType = [0, 16, 19], randomHybrid=False)
 lattice.changeCellRadiusProperties(0, [0.02, 0.01, 0.01])
-lattice.changeCellRadiusProperties(1, [0.00, 0.00, 0.01])
 
 lattice.saveJSONToGrasshopper("HybridRandom")
 
