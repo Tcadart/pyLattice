@@ -1,5 +1,7 @@
+# -*- coding: utf-8 -*
 from __future__ import print_function, division
 
+import json
 import os
 
 from .Cell import *
@@ -8,15 +10,12 @@ import random
 import sys
 import pickle
 
-
-if sys.version_info[0] == 3:
-    import matplotlib.pyplot as plt
-    from mpl_toolkits.mplot3d.art3d import Line3DCollection, Poly3DCollection
-    import numpy as np
-    from scipy.sparse.linalg import splu
-    from scipy.sparse import coo_matrix
-    import plotly.graph_objects as go
-    from plotly.subplots import make_subplots
+import matplotlib.pyplot as plt
+from mpl_toolkits.mplot3d.art3d import Line3DCollection, Poly3DCollection
+import numpy as np
+from scipy.sparse.linalg import splu
+from scipy.sparse import coo_matrix
+import plotly.graph_objects as go
 
 
 class Lattice(object):
@@ -212,7 +211,7 @@ class Lattice(object):
         print(f"Lattice loaded successfully from {file_path}")
         return lattice
 
-    def saveLatticeObject(self, nameLattice="LatticeObject"):
+    def saveLatticeObject(self, nameLattice="LatticeObject", protocol= None):
         """
         Save the current lattice object to a file.
 
@@ -227,12 +226,69 @@ class Lattice(object):
             os.makedirs(folder)
 
         # Chemin complet du fichier
-        file_path = os.path.join(folder, nameLattice + ".pkl")
+        if protocol is not None:
+            file_path = os.path.join(folder, nameLattice + f"_protocol_{protocol}.pkl")
+            with open(file_path, "wb") as file:
+                pickle.dump(self, file, protocol=protocol)
+        else:
+            file_path = os.path.join(folder, nameLattice + ".pkl")
+            with open(file_path, "wb") as file:
+                pickle.dump(self, file)
 
-        # Sauvegarder l'objet
-        with open(file_path, "wb") as file:
-            pickle.dump(self, file)
         print(f"Lattice saved successfully in {file_path}")
+
+    def saveJSONToGrasshopper(self, nameLattice="LatticeObject"):
+        folder = "Saved_Lattice"
+        if not os.path.exists(folder):
+            os.makedirs(folder)
+
+        file_pathJSON = os.path.join(folder, nameLattice + ".json")
+
+        outNodesX = []
+        outNodesY = []
+        outNodesZ = []
+        outRadius = []
+        c = 0
+        beamAdded = []
+        for cell in self.cells:
+            for beam in cell.beams:
+                if beam not in beamAdded:
+                    beamAdded.append(beam)
+                    outNodesX.append(beam.point1.x)
+                    outNodesX.append(beam.point2.x)
+                    outNodesY.append(beam.point1.y)
+                    outNodesY.append(beam.point2.y)
+                    outNodesZ.append(beam.point1.z)
+                    outNodesZ.append(beam.point2.z)
+                    outRadius.append(beam.radius)
+                    if outRadius[-1] < 0.015:
+                        c += 1
+                        outRadius[-1] = 0.015
+
+        outMaxX = self.xMax
+        outMinX = self.xMin
+        outMaxY = self.yMax
+        outMinY = self.yMin
+        outMaxZ = self.zMax
+        outMinZ = self.zMin
+        relativeDensity = self.getRelativeDensity()
+
+        obj = {
+            "nodesX": outNodesX,
+            "nodesY": outNodesY,
+            "nodesZ": outNodesZ,
+            "radius": outRadius,
+            "maxX": outMaxX,
+            "minX": outMinX,
+            "maxY": outMaxY,
+            "minY": outMinY,
+            "maxZ": outMaxZ,
+            "minZ": outMinZ,
+            "relativeDensity": relativeDensity
+        }
+        # Sauvegarder les données au format JSON
+        with open(file_pathJSON, 'w') as f:
+            json.dump(obj, f)
 
     @property
     def nodes(self):
@@ -2018,7 +2074,7 @@ class Lattice(object):
         -----------
         cellIndex: int
             Index of the cell
-        radius: float or list of float
+        radius: list of float
             Radius of beams in the cell (necessary list in hybrid cells)
         """
         flagChangingCell = False

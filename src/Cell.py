@@ -388,12 +388,16 @@ class Cell(object):
 
     def changeBeamRadius(self, newRadius, hybridData=None, gradRadius=None):
         """
-        Change beam radius
+        Change beam radius in the cell
 
         Parameters:
         -----------
         newRadius: list
             beam radius wanted to assign
+        hybridData: list
+            Hybrid data type
+        gradRadius: list
+            Gradient of the radius
         """
         if len(newRadius) == 1:
             for beam in self.beams:
@@ -402,7 +406,6 @@ class Cell(object):
             self.beams = []
             self.defineHybridRadius(newRadius)
             for idx, hybridDataLattice in enumerate(hybridData):
-                beamRadius = self.getBeamRadius(gradRadius, hybridDataLattice)
-                print(hybridDataLattice)
+                beamRadius = self.getBeamRadius(gradRadius, newRadius[idx])
                 if beamRadius != 0:
                     self.generateBeamsInCell(hybridDataLattice, self.coordinateCell, beamRadius, idx + 100)
