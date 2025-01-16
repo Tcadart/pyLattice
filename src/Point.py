@@ -1,90 +1,95 @@
 import random
+from typing import List, Tuple
 
 
-class Point(object):
+class Point:
     """
-    Point object represent a point by 3 coordinates x, y, z
+    Represents a point in 3D space with additional attributes for simulation.
     """
 
-    def __init__(self, x, y, z, nodeUncertaintySD=0.0):
+    def __init__(self, x: float, y: float, z: float, nodeUncertaintySD: float = 0.0) -> None:
         """
-        Create a point object
+        Initialize a Point object.
 
-        Parameters:
-        ------------
-        x: float
-            x coordinate of the point
-        y: float
-            y coordinate of the point
-        z: float
-            z coordinate of the point
+        Args:
+            x (float): X-coordinate of the point.
+            y (float): Y-coordinate of the point.
+            z (float): Z-coordinate of the point.
+            nodeUncertaintySD (float, optional): Standard deviation for adding uncertainty to node coordinates. Defaults to 0.0.
         """
-        self.x = float(x) + random.gauss(0, nodeUncertaintySD)
-        self.y = float(y) + random.gauss(0, nodeUncertaintySD)
-        self.z = float(z) + random.gauss(0, nodeUncertaintySD)
-        self.index = None
-        self.tag = []
-        self.localTag = []
-        self.indexBoundary = None
-        self.displacementValue = [0, 0, 0, 0, 0, 0]  # Displacement vector of Dimension 6 to simulate lattice behavior
-        self.reactionForceValue = [0, 0, 0, 0, 0,
-                                   0]  # Reaction force vector of Dimension 6 to simulate lattice behavior
-        self.fixedDOF = [0, 0, 0, 0, 0, 0]  # Fixed DOF vector of Dimension 6 (0: free, 1: fixed)
-        self.globalFreeDOFIndex = [None] * 6  # Global free DOF index
+        self.x: float = float(x) + random.gauss(0, nodeUncertaintySD)
+        self.y: float = float(y) + random.gauss(0, nodeUncertaintySD)
+        self.z: float = float(z) + random.gauss(0, nodeUncertaintySD)
+        self.index: int = None
+        self.tag: List[int] = []
+        self.localTag: List[int] = []
+        self.indexBoundary: int = None
+        self.displacementValue: List[float] = [0.0] * 6  # Displacement vector of 6 DOF (Degrees of Freedom).
+        self.reactionForceValue: List[float] = [0.0] * 6  # Reaction force vector of 6 DOF.
+        self.fixedDOF: List[int] = [0] * 6  # Fixed DOF vector (0: free, 1: fixed).
+        self.globalFreeDOFIndex: List[int] = [None] * 6  # Global free DOF index.
 
-    def __eq__(self, other):
+    def __eq__(self, other: object) -> bool:
         return isinstance(other, Point) and self.x == other.x and self.y == other.y and self.z == other.z
 
-    def __hash__(self):
+    def __hash__(self) -> int:
         return hash((self.x, self.y, self.z))
 
-    def __sub__(self, other):
+    def __sub__(self, other: 'Point') -> List[float]:
         return [self.x - other.x, self.y - other.y, self.z - other.z]
 
-    def __repr__(self):
-        return "Point({}, {}, {}, , Index:{})".format(self.x, self.y, self.z, self.index)
+    def __repr__(self) -> str:
+        return f"Point({self.x}, {self.y}, {self.z}, Index:{self.index})"
 
-    def movePoint(self, xNew, yNew, zNew):
+    def movePoint(self, xNew: float, yNew: float, zNew: float) -> None:
         """
-        Move point at x, y, z
-        """
-        self.x = xNew
-        self.y = yNew
-        self.z = zNew
+        Move the point to new coordinates.
 
-    def getPos(self):
+        Args:
+            xNew (float): New X-coordinate.
+            yNew (float): New Y-coordinate.
+            zNew (float): New Z-coordinate.
         """
-        Return list of node position
+        self.x, self.y, self.z = xNew, yNew, zNew
+
+    def getPos(self) -> Tuple[float, float, float]:
+        """
+        Retrieve the current position of the point.
+
+        Returns:
+            Tuple[float, float, float]: (x, y, z) coordinates of the point.
         """
         return self.x, self.y, self.z
 
-    def setIndex(self, index):
+    def setIndex(self, index: int) -> None:
         """
-        Set node index
+        Set the index of the point.
+
+        Args:
+            index (int): Index to assign.
         """
         self.index = index
 
-    def getData(self):
+    def getData(self) -> List[float]:
         """
-        Return data structure to export lattice
+        Retrieve point data for exporting.
+
+        Returns:
+            List[float]: [index, x, y, z] of the point.
         """
         return [self.index, self.x, self.y, self.z]
 
-    def tagPoint(self, xMin, xMax, yMin, yMax, zMin, zMax):
+    def tagPoint(self, xMin: float, xMax: float, yMin: float, yMax: float, zMin: float, zMax: float) -> List[int]:
         """
-        Define standardized tags for a point
-        link : https://docs.fenicsproject.org/basix/v0.2.0/index.html
+        Generate standardized tags for the point based on its position.
 
-        Parameter:
-        ----------
-        point: Point Object
+        Args:
+            xMin, xMax, yMin, yMax, zMin, zMax (float): Domain boundaries.
 
-        Return:
-        --------
-        tags: array of integer
-            List of tags of the point
+        Returns:
+            List[int]: Tags identifying the position of the point (e.g., face, edge, corner).
         """
-        tag = []
+        tag: List[int] = []
         # Faces
         if self.x == xMin and (yMin < self.y < yMax) and (
                 zMin < self.z < zMax):
@@ -150,89 +155,109 @@ class Point(object):
             tag.append(1007)  # Corner 7
         return tag
 
-    def setTag(self, tag):
+    def setTag(self, tag: List[int]) -> None:
         """
-        Set tag to point
+        Assign tags to the point.
+
+        Args:
+            tag (List[int]): Tags to assign.
         """
         self.tag = tag
 
-    def setDisplacementValue(self, displacementValue, DOF):
+    def setDisplacementValue(self, displacementValue: float, DOF: int) -> None:
         """
-        Apply displacementValue to node
+        Assign displacement value to a specific degree of freedom.
 
-        Parameters:
-        ------------
-        displacementValue: float
-            Displacement value
-        DOF: int
-            Degree of freedom
+        Args:
+            displacementValue (float): Displacement value.
+            DOF (int): Degree of freedom (0 to 5).
         """
         self.displacementValue[DOF] = displacementValue
 
-    def getDisplacementValue(self):
+    def getDisplacementValue(self) -> List[float]:
         """
-        Return displacement value
+        Retrieve the displacement values of the point.
+
+        Returns:
+            List[float]: Displacement values for all DOF.
         """
         return self.displacementValue
 
-    def initializeReactionForce(self):
+    def initializeReactionForce(self) -> None:
         """
-        Initialize reaction force
+        Reset the reaction force vector to zero.
         """
-        self.reactionForceValue = [0, 0, 0, 0, 0, 0]
+        self.reactionForceValue = [0.0] * 6
 
-    def setReactionForce(self, reactionForce):
+    def setReactionForce(self, reactionForce: List[float]) -> None:
         """
-        Set reaction force to node
+        Assign reaction force to the point.
+
+        Args:
+            reactionForce (List[float]): Reaction force values for each DOF.
         """
         for i in range(len(self.reactionForceValue)):
             self.reactionForceValue[i] += reactionForce[i]
 
-    def getReactionForce(self):
+    def getReactionForce(self) -> List[float]:
         """
-        Return reaction force
+        Retrieve the reaction force values.
+
+        Returns:
+            List[float]: Reaction force values for all DOF.
         """
         return self.reactionForceValue
 
-    def setIndexBoundary(self, index):
+    def setIndexBoundary(self, index: int) -> None:
         """
-        Set tag to point
+        Assign a boundary index to the point.
+
+        Args:
+            index (int): Boundary index to assign.
         """
         self.indexBoundary = index
 
-    def getIndexBoundary(self):
+    def getIndexBoundary(self) -> int:
         """
-        Return tag
+        Retrieve the boundary index of the point.
+
+        Returns:
+            int: Boundary index.
         """
         return self.indexBoundary
 
-    def getDeformedPos(self):
+    def getDeformedPos(self) -> Tuple[float, float, float]:
         """
-        Return list of node position
-        """
-        return self.x + self.displacementValue[0], self.y + self.displacementValue[1], self.z + self.displacementValue[
-            2]
+        Retrieve the deformed position of the point.
 
-    def fixDOF(self, DOF):
+        Returns:
+            Tuple[float, float, float]: (x, y, z) coordinates including displacements.
         """
-        Fix DOF
+        return (self.x + self.displacementValue[0],
+                self.y + self.displacementValue[1],
+                self.z + self.displacementValue[2])
 
-        Parameters:
-        ------------
-        DOF: list of int
-            Degree of freedom to fix
+    def fixDOF(self, DOF: List[int]) -> None:
+        """
+        Fix specific degrees of freedom for the point.
+
+        Args:
+            DOF (List[int]): List of DOF to fix (0: x, 1: y, 2: z, 3: Rx, 4: Ry, 5: Rz).
         """
         for i in DOF:
             self.fixedDOF[i] = 1
 
-    def initializeDisplacementToZero(self):
+    def initializeDisplacementToZero(self) -> None:
         """
-        Initialize displacement to zero
+        Reset displacement values to zero for all DOF.
         """
-        self.displacementValue = [0, 0, 0, 0, 0, 0]
+        self.displacementValue = [0.0] * 6
 
-    def calculatePointEnergy(self):
+    def calculatePointEnergy(self) -> float:
         """
-        Calculate internal energy of the node
+        Calculate the internal energy of the point.
+
+        Returns:
+            float: Internal energy based on displacement and reaction forces.
         """
         return sum([self.displacementValue[i] * self.reactionForceValue[i] for i in range(6)])

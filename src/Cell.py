@@ -16,8 +16,8 @@ class Cell(object):
     Define Cell data for lattice structure
     """
 
-    def __init__(self, posCell, initialCellSize, startCellPos, latticeType,
-                 Radius, gradRadius, gradDim, gradMat, uncertaintyNode):
+    def __init__(self, posCell: list, initialCellSize: list, startCellPos: list, latticeType: int,
+                 Radius: float, gradRadius: list, gradDim: list, gradMat: list, uncertaintyNode: int):
         """
         Initialize a Cell with its dimensions and position
 
@@ -58,7 +58,7 @@ class Cell(object):
         self.generateBeamsInCell(latticeType, startCellPos, beamRadius)
         self.getCellCenter(startCellPos)
 
-    def generateBeamsInCell(self, latticeType, startCellPos, beamRadius, beamType=0):
+    def generateBeamsInCell(self, latticeType: int, startCellPos: list, beamRadius: float, beamType: int = 0) -> None:
         """
         Generate beams and nodes using a given lattice type and parameters.
 
@@ -89,7 +89,7 @@ class Cell(object):
             beam = Beam(point1, point2, beamRadius, self._beamMaterial, beamType)
             self.beams.append(beam)
 
-    def getBeamMaterial(self, gradMat):
+    def getBeamMaterial(self, gradMat: list) -> None:
         """
         Get the material of the beam based on the gradient and position.
 
@@ -105,7 +105,7 @@ class Cell(object):
         """
         self._beamMaterial = gradMat[self.posCell[2]][self.posCell[1]][self.posCell[0]]
 
-    def getBeamRadius(self, gradRadius, BaseRadius):
+    def getBeamRadius(self, gradRadius: list, BaseRadius: float) -> float:
         """
         Calculate and return the beam radius
 
@@ -125,7 +125,7 @@ class Cell(object):
                       gradRadius[self.posCell[2]][2])
         return beamRadius
 
-    def getCellSize(self, initialCellSize, gradDim):
+    def getCellSize(self, initialCellSize: list, gradDim: list) -> None:
         """
         Calculate and return the cell size
 
@@ -143,13 +143,13 @@ class Cell(object):
         self.cellSize = [initial_size * gradDim[pos][i] for i, (initial_size, pos) in
                          enumerate(zip(initialCellSize, self.posCell))]
 
-    def getCellCenter(self, startCellPos):
+    def getCellCenter(self, startCellPos: list) -> None:
         """
         Calculate the center point of the cell
         """
         self.centerPoint = [startCellPos[i] + self.cellSize[i] / 2 for i in range(3)]
 
-    def getAllPoints(self):
+    def getAllPoints(self) -> list:
         """
         Determine list of points in cell
         """
@@ -160,7 +160,7 @@ class Cell(object):
                     pointList.append(point)
         return pointList
 
-    def removeBeam(self, beamToDelete):
+    def removeBeam(self, beamToDelete: "Beam") -> None:
         """
         Removes a beam from the lattice
 
@@ -174,19 +174,19 @@ class Cell(object):
         except ValueError:
             print("Beam not found in the list")
 
-    def addBeam(self, beamToAdd):
+    def addBeam(self, beamToAdd: "Beam") -> None:
         """
         Adding beam to cell
         """
         self.beams.append(beamToAdd)
 
-    def setIndex(self, index):
+    def setIndex(self, index: int) -> None:
         """
         Set cell index
         """
         self.index = index
 
-    def getPointOnSurface(self, surfaceName):
+    def getPointOnSurface(self, surfaceName: str) -> list:
         """
         Get the points on the surface specified in the global reference frame.
 
@@ -220,7 +220,7 @@ class Cell(object):
         return [point for beam in self.beams for point in [beam.point1, beam.point2] if
                 getattr(point, coord_index[surfaceName]) == surface_value]
 
-    def defineHybridRadius(self, hybridRadius):
+    def defineHybridRadius(self, hybridRadius: list) -> None:
         """
         Define hybrid radius for the cell
 
@@ -231,13 +231,13 @@ class Cell(object):
         """
         self.hybridRadius = hybridRadius
 
-    def getHybridRadius(self):
+    def getHybridRadius(self) -> list:
         """
         Return hybrid radius of the cell
         """
         return self.hybridRadius
 
-    def getNodeOrderToSimulate(self):
+    def getNodeOrderToSimulate(self) -> dict:
         """
         Get the order of nodes to simulate in the cell
         """
@@ -258,7 +258,7 @@ class Cell(object):
                                 point.localTag.append(tag)
         return tag_dict
 
-    def setDisplacementAtBoundaryNodes(self, displacementArray, displacementIndex):
+    def setDisplacementAtBoundaryNodes(self, displacementArray: list, displacementIndex: list) -> None:
         """
         Set displacement at nodes.
 
@@ -279,7 +279,7 @@ class Cell(object):
                             point.setDisplacementValue(displacementArray[index + indexActual], i)
                             indexActual += 1
 
-    def getDisplacementAtBoundaryNodes(self, nodeList):
+    def getDisplacementAtBoundaryNodes(self, nodeList: dict) -> list:
         """
         Get the displacement at nodes.
 
@@ -302,7 +302,7 @@ class Cell(object):
                 displacementList.extend([0, 0, 0, 0, 0, 0])  # Append zeros if the node is not found
         return displacementList
 
-    def setReactionForceOnEachNodes(self, nodeList, reactionForce):
+    def setReactionForceOnEachNodes(self, nodeList: dict, reactionForce: list) -> None:
         """
         Set reaction force on each nodes.
 
@@ -323,14 +323,14 @@ class Cell(object):
                         tagAlreadySet.append(tag)
                         break
 
-    def getNumberOfBoundaryNodes(self):
+    def getNumberOfBoundaryNodes(self) -> int:
         """
         Get the number of boundary nodes in the cell
         """
         return len(
             [beam for beam in self.beams for point in [beam.point1, beam.point2] if point.indexBoundary is not None])
 
-    def buildCouplingOperator(self, nbFreeDOF):
+    def buildCouplingOperator(self, nbFreeDOF: int) -> None:
         """
         Build the coupling operator for the cell
         """
@@ -353,7 +353,7 @@ class Cell(object):
         shapeB = (nbFreeDOF, nbBndDOFloc)
         self.matB = coo_matrix((data, (row, col)), shape=shapeB)
 
-    def buildPreconditioner(self, SchurMatrix):
+    def buildPreconditioner(self, SchurMatrix: "coo_matrix") -> "coo_matrix":
         """
         Build the preconditioner part for the cell
 
@@ -364,7 +364,7 @@ class Cell(object):
         """
         return self.matB @ SchurMatrix @ self.matB.transpose()
 
-    def getInternalEnergy(self):
+    def getInternalEnergy(self) -> float:
         """
         Get the internal energy of the cell
         """
@@ -375,7 +375,7 @@ class Cell(object):
                     internalEnergy += point.calculatePointEnergy()
         return internalEnergy
 
-    def getDisplacementData(self):
+    def getDisplacementData(self) -> list:
         """
         Build and return displacement data on cell for dataset generation
         """
@@ -386,7 +386,7 @@ class Cell(object):
                     allBoundaryDisplacementData.append(point.getDisplacementValue())
         return allBoundaryDisplacementData
 
-    def changeBeamRadius(self, newRadius, hybridData=None, gradRadius=None):
+    def changeBeamRadius(self, newRadius: list, hybridData: list = None, gradRadius: list = None) -> None:
         """
         Change beam radius in the cell
 

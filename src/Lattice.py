@@ -1,17 +1,16 @@
 import json
 import os
+import pickle
 
 from .Cell import *
 import math
 import random
-import pickle
 
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d.art3d import Line3DCollection, Poly3DCollection
 import numpy as np
 from scipy.sparse.linalg import splu
 from scipy.sparse import coo_matrix
-import plotly.graph_objects as go
 
 
 class Lattice(object):
@@ -82,6 +81,7 @@ class Lattice(object):
         self.xMin = None
         self.zMax = None
         self.zMin = None
+        self.latticeDimensionsDict = None
 
         self.cellSizeX = cell_size_x
         self.cellSizeY = cell_size_y
@@ -211,95 +211,6 @@ class Lattice(object):
         print(f"Lattice loaded successfully from {file_path}")
         return lattice
 
-    def saveLatticeObject(self, nameLattice: str = "LatticeObject", protocol: int = None) -> None:
-        """
-        Save the current lattice object to a file.
-
-        Parameters:
-        -----------
-        nameLattice: str
-            Name of the lattice file to save.
-        protocol: int
-            Protocol version to use for pickling. If None, the default protocol is used.
-        """
-        # Créer le dossier s'il n'existe pas
-        folder = "Saved_Lattice"
-        if not os.path.exists(folder):
-            os.makedirs(folder)
-
-        # Chemin complet du fichier
-        if protocol is not None:
-            file_path = os.path.join(folder, nameLattice + f"_protocol_{protocol}.pkl")
-            with open(file_path, "wb") as file:
-                pickle.dump(self, file, protocol=protocol)
-        else:
-            file_path = os.path.join(folder, nameLattice + ".pkl")
-            with open(file_path, "wb") as file:
-                pickle.dump(self, file)
-
-        print(f"Lattice saved successfully in {file_path}")
-
-    def saveJSONToGrasshopper(self, nameLattice: str = "LatticeObject") -> None:
-        """
-        Save the current lattice object to a JSON file for Grasshopper compatibility.
-
-        Parameters:
-        -----------
-        nameLattice: str
-            Name of the lattice file to save.
-        """
-        folder = "Saved_Lattice"
-        if not os.path.exists(folder):
-            os.makedirs(folder)
-
-        file_pathJSON = os.path.join(folder, nameLattice + ".json")
-
-        outNodesX = []
-        outNodesY = []
-        outNodesZ = []
-        outRadius = []
-        c = 0
-        beamAdded = []
-        for cell in self.cells:
-            for beam in cell.beams:
-                if beam not in beamAdded:
-                    beamAdded.append(beam)
-                    outNodesX.append(beam.point1.x)
-                    outNodesX.append(beam.point2.x)
-                    outNodesY.append(beam.point1.y)
-                    outNodesY.append(beam.point2.y)
-                    outNodesZ.append(beam.point1.z)
-                    outNodesZ.append(beam.point2.z)
-                    outRadius.append(beam.radius)
-                    if outRadius[-1] < 0.015:
-                        c += 1
-                        outRadius[-1] = 0.015
-
-        outMaxX = self.xMax
-        outMinX = self.xMin
-        outMaxY = self.yMax
-        outMinY = self.yMin
-        outMaxZ = self.zMax
-        outMinZ = self.zMin
-        relativeDensity = self.getRelativeDensity()
-
-        obj = {
-            "nodesX": outNodesX,
-            "nodesY": outNodesY,
-            "nodesZ": outNodesZ,
-            "radius": outRadius,
-            "maxX": outMaxX,
-            "minX": outMinX,
-            "maxY": outMaxY,
-            "minY": outMinY,
-            "maxZ": outMaxZ,
-            "minZ": outMinZ,
-            "relativeDensity": relativeDensity
-        }
-        # Sauvegarder les données au format JSON
-        with open(file_pathJSON, 'w') as f:
-            json.dump(obj, f)
-
     @property
     def nodes(self):
         return self._nodes
@@ -331,101 +242,109 @@ class Lattice(object):
         Parameters:
         -----------
         gradProperties: list[Rule, Direction, Parameters]
-            All types of properties for gradient definition
+            All types of properties for gradient definition.
 
         Return:
         ---------
         gradientData: list[list[float]]
-            Generated gradient settings (list of lists)
+            Generated gradient settings (list of lists).
         """
 
-        def apply_constant_rule(i, paramValue):
-            return 1.0
+        def apply_rule(i: int, total_cells: int, param_value: float, rule: str) -> float:
+            """
+            Apply a specific gradient rule to calculate the gradient factor.
 
-        def apply_linear_rule(i, paramValue):
-            return 1.0 + i * paramValue
+            Parameters:
+            -----------
+            i : int
+                Current cell index.
+            total_cells : int
+                Total number of cells in the direction.
+            param_value : float
+                Gradient parameter value.
+            rule : str
+                The gradient rule to apply ('constant', 'linear', etc.).
 
-        def apply_parabolic_rule(i, numberCell, paramValue):
-            mid = numberCell / 2
-            if i < mid:
-                return 1.0 + (i / mid) * paramValue
-            else:
-                return 1.0 + ((numberCell - i - 1) / mid) * paramValue
-
-        def apply_sinusoide_rule(i, numberCell, paramValue):
-            return 1.0 + paramValue * math.sin((i / numberCell) * math.pi)
-
-        def apply_exponential_rule(i, paramValue):
-            return 1.0 + math.exp(i * paramValue)
-
-        rule_functions = {
-            'constant': apply_constant_rule,
-            'linear': apply_linear_rule,
-            'parabolic': apply_parabolic_rule,
-            'sinusoide': apply_sinusoide_rule,
-            'exponential': apply_exponential_rule
-        }
+            Returns:
+            --------
+            float
+                Calculated gradient factor.
+            """
+            mid = total_cells / 2
+            match rule:
+                case 'constant':
+                    return 1.0
+                case 'linear':
+                    return 1.0 + i * param_value
+                case 'parabolic':
+                    if i < mid:
+                        return 1.0 + (i / mid) * param_value
+                    else:
+                        return 1.0 + ((total_cells - i - 1) / mid) * param_value
+                case 'sinusoide':
+                    return 1.0 + param_value * math.sin((i / total_cells) * math.pi)
+                case 'exponential':
+                    return 1.0 + math.exp(i * param_value)
+                case _:
+                    raise ValueError(f"Unknown gradient rule: {rule}")
 
         # Extract gradient properties
-        rule = gradProperties[0]
-        direction = gradProperties[1]
-        parameters = gradProperties[2]
+        rule, direction, parameters = gradProperties
 
-        # Initialization matrix for each dimension (X, Y, Z)
-        maxCells = max(self.numCellsX, self.numCellsY, self.numCellsZ)
-        gradientData = [[1.0, 1.0, 1.0] for _ in range(maxCells)]
+        # Determine the number of cells in each direction
+        number_cells = [self.numCellsX, self.numCellsY, self.numCellsZ]
 
-        # Processing multiple rules
-        for i in range(maxCells):
-            numberCells = [self.numCellsX, self.numCellsY, self.numCellsZ]
-            for dimIndex in range(3):
-                if i < numberCells[dimIndex] and direction[dimIndex] == 1:
-                    rule_function = rule_functions.get(rule, apply_constant_rule)
-                    if rule in ['parabolic', 'sinusoide']:
-                        gradientData[i][dimIndex] = rule_function(i, numberCells[dimIndex], parameters[dimIndex])
-                    else:
-                        gradientData[i][dimIndex] = rule_function(i, parameters[dimIndex])
-                else:
-                    gradientData[i][dimIndex] = 1.0  # Default to no gradient if direction is inactive
+        # Generate gradient data
+        gradientData = [
+            [
+                apply_rule(i, number_cells[dim], parameters[dim], rule)
+                if direction[dim] == 1 else 1.0
+                for dim in range(3)
+            ]
+            for i in range(max(number_cells))
+        ]
+
         return gradientData
 
     def gradMaterialSetting(self, gradMatProperty: list) -> list:
         """
-        Define gradient material settings
+        Define gradient material settings.
 
         Parameters:
         ------------
         gradMatProperty: list[Multimat, GradMaterialDirection]
-            Set of properties for material gradient
+            Set of properties for material gradient.
 
         Returns:
         --------
-        gradMat: list of an integer
-            list of a material type in the structure
+        gradMat: list
+            3D list representing the material type in the structure.
         """
+        multimat, direction = gradMatProperty
 
-        # Extract properties
-        multimat = gradMatProperty[0]
-        direction = gradMatProperty[1]
-        gradMat = None
+        # Initialize gradMat based on `multimat` value
+        if multimat == -1:  # Random materials
+            return [[[random.randint(1, 3) for _ in range(self.numCellsX)] for _ in range(self.numCellsY)] for _ in
+                    range(self.numCellsZ)]
 
-        if multimat == -1:  # Random
-            gradMat = [[[random.randint(1, 3) for X in range(self.numCellsX)] for Y in range(self.numCellsY)] for Z in
-                       range(self.numCellsZ)]
-        if multimat == 0:  # Mono material
-            gradMat = [[[1 for X in range(self.numCellsX)] for Y in range(self.numCellsY)] for Z in
-                       range(self.numCellsZ)]
-        elif multimat == 1:  # Graded material
-            if direction == 1:
-                gradMat = [[[X for X in range(self.numCellsX)] for Y in range(self.numCellsY)] for Z in
-                           range(self.numCellsZ)]
-            if direction == 2:
-                gradMat = [[[Y for X in range(self.numCellsX)] for Y in range(self.numCellsY)] for Z in
-                           range(self.numCellsZ)]
-            if direction == 3:
-                gradMat = [[[Z for X in range(self.numCellsX)] for Y in range(self.numCellsY)] for Z in
-                           range(self.numCellsZ)]
-        return gradMat
+        if multimat == 0:  # Single material
+            return [[[1 for _ in range(self.numCellsX)] for _ in range(self.numCellsY)] for _ in range(self.numCellsZ)]
+
+        if multimat == 1:  # Graded materials
+            # Generate gradient based on the direction
+            return [
+                [
+                    [
+                        X if direction == 1 else Y if direction == 2 else Z
+                        for X in range(self.numCellsX)
+                    ]
+                    for Y in range(self.numCellsY)
+                ]
+                for Z in range(self.numCellsZ)
+            ]
+
+        # Default case: return an empty gradMat if no valid `multimat` is provided
+        return []
 
     def isNotInErasedRegion(self, startCellPos: list[float]) -> bool:
         """
@@ -454,24 +373,6 @@ class Lattice(object):
         cells: list of Cell objects
             List of cells in the lattice
         """
-
-        def randomWithStep(start, end, step):
-            """
-            Randomize a value with a step
-
-            Parameters:
-            -----------
-            start: float
-                Start value
-            end: float
-                End value
-            step: float
-                Step value
-            """
-            range_values = int((end - start) / step)
-            random_step_value = random.randint(0, range_values)
-            return start + random_step_value * step
-
         xCellStartInit = 0
         yCellStartInit = 0
         zCellStartInit = 0
@@ -510,7 +411,7 @@ class Lattice(object):
                                 while all(val == 0 for val in setRadiusCell):
                                     for idx, radiusHybrid in enumerate(self.hybridLatticeData):
                                         if radiusHybrid != 0.0:
-                                            setRadiusCell[idx] = randomWithStep(0, 0.1, 0.01)
+                                            setRadiusCell[idx] = np.random.choice(np.arange(0.0, 0.1, 0.01))
                             else:
                                 setRadiusCell = self.hybridLatticeData
 
@@ -643,102 +544,6 @@ class Lattice(object):
                 if beam not in beamObjList:
                     beamObjList.append(beam)
         return beamObjList
-
-    def visualizeLattice3D(self, beamColor: str = "Material", voxelViz: bool = False,
-                           deformedForm: bool = False, nameSave: str = None,
-                           plotCellIndex: bool = False) -> None:
-        """
-        Visualizes the lattice in 3D using matplotlib.
-
-        Parameter:
-        -----------
-        beamColor: string (default: "Material")
-            "Material" -> color by material
-            "Type" -> color by type
-            "Radius" -> color by radius
-        voxelViz: boolean (default: False)
-            True -> voxel visualization
-            False -> beam visualization
-        deformedForm: boolean (default: False)
-            True -> deformed form
-        """
-        fig = plt.figure()
-        ax = fig.add_subplot(111, projection='3d')
-        ax.set_title("Lattice generated")
-        color = ['blue', 'green', 'red', 'yellow', 'orange']
-        if beamColor == "Radius":
-            idxColor = []
-
-        if not voxelViz:
-            beamDraw = []
-            lines = []
-            colors = []
-            nodeX = []
-            nodeY = []
-            nodeZ = []
-            nodeDraw = set()
-            for cell in self.cells:
-                for beam in cell.beams:
-                    if deformedForm:
-                        node1 = beam.point1.getDeformedPos()
-                        node2 = beam.point2.getDeformedPos()
-                    else:
-                        node1 = beam.point1.x, beam.point1.y, beam.point1.z
-                        node2 = beam.point2.x, beam.point2.y, beam.point2.z
-                    if beam not in beamDraw:
-                        colorBeam = 'blue'
-                        if beamColor == "Material":
-                            colorBeam = color[beam.material]
-                        elif beamColor == "Type":
-                            colorBeam = color[int(str(beam.type)[0])]
-                        elif beamColor == "Radius":
-                            if beam.radius not in idxColor:
-                                idxColor.append(beam.radius)
-                            colorBeam = color[idxColor.index(beam.radius)]
-                        lines.append([(node1[0], node1[1], node1[2]), (node2[0], node2[1], node2[2])])
-                        colors.append(colorBeam)
-                        beamDraw.append(beam)
-                    for node in [node1, node2]:
-                        if (node[0], node[1], node[2]) not in nodeDraw:
-                            nodeDraw.add((node[0], node[1], node[2]))
-                            nodeX.append(node[0])
-                            nodeY.append(node[1])
-                            nodeZ.append(node[2])
-                if plotCellIndex:
-                    ax.text(cell.centerPoint[0], cell.centerPoint[1], cell.centerPoint[2], str(cell.index),
-                            color='black', fontsize=25)
-
-            line_collection = Line3DCollection(lines, colors=colors, linewidths=2)
-            ax.add_collection3d(line_collection)
-
-            ax.scatter(nodeX, nodeY, nodeZ, c='black', s=5)
-        elif voxelViz:
-            for cell in self.cells:
-                x, y, z = cell.coordinateCell
-                dx, dy, dz = cell.cellSize
-
-                colorCell = 'blue'
-                if beamColor == "Material":
-                    colorCell = color[cell.beams[0].material]
-                elif beamColor == "Type":
-                    colorCell = color[int(str(cell.latticeType)[0])]
-                ax.bar3d(x, y, z, dx, dy, dz, color=colorCell, alpha=1, shade=True, edgecolor='k')
-
-        ax.set_xlabel('X')
-        ax.set_ylabel('Y')
-        ax.set_zlabel('Z')
-        limMin = min(self.xMin, self.yMin, self.zMin)
-        limMax = max(self.xMax, self.yMax, self.zMax)
-        ax.set_xlim3d(limMin, limMax)
-        ax.set_ylim3d(limMin, limMax)
-        ax.set_zlim3d(limMin, limMax)
-        # ax.set_xlim3d(self.xMin, self.zMax)
-        # ax.set_ylim3d(self.yMin, self.yMax)
-        # ax.set_zlim3d(self.zMin, self.zMax)
-        if nameSave is not None:
-            plt.savefig(nameSave)
-        else:
-            plt.show()
 
     def getListAngleBeam(self, beam: "Beam", pointbeams: list["Beam"]) -> tuple[list[float], list[float]]:
         """
@@ -965,6 +770,21 @@ class Lattice(object):
         self.xMin, self.xMax = min(x_values), max(x_values)
         self.yMin, self.yMax = min(y_values), max(y_values)
         self.zMin, self.zMax = min(z_values), max(z_values)
+
+        self.setLatticeDimensionsDict()
+
+    def setLatticeDimensionsDict(self):
+        """
+        Set lattice dimensions in a dictionary format
+        """
+        self.latticeDimensionsDict = {
+            "xMin": self.xMin,
+            "xMax": self.xMax,
+            "yMin": self.yMin,
+            "yMax": self.yMax,
+            "zMin": self.zMin,
+            "zMax": self.zMax
+        }
 
     def getBeamNodeMod(self) -> None:
         """
@@ -1731,6 +1551,14 @@ class Lattice(object):
                             node.fixDOF([dof])
 
     def setDisplacementWithVector(self, displacementVector: list[float]) -> None:
+        """
+        Set displacement on the lattice with vector
+
+        Parameters:
+        -----------
+        displacementVector: list of float
+            Displacement vector to apply to the lattice
+        """
         displacementVector = np.array(displacementVector).flatten()
         index = 0
         for cell in self.cells:
@@ -1952,192 +1780,6 @@ class Lattice(object):
                     break
 
         return cellTagList
-
-    def visualizeLattice3D_interactive(self, beamColor: str = "Material", voxelViz: bool = False,
-                                       deformedForm: bool = False, plotCellIndex: bool = False) -> "go.Figure":
-        """
-        Visualizes the lattice in 3D using Plotly.
-
-        Parameters:
-        -----------
-        beamColor: string (default: "Material")
-            "Material" -> color by material
-            "Type" -> color by type
-        voxelViz: boolean (default: False)
-            True -> voxel visualization
-            False -> beam visualization
-        deformedForm: boolean (default: False)
-            True -> deformed form
-        plotCellIndex: boolean (default: False)
-            True -> plot the index of each cell
-        """
-
-        color_list = ['blue', 'green', 'red', 'yellow', 'orange', 'purple', 'cyan', 'magenta']
-        fig = go.Figure()
-
-        if not voxelViz:
-            beamDraw = set()
-            nodeDraw = set()
-            node_coords = []
-            node_colors = []
-            lines_x = []
-            lines_y = []
-            lines_z = []
-            line_colors = []
-            node1 = None
-            node2 = None
-
-            for cell in self.cells:
-                for beam in cell.beams:
-                    if beam not in beamDraw:
-                        if deformedForm:
-                            node1 = beam.point1.getDeformedPos()
-                            node2 = beam.point2.getDeformedPos()
-                        else:
-                            node1 = (beam.point1.x, beam.point1.y, beam.point1.z)
-                            node2 = (beam.point2.x, beam.point2.y, beam.point2.z)
-
-                        # Add the beam to the figure
-                        lines_x.extend([node1[0], node2[0], None])
-                        lines_y.extend([node1[1], node2[1], None])
-                        lines_z.extend([node1[2], node2[2], None])
-
-                        # Determine the color of the beam
-                        if beamColor == "Material":
-                            colorBeam = color_list[beam.material % len(color_list)]
-                        elif beamColor == "Type":
-                            colorBeam = color_list[beam.type % len(color_list)]
-                        else:
-                            colorBeam = 'grey'
-
-                        line_colors.extend([colorBeam, colorBeam, colorBeam])
-
-                        beamDraw.add(beam)
-
-                    # Add the nodes to the figure
-                    for node in [node1, node2]:
-                        if node not in nodeDraw:
-                            node_coords.append(node)
-                            nodeDraw.add(node)
-                            # Determine the color of the node
-                            node_colors.append('black')
-
-                if plotCellIndex:
-                    cell_center = cell.centerPoint
-                    fig.add_trace(go.Scatter3d(
-                        x=[cell_center[0]],
-                        y=[cell_center[1]],
-                        z=[cell_center[2]],
-                        mode='text',
-                        text=str(cell.index),
-                        textposition="top center",
-                        showlegend=False
-                    ))
-
-            # Add the beams to the figure
-            fig.add_trace(go.Scatter3d(
-                x=lines_x,
-                y=lines_y,
-                z=lines_z,
-                mode='lines',
-                line=dict(color=line_colors, width=5),
-                hoverinfo='none',
-                showlegend=False
-            ))
-
-            # Add the nodes to the figure
-            if node_coords:
-                node_x, node_y, node_z = zip(*node_coords)
-                fig.add_trace(go.Scatter3d(
-                    x=node_x,
-                    y=node_y,
-                    z=node_z,
-                    mode='markers',
-                    marker=dict(size=4, color=node_colors),
-                    hoverinfo='none',
-                    showlegend=False
-                ))
-
-        else:
-            # Vizualize the lattice as a voxel grid
-            for cell in self.cells:
-                x, y, z = cell.coordinateCell
-                dx, dy, dz = cell.cellSize
-
-                if beamColor == "Material":
-                    colorCell = color_list[cell.beams[0].material % len(color_list)]
-                elif beamColor == "Type":
-                    colorCell = color_list[int(str(cell.latticeType)[0]) % len(color_list)]
-                else:
-                    colorCell = 'grey'
-
-                # Create the voxel
-                fig.add_trace(go.Mesh3d(
-                    x=[x, x + dx, x + dx, x, x, x + dx, x + dx, x],
-                    y=[y, y, y + dy, y + dy, y, y, y + dy, y + dy],
-                    z=[z, z, z, z, z + dz, z + dz, z + dz, z + dz],
-                    color=colorCell,
-                    opacity=0.5,
-                    showlegend=False
-                ))
-
-        # Configure the layout
-        limMin = min(self.xMin, self.yMin, self.zMin)
-        limMax = max(self.xMax, self.yMax, self.zMax)
-        fig.update_layout(
-            scene=dict(
-                xaxis=dict(title='X', range=[limMin, limMax], backgroundcolor='white', showgrid=True, zeroline=True),
-                yaxis=dict(title='Y', range=[limMin, limMax], backgroundcolor='white', showgrid=True, zeroline=True),
-                zaxis=dict(title='Z', range=[limMin, limMax], backgroundcolor='white', showgrid=True, zeroline=True),
-                aspectmode='cube'
-            ),
-            margin=dict(l=0, r=0, b=0, t=0),
-            showlegend=False
-        )
-
-        return fig  # Return the figure
-
-    def visualCellZoneBlocker(self, erasedParts: list[tuple]) -> None:
-        """
-        Visualize the lattice with erased parts
-
-        Parameters:
-        -----------
-        erasedParts: list of tuple
-            List of erased parts with (x_start, y_start, z_start, x_dim, y_dim
-        """
-        fig = plt.figure()
-        ax = fig.add_subplot(111, projection='3d')
-
-        # Plot global lattice cube
-        x_max = self.xMax
-        y_max = self.yMax
-        z_max = self.zMax
-        vertices_global = [[0, 0, 0], [x_max, 0, 0], [x_max, y_max, 0], [0, y_max, 0],
-                           [0, 0, z_max], [x_max, 0, z_max], [x_max, y_max, z_max], [0, y_max, z_max]]
-        ax.add_collection3d(
-            Poly3DCollection([vertices_global], facecolors='grey', linewidths=1, edgecolors='black', alpha=0.3))
-
-        # Plot erased region cube
-        for erased in erasedParts:
-            x_start, y_start, z_start, x_dim, y_dim, z_dim = erased
-            vertices_erased = [[x_start, y_start, z_start], [x_start + x_dim, y_start, z_start],
-                               [x_start + x_dim, y_start + y_dim, z_start], [x_start, y_start + y_dim, z_start],
-                               [x_start, y_start, z_start + z_dim], [x_start + x_dim, y_start, z_start + z_dim],
-                               [x_start + x_dim, y_start + y_dim, z_start + z_dim],
-                               [x_start, y_start + y_dim, z_start + z_dim]]
-            ax.add_collection3d(
-                Poly3DCollection([vertices_erased], facecolors='red', linewidths=1, edgecolors='black', alpha=0.6))
-
-        # Set labels and limits
-        ax.set_xlabel('X')
-        ax.set_ylabel('Y')
-        ax.set_zlabel('Z')
-        ax.set_xlim([0, x_max])
-        ax.set_ylim([0, y_max])
-        ax.set_zlim([0, z_max])
-
-        plt.show()
 
     def getRadius(self) -> float:
         """
