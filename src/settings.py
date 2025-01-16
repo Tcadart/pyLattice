@@ -8,15 +8,15 @@
 # *******************************************************************************************************************
 # *******************************************************************************************************************
 # Lattice properties
-Radius = 0.08
+Radius = 0.01
 cell_size = 1
 cell_size_X = 1
 cell_size_Y = cell_size
 cell_size_Z = cell_size
 number_cell = 1
-number_cell_X = 2
-number_cell_Y = 2
-number_cell_Z = 1
+number_cell_X = 10
+number_cell_Y = 10
+number_cell_Z = 2
 
 Lattice_Type = 1000
 # -2 => Method random cell

@@ -1464,46 +1464,43 @@ class Lattice(object):
 
     def fitToSurface(self, equation: callable, mode: str = "z", params: dict = None):
         """
-        Ajuste les nœuds du lattice pour qu'ils suivent une surface définie par une équation.
+        Adjust the lattice nodes to follow a surface defined by an equation.
 
         Parameters:
         -----------
         equation : callable
-            Fonction qui représente la surface. Par exemple, une fonction lambda ou une fonction normale.
-            Exemple : lambda x, y: x**2 + y**2 (pour une paraboloïde).
+            Function representing the surface. For example, a lambda function or a normal function.
+            Example: lambda x, y: x**2 + y**2 (for a paraboloid).
         mode : str
-            Mode d'ajustement :
-            - "z" : Ajuster les nœuds sur une surface \( z = f(x, y) \).
-            - "cylindrical" : Ajuster les nœuds sur une surface cylindrique \( r = f(\theta, z) \).
+            Adjustment mode:
+            - "z" : Adjust nodes on a surface \( z = f(x, y) \).
+            - "z_plan" : Adjust nodes on a plan \( z = f(x, y) \) without changing the z-coordinate.
         params : dict
-            Paramètres supplémentaires pour l'équation ou le mode (par exemple, rayon, angle, etc.).
+            Additional parameters for the equation or mode (e.g., radius, angle, etc.).
         """
         if params is None:
             params = {}
-
+        nodeAlreadyChanged = []
         for cell in self.cells:
             for beam in cell.beams:
                 for node in [beam.point1, beam.point2]:
                     x, y, z = node.x, node.y, node.z
+                    if node not in nodeAlreadyChanged:
+                        nodeAlreadyChanged.append(node)
+                        # Adjust for a surface \( z = f(x, y) \)
+                        if mode == "z":
+                            new_z = equation(x, y, **params)
+                            new_z = z + new_z
+                            node.movePoint(x, y, new_z)
+                        elif mode == "z_plan":
+                            new_z = equation(x, y, **params)
+                            node.movePoint(x, y, new_z)
 
-                    # Ajustement pour une surface \( z = f(x, y) \)
-                    if mode == "z":
-                        new_z = equation(x, y, **params)  # Calculer la nouvelle hauteur
-                        node.movePoint(x, y, new_z)
+                        # Other modes can be added here (e.g. cylindrical, spherical)
+                        else:
+                            raise ValueError(f"Mode '{mode}' non supporté.")
 
-                    # Ajustement pour une surface cylindrique \( r = f(\theta, z) \)
-                    elif mode == "cylindrical":
-                        r = equation(z, **params)  # Calculer le rayon
-                        theta = math.atan2(y, x)  # Calculer l'angle theta
-                        new_x = r * math.cos(theta)
-                        new_y = r * math.sin(theta)
-                        node.movePoint(new_x, new_y, z)
-
-                    # D'autres modes peuvent être ajoutés ici (ex. sphérique)
-                    else:
-                        raise ValueError(f"Mode '{mode}' non supporté.")
-
-        # Mettre à jour les limites du lattice après ajustement
+        # Update lattice limits after adjustment
         self.getMinMaxValues()
 
     def deleteDuplicatedBeams(self) -> None:
