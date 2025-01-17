@@ -1814,5 +1814,45 @@ class Lattice(object):
         if not flagChangingCell:
             raise ValueError("Cell index not found for changing beam radius data on cell : ", cellIndex)
 
+    def setOptimizationParameters(self, optimizationParameters: list[float]) -> None:
+        """
+        Set optimization parameters for the lattice
 
+        Parameters:
+        -----------
+        optimizationParameters: list of float
+            List of optimization parameters
+        """
+        numberOfParametersPerCell = 1
+        idx = 0
+        for cell in self.cells:
+            self.changeCellRadiusProperties(cell.index, optimizationParameters[idx:idx + numberOfParametersPerCell])
+            idx += numberOfParametersPerCell
+
+    def calculateObjective(self):
+        cellImportante = self.cells[0]
+        return -cellImportante.getInternalEnergy()
+        # for beam in cellImportante.beams:
+        #     for node in [beam.point1, beam.point2]:
+        #         if len(node.localTag) > 0:
+        #             if node.localTag[0] == 1007:
+        #                 return node.getDisplacementValue()[0]
+
+    def getNumberParametersOptimization(self) -> int:
+        """
+        Get number of parameters for optimization
+
+        Returns:
+        --------
+        numParameters: int
+            Number of parameters for optimization
+        """
+        numParameters = 0
+        for cell in self.cells:
+            if cell.hybridRadius is not None:
+                numParameters += len(cell.hybridRadius)
+            else:
+                numParameters += 1
+        numParameters = len(self.cells) # A supprimer quand les 3 rayons seront utilisés
+        return numParameters
 
