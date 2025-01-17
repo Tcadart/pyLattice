@@ -46,7 +46,7 @@ GradDimParameters = [2.5, 0.0, 1.5]  # Float
 # Gradient on radius of beams
 GradRadRule = 'linear'
 GradRadDirection = [1, 0, 0]
-GradRadParameters = [1.1, 0.0, 1]
+GradRadParameters = [0.0, 0.0, 1]
 # Gradient Rule
 # - constant
 # - linear

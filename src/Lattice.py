@@ -228,11 +228,19 @@ class Lattice(object):
         sizeLattice: list of float in dim 3
             Length of the lattice in each direction
         """
-        cellSize = [self.cellSizeX, self.cellSizeY, self.cellSizeZ]
-        sizeLattice = [0, 0, 0]
+        sizeLattice = [0.0, 0.0, 0.0]
         for direction in range(3):
-            for dim in self.gradDim:
-                sizeLattice[direction] += dim[direction] * cellSize[direction]
+            total_length = 0.0
+            # Get the number of cells in the current direction
+            num_cells = [self.numCellsX, self.numCellsY, self.numCellsZ][direction]
+            cell_size = [self.cellSizeX, self.cellSizeY, self.cellSizeZ][direction]
+            gradient_factors = [grad[direction] for grad in self.gradDim[:num_cells]]
+
+            # Calculate the total length by summing cell sizes multiplied by their respective gradient factors
+            for factor in gradient_factors:
+                total_length += factor * cell_size
+            sizeLattice[direction] = total_length
+
         return sizeLattice
 
     def getGradSettings(self, gradProperties: list) -> list[list[float]]:
