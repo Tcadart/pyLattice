@@ -104,7 +104,6 @@ class Cell(object):
             Material index of the beam
         """
         self._beamMaterial = gradMat[self.posCell[2]][self.posCell[1]][self.posCell[0]]
-        print(self._beamMaterial)
 
     def getBeamRadius(self, gradRadius: list, BaseRadius: float) -> float:
         """
