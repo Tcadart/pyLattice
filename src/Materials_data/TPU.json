@@ -1,0 +1,6 @@
+{
+    "name": "TPU1",
+    "density": 1,
+    "elastic": [20000.0, 0.30],
+    "plastic": 0
+}

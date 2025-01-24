@@ -9,6 +9,7 @@
 # *******************************************************************************************************************
 # Lattice properties
 Radius = 0.01
+materialName = 'VeroClear'
 cell_size = 1
 cell_size_X = 1
 cell_size_Y = cell_size
@@ -46,7 +47,7 @@ GradDimParameters = [2.5, 0.0, 1.5]  # Float
 # Gradient on radius of beams
 GradRadRule = 'linear'
 GradRadDirection = [1, 0, 0]
-GradRadParameters = [0.0, 0.0, 1]
+GradRadParameters = [0.01, 0.0, 1]
 # Gradient Rule
 # - constant
 # - linear

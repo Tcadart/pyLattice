@@ -20,7 +20,7 @@ class Lattice(object):
 
     def __init__(self, cell_size_x: float, cell_size_y: float, cell_size_z: float,
                  num_cells_x: int, num_cells_y: int, num_cells_z: int,
-                 Lattice_Type: int, Radius: float,
+                 Lattice_Type: int, Radius: float, materialName: str,
                  gradRadiusProperty: list, gradDimProperty: list, gradMatProperty: list,
                  simMethod: int = 0, uncertaintyNode: int = 0,
                  hybridLatticeData: list = None, hybridGeomType: list = None,
@@ -49,6 +49,9 @@ class Lattice(object):
                 17 => Hybrid2)
         Radius: float
             Initial radius geometry
+        materialName: string
+            Name of the default material in the lattice structure ('Ti-6Al-4V', 'VeroClear'...)
+            Possible to add more material in the Material.py file
 
         Gradient properties
         gradRadiusProperty: array of data as [GradDimRule,GradDimDirection,GradDimParameters]
@@ -91,6 +94,7 @@ class Lattice(object):
         self.numCellsZ = num_cells_z
         self.latticeType = Lattice_Type
         self.Radius = Radius
+        self.materialName = materialName
         self.gradRadius = self.getGradSettings(gradRadiusProperty)
         self.gradDim = self.getGradSettings(gradDimProperty)
         self.gradMat = self.gradMaterialSetting(gradMatProperty)
