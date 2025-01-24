@@ -1141,8 +1141,11 @@ class Lattice(object):
 
         radiusDict = {
             100: hybridRadiusData[0],
+            200: hybridRadiusData[0] * self.penalizationCoefficient,
             101: hybridRadiusData[1],
+            201: hybridRadiusData[1] * self.penalizationCoefficient,
             102: hybridRadiusData[2],
+            202: hybridRadiusData[2] * self.penalizationCoefficient
         }
         for cell in self.cells:
             for beam in cell.beams:
