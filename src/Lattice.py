@@ -1986,3 +1986,22 @@ class Lattice(object):
         numParameters = len(self.cells) # A supprimer quand les 3 rayons seront utilisés
         return numParameters
 
+
+    def applyReactionForceOnNodeList(self, reactionForce: list, nodeCoordinatesList: list):
+        """
+        Apply reaction force on node list
+
+        Parameters:
+        -----------
+        reactionForce: list of float
+            Reaction force to apply
+        nodeCoordinates: list of float
+            Coordinates of the node
+        """
+        for cell in self.cells:
+            for beam in cell.beams:
+                for node in [beam.point1, beam.point2]:
+                    nodeCoord = [node.x, node.y, node.z]
+                    if np.any(np.all(nodeCoordinatesList == nodeCoord, axis=1)):
+                        index = np.where(np.all(nodeCoordinatesList == nodeCoord, axis=1))[0]
+                        node.setReactionForce(reactionForce[index][0][0])

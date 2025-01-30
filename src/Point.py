@@ -174,6 +174,15 @@ class Point:
         """
         self.displacementValue[DOF] = displacementValue
 
+    def setDisplacementVector(self, displacementVector: List[float]) -> None:
+        """
+        Assign displacement values to the point.
+
+        Args:
+            displacementVector (List[float]): Displacement values for all DOF.
+        """
+        self.displacementValue = displacementVector
+
     def getDisplacementValue(self) -> List[float]:
         """
         Retrieve the displacement values of the point.
