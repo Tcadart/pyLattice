@@ -85,6 +85,7 @@ class Lattice(object):
         self.zMax = None
         self.zMin = None
         self.latticeDimensionsDict = None
+        self.dictSchurComplement = None
 
         self.cellSizeX = cell_size_x
         self.cellSizeY = cell_size_y
@@ -115,6 +116,7 @@ class Lattice(object):
         # Simulation necessary
         self.freeDOF = None  # Free DOF gradient conjugate gradient method
         self.maxIndexBoundary = None
+        self.globalDisplacementIndex = None
 
         # Process
         self.generateLattice()
@@ -1585,9 +1587,14 @@ class Lattice(object):
                             node.fixDOF([dof])
                             index += 1
 
-    def getDisplacementGlobal(self) -> tuple[list[float], list[int]]:
+    def getDisplacementGlobal(self, withFixed = False) -> tuple[list[float], list[int]]:
         """
         Get global displacement of the lattice
+
+        Parameters:
+        -----------
+        withFixed: bool
+            If True, return displacement of all nodes, else return only free degree of freedom
 
         Returns:
         --------
@@ -1607,7 +1614,11 @@ class Lattice(object):
                             if node.fixedDOF[i] == 0:
                                 globalDisplacement.append(node.displacementValue[i])
                                 globalDisplacementIndex.append(node.indexBoundary)
+                            elif withFixed:
+                                globalDisplacement.append(node.displacementValue[i])
+                                globalDisplacementIndex.append(node.indexBoundary)
                         processed_nodes.add(node.indexBoundary)
+        self.globalDisplacementIndex = globalDisplacementIndex
         return globalDisplacement, globalDisplacementIndex
 
     def defineNodeIndexBoundary(self) -> None:
@@ -1740,7 +1751,7 @@ class Lattice(object):
             cell.getNodeOrderToSimulate()
             cell.buildCouplingOperator(self.freeDOF)
 
-    def buildLUSchurComplement(self, schurComplementMatrix: coo_matrix) -> splu:
+    def buildLUSchurComplement(self) -> splu:
         """
         Build LU decomposition of the Schur complement matrix for the lattice
 
@@ -1749,15 +1760,96 @@ class Lattice(object):
         schurComplementMatrix: coo_matrix
             Schur complement matrix of the lattice
         """
-        # Change schur complement matrix type to scipy sparse matrix
-        schurComplementMatrix = coo_matrix(schurComplementMatrix)
+        self.buildCouplingOperatorForEachCells()
+
         globalSchurComplement = coo_matrix((self.freeDOF, self.freeDOF))
         for cell in self.cells:
+            schurComplementMatrix = coo_matrix(self.loadSref_nearest(cell.hybridRadius[0]))
             globalSchurComplement += cell.buildPreconditioner(schurComplementMatrix)
         globalSchurComplement = globalSchurComplement.tocsc()
         # Factorize preconditioner
         LUSchurComplement = splu(globalSchurComplement)
         return LUSchurComplement
+
+    def loadSchurComplement(self, file_name: str = "LatticeOneGeom.txt", solvingMethod:int = 1):
+        """
+        Loading Schur complement matrices from a file.
+
+        Parameters
+        ----------
+        file_name: str
+            Name of the file containing the Schur complement matrices.
+        solvingMethod: int
+            Method used to solve the Schur complement matrix. 0 for FenicsX, 1 for NN.
+
+        Returns
+        -------
+        SchurDict: dict
+            Dictionary of Schur complement matrices with radius as key and matrix as value
+        """
+        directory = "ConjugateGradientMethod/schurComplement/"
+        if not file_name.endswith(".txt"):
+            file_name += ".txt"
+        pathFile = directory + file_name
+        if not os.path.exists(pathFile):
+            raise ValueError("Loading file for Schur Complement not found.")
+
+        dictSchurComplement = {}
+        current_matrix = []
+        current_radius = None
+
+        with open(pathFile, 'r') as f:
+            for line in f:
+                if line.startswith("# Radius"):
+                    # Sauvegarder la matrice précédente si elle est à évaluer
+                    if current_matrix:
+                        dictSchurComplement[current_radius] = np.array(current_matrix)
+
+                    # Réinitialiser pour la prochaine matrice
+                    current_matrix = []
+                    current_radius = float(line.split(":")[1].strip())
+
+
+                elif line.strip():
+                    # Ajouter la ligne à la matrice courante
+                    current_matrix.append([float(x) for x in line.split()])
+
+            # Sauvegarder la dernière matrice si nécessaire
+            if current_matrix:
+                dictSchurComplement[current_radius] = np.array(current_matrix)
+
+        # Normaliser les matrices
+        if solvingMethod == 0:
+            for rad in dictSchurComplement:
+                dictSchurComplement[rad] = dictSchurComplement[rad] / np.linalg.norm(dictSchurComplement[rad])
+        self.dictSchurComplement = dictSchurComplement
+
+    def loadSref_nearest(self, radiusReference: float, file_name: str = "LatticeOneGeom.txt",
+                         printing: bool = False) -> np.ndarray:
+        """
+        Load the Schur complement matrix closest to the given radiusReference.
+
+        Parameters:
+        -------------
+        radiusReference: float
+            The reference radius for which the closest matrix should be loaded.
+        file_name: str
+            Name of the file containing the Schur complement matrices.
+
+        Returns:
+        ---------
+        np.ndarray
+            The matrix corresponding to the radius closest to the reference.
+        """
+        if self.dictSchurComplement is None:
+            self.loadSchurComplement(file_name)
+
+        closest_radius = min(self.dictSchurComplement.keys(), key=lambda rad: abs(rad - radiusReference))
+
+        if printing:
+            print(f"Using Schur complement matrix for radius {closest_radius}.")
+
+        return np.array(self.dictSchurComplement[closest_radius])
 
     def getCellSurface(self, surface: str) -> list[int]:
         """
@@ -1826,6 +1918,7 @@ class Lattice(object):
             if cell.index == cellIndex:
                 flagChangingCell = True
                 cell.changeBeamRadius(radius, self.hybridGeomType, self.gradRadius)
+                break
         if not flagChangingCell:
             raise ValueError("Cell index not found for changing beam radius data on cell : ", cellIndex)
 
@@ -1838,15 +1931,37 @@ class Lattice(object):
         optimizationParameters: list of float
             List of optimization parameters
         """
+        if len(optimizationParameters) != self.getNumberParametersOptimization():
+            raise ValueError("Invalid number of optimization parameters.")
+
         numberOfParametersPerCell = 1
         idx = 0
         for cell in self.cells:
             self.changeCellRadiusProperties(cell.index, optimizationParameters[idx:idx + numberOfParametersPerCell])
             idx += numberOfParametersPerCell
 
-    def calculateObjective(self):
-        cellImportante = self.cells[0]
-        return -cellImportante.getInternalEnergy()
+    def calculateObjective(self, typeObjective: str) -> float:
+        """
+        Calculate objective function for the lattice optimization
+
+        Parameters
+        ----------
+        typeObjective: str
+            Type of objective function to calculate (Compliance...)
+
+        Returns
+        -------
+        objectiveValue: float
+            Objective function value
+        """
+        if typeObjective == "Compliance":
+            reactionForce = self.getGlobalReactionForce()
+            reaction_force_array = np.array(list(reactionForce.values())).flatten()
+            displacement = np.array(self.getDisplacementGlobal(withFixed=True)[0])
+            compliance = np.dot(reaction_force_array, displacement)
+            return compliance
+        # cellImportante = self.cells[0]
+        # return -cellImportante.getInternalEnergy()
         # for beam in cellImportante.beams:
         #     for node in [beam.point1, beam.point2]:
         #         if len(node.localTag) > 0:

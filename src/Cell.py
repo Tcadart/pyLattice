@@ -1,3 +1,5 @@
+from colorama import Style, Fore
+
 from .Point import *
 from .Beam import *
 from .Geometry_Lattice import Lattice_geometry
@@ -279,7 +281,7 @@ class Cell(object):
                             point.setDisplacementValue(displacementArray[index + indexActual], i)
                             indexActual += 1
 
-    def getDisplacementAtBoundaryNodes(self, nodeList: dict) -> list:
+    def getDisplacementAtNodes(self, nodeList: dict, printing:bool = False) -> list:
         """
         Get the displacement at nodes.
 
@@ -297,9 +299,15 @@ class Cell(object):
         for node in nodeList.values():
             if node:
                 displacement = node.getDisplacementValue()
-                displacementList.extend(displacement)  # Extend the list with the displacement values
-            else:
-                displacementList.extend([0, 0, 0, 0, 0, 0])  # Append zeros if the node is not found
+                displacementList.append(displacement)
+                # if printing:
+                #     if any(0 < abs(value) > 0.1 for value in displacementList[-1][:3]):
+                #         print(Fore.RED + "Displacement exceeded 0.1" + Style.RESET_ALL)
+                #         print(node, displacementList[-1])
+                #     if any(0 < abs(value) > 0.01 for value in displacementList[-1][3:]):
+                #         print(Fore.RED + "Rotation exceeded 0.01" + Style.RESET_ALL)
+                #         print(node, displacementList[-1])
+                #     print(node, node.getDisplacementValue())
         return displacementList
 
     def setReactionForceOnEachNodes(self, nodeList: dict, reactionForce: list) -> None:
@@ -400,6 +408,8 @@ class Cell(object):
             Gradient of the radius
         """
         if len(newRadius) == 1:
+            #TEMPORARY: This is a temporary fix to avoid changing the radius of the hybrid beams
+            self.hybridRadius = [newRadius[0], 0.0, 0.0]
             for beam in self.beams:
                 beam.setRadius(newRadius[0])
         if len(newRadius) == 3:
