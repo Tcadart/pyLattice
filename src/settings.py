@@ -8,18 +8,18 @@
 # *******************************************************************************************************************
 # *******************************************************************************************************************
 # Lattice properties
-Radius = 0.01
+Radius = [0.1, 0.1, 0.1]
 materialName = 'VeroClear'
 cell_size = 1
 cell_size_X = 1
 cell_size_Y = cell_size
 cell_size_Z = cell_size
 number_cell = 1
-number_cell_X = 10
-number_cell_Y = 10
+number_cell_X = 2
+number_cell_Y = 2
 number_cell_Z = 2
 
-Lattice_Type = 1000
+Lattice_Type = [0, 16, 17]
 # -2 => Method random cell
 # -1 => Full random
 # 0 => BCC
@@ -38,14 +38,14 @@ Lattice_Type = 1000
 # 13 => Diamond
 # 14 => Auxetic
 # 1000 => Hybrid Lattice with data in hybridLatticeData
-hybridLatticeData = [0.1, 0.0, 0.0]
+# hybridLatticeData = [0.1, 0.0, 0.0]
 
 # Gradient on cell dimensions
 GradDimRule = 'constant'
 GradDimDirection = [1, 0, 0]
 GradDimParameters = [2.5, 0.0, 1.5]  # Float
 # Gradient on radius of beams
-GradRadRule = 'linear'
+GradRadRule = 'constant'
 GradRadDirection = [1, 0, 0]
 GradRadParameters = [0.01, 0.0, 1]
 # Gradient Rule

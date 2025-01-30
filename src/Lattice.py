@@ -6,8 +6,6 @@ from .Cell import *
 import math
 import random
 
-import matplotlib.pyplot as plt
-from mpl_toolkits.mplot3d.art3d import Line3DCollection, Poly3DCollection
 import numpy as np
 from scipy.sparse.linalg import splu
 from scipy.sparse import coo_matrix
@@ -20,10 +18,9 @@ class Lattice(object):
 
     def __init__(self, cell_size_x: float, cell_size_y: float, cell_size_z: float,
                  num_cells_x: int, num_cells_y: int, num_cells_z: int,
-                 Lattice_Type: int, Radius: float, materialName: str,
+                 Lattice_Type: list[int], Radius: list[float], materialName: str,
                  gradRadiusProperty: list, gradDimProperty: list, gradMatProperty: list,
                  simMethod: int = 0, uncertaintyNode: int = 0,
-                 hybridLatticeData: list = None, hybridGeomType: list = None,
                  periodicity: int = 0, erasedParts: list = None, randomHybrid: bool = False):
         """
         Constructor general for the Lattice class.
@@ -40,14 +37,14 @@ class Lattice(object):
         num_cells_z: integer
             Number of cells in each direction in the structure
 
-        Lattice_Type: integer
+        Lattice_Type: list of integer
             Geometry type the cell
                 (-2 => Method random cell, -1 => Full random)
                 (0 => BCC, 1 => Octet, 2 => OctetExt, 3 => OctetInt, 4 => BCCZ, 5 => Cubic, 6 => OctahedronZ,
                 7 => OctahedronZcross, 8 => Kelvin, 9 => Cubic formulation 2 (centered), 10 => Cubic V3, 11 => Cubic V4,
                 12 => New lattice (non connu) GPT generated, 13 => Diamond, 14 => Auxetic, 15 => Hichem, 16 => Hybrid1,
                 17 => Hybrid2)
-        Radius: float
+        Radius: list of float
             Initial radius geometry
         materialName: string
             Name of the default material in the lattice structure ('Ti-6Al-4V', 'VeroClear'...)
@@ -77,6 +74,11 @@ class Lattice(object):
         erasedParts: list of float in dim 6
             (xStart, yStart, zStart, xDim, yDim, zDim) of the erased region
         """
+        self._validate_inputs(cell_size_x, cell_size_y, cell_size_z, num_cells_x, num_cells_y, num_cells_z,
+                              Lattice_Type, Radius, materialName, gradRadiusProperty, gradDimProperty, gradMatProperty,
+                              simMethod, uncertaintyNode, periodicity, erasedParts,
+                              randomHybrid)
+
         self.name = None
         self.yMin = None
         self.yMax = None
@@ -102,8 +104,6 @@ class Lattice(object):
         self.simMethod = simMethod
         self.sizeX, self.sizeY, self.sizeZ = self.getSizeLattice()
         self.uncertaintyNode = uncertaintyNode
-        self.hybridLatticeData = hybridLatticeData
-        self.hybridGeomType = hybridGeomType
         self.periodicity = periodicity  # Not finish to implemented
         self.penalizationCoefficient = 1.5  # Fixed with previous optimization
         self.erasedParts = erasedParts
@@ -146,6 +146,9 @@ class Lattice(object):
         """
         Generate lattice structures with just simple parameters
         """
+        Lattice_Type = [Lattice_Type]
+        Radius = [Radius]
+        nameMaterial = "VeroClear"
         # Define Default gradient properties
         GradDimRule = 'constant'
         GradDimDirection = [1, 0, 0]
@@ -159,19 +162,17 @@ class Lattice(object):
         gradRadiusProperty = [GradRadRule, GradRadDirection, GradRadParameters]
         gradMatProperty = [Multimat, GradMaterialDirection]
         return cls(cell_size_x, cell_size_y, cell_size_z, num_cells_x, num_cells_y, num_cells_z, Lattice_Type, Radius,
-                   gradRadiusProperty, gradDimProperty, gradMatProperty)
+                   nameMaterial, gradRadiusProperty, gradDimProperty, gradMatProperty)
 
     @classmethod
     def hybridgeometry(cls, cell_size_x: float, cell_size_y: float, cell_size_z: float,
-                       simMethod: int, uncertaintyNode: int, hybridLatticeData: list,
-                       hybridGeomType: list = None, periodicity: bool = True) -> "Lattice":
+                       simMethod: int, Radius:list[float], latticeType:list[int], uncertaintyNode: int,
+                       periodicity: bool = True) -> "Lattice":
         """
         Generate hybrid geometry structure with just some parameters
         """
+        nameMaterial = "VeroClear"
         # Define Default gradient properties
-        if hybridGeomType is None:
-            hybridGeomType = [0, 16, 17]
-
         GradDimRule = 'constant'
         GradDimDirection = [1, 0, 0]
         GradDimParameters = [0.0, 0.0, 0.0]
@@ -183,9 +184,9 @@ class Lattice(object):
         gradDimProperty = [GradDimRule, GradDimDirection, GradDimParameters]
         gradRadiusProperty = [GradRadRule, GradRadDirection, GradRadParameters]
         gradMatProperty = [Multimat, GradMaterialDirection]
-        return cls(cell_size_x, cell_size_y, cell_size_z, 1, 1, 1, 1000,
-                   1, gradRadiusProperty, gradDimProperty, gradMatProperty, simMethod, uncertaintyNode,
-                   hybridLatticeData, hybridGeomType=hybridGeomType, periodicity=periodicity)
+        return cls(cell_size_x, cell_size_y, cell_size_z, 1, 1, 1, latticeType,
+                   Radius,nameMaterial, gradRadiusProperty, gradDimProperty, gradMatProperty, simMethod,
+                   uncertaintyNode, periodicity=periodicity)
 
     @classmethod
     def loadLatticeObject(cls, file_name: str = "LatticeObject") -> "Lattice":
@@ -224,6 +225,51 @@ class Lattice(object):
     @property
     def beams(self):
         return self._beams
+
+    def _validate_inputs(self, cell_size_x, cell_size_y, cell_size_z,
+                         num_cells_x, num_cells_y, num_cells_z,
+                         Lattice_Type, Radius, materialName, gradRadiusProperty, gradDimProperty, gradMatProperty,
+                         simMethod, uncertaintyNode, periodicity, erasedParts,
+                         randomHybrid):
+
+        # Check cell sizes
+        assert isinstance(cell_size_x, (int, float)) and cell_size_x > 0, "cell_size_x must be a positive number"
+        assert isinstance(cell_size_y, (int, float)) and cell_size_y > 0, "cell_size_y must be a positive number"
+        assert isinstance(cell_size_z, (int, float)) and cell_size_z > 0, "cell_size_z must be a positive number"
+
+        # Check number of cells
+        assert isinstance(num_cells_x, int) and num_cells_x > 0, "num_cells_x must be a positive integer"
+        assert isinstance(num_cells_y, int) and num_cells_y > 0, "num_cells_y must be a positive integer"
+        assert isinstance(num_cells_z, int) and num_cells_z > 0, "num_cells_z must be a positive integer"
+
+        # Check lattice type
+        assert isinstance(Lattice_Type, list), "Lattice_Type must be a list"
+        assert all(isinstance(lt, int) for lt in Lattice_Type), "All elements of Lattice_Type must be integers"
+
+        # Check radius
+        assert isinstance(Radius, list), "Radius must be a list"
+        assert all(isinstance(r, float) for r in Radius), "All radius values must be floats"
+        assert len(Radius) == len(Lattice_Type), "The number of radius must be equal to the number of lattice types"
+
+        # Check material name
+        assert isinstance(materialName, str), "materialName must be a string"
+
+        # Check gradient properties
+        assert isinstance(gradRadiusProperty, list), "gradRadiusProperty must be a list"
+        assert isinstance(gradDimProperty, list), "gradDimProperty must be a list"
+        assert isinstance(gradMatProperty, list), "gradMatProperty must be a list"
+
+        # Check optional parameters
+        assert isinstance(simMethod, int), "simMethod must be an integer"
+        assert isinstance(uncertaintyNode, float), "uncertaintyNode must be a float"
+
+        assert isinstance(periodicity, int), "periodicity must be an integer"
+
+        if erasedParts is not None:
+            assert isinstance(erasedParts, list) and len(erasedParts) == 6 and all(
+                isinstance(x, float) for x in erasedParts), "erasedParts must be a list of 6 floats"
+
+        assert isinstance(randomHybrid, bool), "randomHybrid must be a boolean"
 
     def getSizeLattice(self) -> list[float]:
         """
@@ -413,36 +459,22 @@ class Lattice(object):
                     initialCellSize = [self.cellSizeX, self.cellSizeY, self.cellSizeZ]
                     startCellPos = [xCellStart, yCellStart, zCellStart]
                     if not self.isNotInErasedRegion(startCellPos):
-                        new_cell = []
-                        # Case for normal lattice structures
-                        if self.latticeType != -2 and self.latticeType < 1000:
-                            new_cell = Cell(posCell, initialCellSize, startCellPos, self.latticeType, self.Radius,
-                                            self.gradRadius, self.gradDim, self.gradMat, self.uncertaintyNode)
-                        # Case for hybrid lattice on 1 cell
-                        elif self.latticeType == 1000:
-                            setRadiusCell = [0.0, 0.0, 0.0]
-                            if self.randomHybrid:  # Randomize hybrid lattice for dataset generation
-                                while all(val == 0 for val in setRadiusCell):
-                                    for idx, radiusHybrid in enumerate(self.hybridLatticeData):
-                                        if radiusHybrid != 0.0:
-                                            setRadiusCell[idx] = np.random.choice(np.arange(0.0, 0.1, 0.01))
+                        new_cell = None
+                        for idx in range(len(self.Radius)):
+                            if not new_cell:
+                                new_cell = Cell(posCell, initialCellSize, startCellPos, self.latticeType[idx],
+                                                self.Radius[idx], self.gradRadius, self.gradDim, self.gradMat,
+                                                self.uncertaintyNode)
+                                if len(self.Radius) > 1: # Case hybrid lattice
+                                    for beam in new_cell.beams:
+                                        beam.changeBeamType(idx + 100)
                             else:
-                                setRadiusCell = self.hybridLatticeData
-
-                            for idx, radiusHybrid in enumerate(setRadiusCell):
-                                if radiusHybrid != 0.0:
-                                    if not new_cell:
-                                        new_cell = Cell(posCell, initialCellSize, startCellPos,
-                                                        self.hybridGeomType[idx], radiusHybrid, self.gradRadius,
-                                                        self.gradDim, self.gradMat, self.uncertaintyNode)
-                                        for beam in new_cell.beams:
-                                            beam.changeBeamType(idx + 100)
-                                    else:
-                                        hybridRadius = new_cell.getBeamRadius(self.gradRadius, radiusHybrid)
-                                        new_cell.generateBeamsInCell(self.hybridGeomType[idx], startCellPos,
-                                                                      hybridRadius,idx + 100)
-                            new_cell.defineHybridRadius(setRadiusCell)
-                        # Case for randomized lattice
+                                hybridRadius = new_cell.getBeamRadius(self.gradRadius, self.Radius[idx])
+                                new_cell.generateBeamsInCell(self.latticeType[idx], startCellPos,
+                                                             hybridRadius, idx + 100)
+                        if len(self.Radius) > 1:
+                            new_cell.defineHybridRadius(self.Radius)
+                        # Case random
                         # else:
                         #     new_cell.generate_beams_random(self.Radius, self.gradRadius, self.gradDim, self.gradMat,
                         #                                    posCell)
@@ -1917,7 +1949,7 @@ class Lattice(object):
         for cell in self.cells:
             if cell.index == cellIndex:
                 flagChangingCell = True
-                cell.changeBeamRadius(radius, self.hybridGeomType, self.gradRadius)
+                cell.changeBeamRadius(radius, self.latticeType, self.gradRadius)
                 break
         if not flagChangingCell:
             raise ValueError("Cell index not found for changing beam radius data on cell : ", cellIndex)
@@ -1934,7 +1966,7 @@ class Lattice(object):
         if len(optimizationParameters) != self.getNumberParametersOptimization():
             raise ValueError("Invalid number of optimization parameters.")
 
-        numberOfParametersPerCell = 1
+        numberOfParametersPerCell = len(self.latticeType)
         idx = 0
         for cell in self.cells:
             self.changeCellRadiusProperties(cell.index, optimizationParameters[idx:idx + numberOfParametersPerCell])

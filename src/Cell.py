@@ -1,16 +1,9 @@
-from colorama import Style, Fore
 
 from .Point import *
 from .Beam import *
 from .Geometry_Lattice import Lattice_geometry
 
-import math
-import random
-
-import sys
-
-if sys.version_info[0] == 3:
-    from scipy.sparse import coo_matrix
+from scipy.sparse import coo_matrix
 
 
 class Cell(object):
@@ -407,15 +400,15 @@ class Cell(object):
         gradRadius: list
             Gradient of the radius
         """
-        if len(newRadius) == 1:
-            #TEMPORARY: This is a temporary fix to avoid changing the radius of the hybrid beams
-            self.hybridRadius = [newRadius[0], 0.0, 0.0]
+        if self.hybridRadius is None:
+            assert len(newRadius) == 1, "Only one radius is allowed for non-hybrid cells"
             for beam in self.beams:
-                beam.setRadius(newRadius[0])
-        if len(newRadius) == 3:
-            self.beams = []
+                beam.setRadius(newRadius)
+        else:
             self.defineHybridRadius(newRadius)
-            for idx, hybridDataLattice in enumerate(hybridData):
-                beamRadius = self.getBeamRadius(gradRadius, newRadius[idx])
+            for idx, radius in enumerate(self.hybridRadius):
+                beamRadius = self.getBeamRadius(gradRadius, radius)
                 if beamRadius != 0:
-                    self.generateBeamsInCell(hybridDataLattice, self.coordinateCell, beamRadius, idx + 100)
+                    for beam in self.beams:
+                        if beam.type == idx + 100:
+                            beam.setRadius(beamRadius)

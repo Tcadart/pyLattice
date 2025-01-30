@@ -5,7 +5,6 @@ Created in 2025-01-16 by Cadart Thomas, University of technology Belfort Montbé
 """
 import json
 import os
-import pickle
 
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d.art3d import Line3DCollection, Poly3DCollection
@@ -324,13 +323,14 @@ def visualCellZoneBlocker(lattice, erasedParts: list[tuple]) -> None:
     plt.show()
 
 
-
 def saveJSONToGrasshopper(lattice, nameLattice: str = "LatticeObject") -> None:
     """
     Save the current lattice object to a JSON file for Grasshopper compatibility.
 
     Parameters:
     -----------
+    lattice: Lattice
+        Lattice object to save.
     nameLattice: str
         Name of the lattice file to save.
     """
@@ -385,3 +385,5 @@ def saveJSONToGrasshopper(lattice, nameLattice: str = "LatticeObject") -> None:
     # Sauvegarder les données au format JSON
     with open(file_pathJSON, 'w') as f:
         json.dump(obj, f)
+
+    print(f"Saved lattice to {file_pathJSON}")
