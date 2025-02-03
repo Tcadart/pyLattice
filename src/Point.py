@@ -17,17 +17,18 @@ class Point:
             z (float): Z-coordinate of the point.
             nodeUncertaintySD (float, optional): Standard deviation for adding uncertainty to node coordinates. Defaults to 0.0.
         """
-        self.x: float = float(x) + random.gauss(0, nodeUncertaintySD)
-        self.y: float = float(y) + random.gauss(0, nodeUncertaintySD)
-        self.z: float = float(z) + random.gauss(0, nodeUncertaintySD)
-        self.index: int = None
-        self.tag: List[int] = []
-        self.localTag: List[int] = []
-        self.indexBoundary: int = None
-        self.displacementValue: List[float] = [0.0] * 6  # Displacement vector of 6 DOF (Degrees of Freedom).
-        self.reactionForceValue: List[float] = [0.0] * 6  # Reaction force vector of 6 DOF.
-        self.fixedDOF: List[int] = [0] * 6  # Fixed DOF vector (0: free, 1: fixed).
-        self.globalFreeDOFIndex: List[int] = [None] * 6  # Global free DOF index.
+        self.x = float(x) + random.gauss(0, nodeUncertaintySD)
+        self.y = float(y) + random.gauss(0, nodeUncertaintySD)
+        self.z = float(z) + random.gauss(0, nodeUncertaintySD)
+        self.index = None
+        self.tag = []
+        self.localTag = []
+        self.indexBoundary = None
+        self.displacementValue= [0.0] * 6  # Displacement vector of 6 DOF (Degrees of Freedom).
+        self.reactionForceValue = [0.0] * 6  # Reaction force vector of 6 DOF.
+        self.appliedForce = [0.0] * 6  # Applied force vector of 6 DOF.
+        self.fixedDOF = [0] * 6  # Fixed DOF vector (0: free, 1: fixed).
+        self.globalFreeDOFIndex = [None] * 6  # Global free DOF index.
 
     def __eq__(self, other: object) -> bool:
         return isinstance(other, Point) and self.x == other.x and self.y == other.y and self.z == other.z
@@ -182,6 +183,27 @@ class Point:
             displacementVector (List[float]): Displacement values for all DOF.
         """
         self.displacementValue = displacementVector
+
+    def setAppliedForce(self, appliedForce: List[float], DOF:list[int] = []) -> None:
+        """
+        Assign applied force to the point.
+
+        Args:
+            appliedForce (List[float]): Applied force values for each DOF.
+        """
+        if len(DOF) != len(appliedForce):
+            raise ValueError("Length of DOF and appliedForce must be equal.")
+        for i in range(len(DOF)):
+            self.appliedForce[DOF[i]] = appliedForce[i]
+
+    def getAppliedForce(self) -> List[float]:
+        """
+        Retrieve the applied force values.
+
+        Returns:
+            List[float]: Applied force values for all DOF.
+        """
+        return self.appliedForce
 
     def getDisplacementValue(self) -> List[float]:
         """

@@ -9,6 +9,7 @@ import random
 import numpy as np
 from scipy.sparse.linalg import splu
 from scipy.sparse import coo_matrix
+from ConjugateGradientMethod.Utils_Schur import *
 
 
 class Lattice(object):
@@ -20,7 +21,7 @@ class Lattice(object):
                  num_cells_x: int, num_cells_y: int, num_cells_z: int,
                  Lattice_Type: list[int], Radius: list[float], materialName: str,
                  gradRadiusProperty: list, gradDimProperty: list, gradMatProperty: list,
-                 simMethod: int = 0, uncertaintyNode: int = 0,
+                 simMethod: int = 0, uncertaintyNode: float = 0.0,
                  periodicity: int = 0, erasedParts: list = None, randomHybrid: bool = False):
         """
         Constructor general for the Lattice class.
@@ -1163,24 +1164,24 @@ class Lattice(object):
 
     def changeHybridData(self, hybridRadiusData: list[float]) -> None:
         """
-        Change radius data of the hybrid lattice to efficiently generate graph from training neural network
+        Change radius data for hybrid lattice
 
         Parameters:
         ------------
-        hybridRadiusData: array of dim 3
-            Array of radius data of hybrid lattice
+        hybridRadiusData: list of float
+            List of radius data for hybrid lattice
         """
-        if len(hybridRadiusData) != 3:
+        if len(hybridRadiusData) != len(self.Radius):
             raise ValueError("Invalid hybrid radius data.")
-
-        radiusDict = {
-            100: hybridRadiusData[0],
-            200: hybridRadiusData[0] * self.penalizationCoefficient,
-            101: hybridRadiusData[1],
-            201: hybridRadiusData[1] * self.penalizationCoefficient,
-            102: hybridRadiusData[2],
-            202: hybridRadiusData[2] * self.penalizationCoefficient
-        }
+        radiusDict = {}
+        if len(hybridRadiusData) != 1:
+            for idx, radius in enumerate(hybridRadiusData):
+                radiusDict[idx + 200] = radius * self.penalizationCoefficient
+                radiusDict[idx + 100] = radius
+        else:
+            for idx, radius in enumerate(hybridRadiusData):
+                radiusDict[idx] = radius * self.penalizationCoefficient
+                radiusDict[idx] = radius
         for cell in self.cells:
             for beam in cell.beams:
                 if beam.type in radiusDict:
@@ -1524,6 +1525,43 @@ class Lattice(object):
                         node.setDisplacementValue(valueDisplacement, DOF)
                         node.fixDOF([DOF])
 
+    def applyForceOnSurface(self, surfaceName: str, valueForce: list[float], DOF: list[int]) -> None:
+        """
+        Apply force to the lattice
+
+        Parameters:
+        -----------
+        surface: str
+            Surface to apply force (Xmin, Xmax, Ymin, Ymax, Zmin, Zmax)
+        valueForce: list of float
+            Force value to apply to the boundary conditions
+        DOF: list of int
+            List of degree of freedom to fix (0: x, 1: y, 2: z, 3: Rx, 4: Ry, 5: Rz)
+        """
+        if surfaceName not in ["Xmin", "Xmax", "Ymin", "Ymax", "Zmin", "Zmax"]:
+            raise ValueError("Invalid surface name.")
+
+        cellList = self.getCellSurface(surfaceName)
+        if self.cells[-1].index < max(cellList):
+            raise ValueError("Invalid cell index, cell do not exist.")
+
+        if len(valueForce) != len(DOF):
+            raise ValueError("Invalid force value or degree of freedom.")
+
+        pointList = []
+        for cell in self.cells:
+            if cell.index in cellList:
+                pointList.append(cell.getPointOnSurface(surfaceName))
+        pointList = [point for sublist in pointList for point in sublist]
+        indexBoundaryList = []
+        for point in pointList:
+            indexBoundaryList.append(point.indexBoundary)
+        for cell in self.cells:
+            for beam in cell.beams:
+                for node in [beam.point1, beam.point2]:
+                    if node.indexBoundary in indexBoundaryList:
+                        node.setAppliedForce(valueForce, DOF)
+
     def fixDOFOnSurface(self, surfaceName: str, dofFixed: list[int]) -> None:
         """
         Fix degree of freedom on the surface of the lattice
@@ -1614,6 +1652,7 @@ class Lattice(object):
             for beam in cell.beams:
                 for node in [beam.point1, beam.point2]:
                     if node.indexBoundary is not None:
+                        print(node.tag)
                         for dof in range(6):
                             node.setDisplacementValue(displacementVector[index], dof)
                             node.fixDOF([dof])
@@ -1783,7 +1822,7 @@ class Lattice(object):
             cell.getNodeOrderToSimulate()
             cell.buildCouplingOperator(self.freeDOF)
 
-    def buildLUSchurComplement(self) -> splu:
+    def buildLUSchurComplement(self, dictSchurComplement: dict = None) -> splu:
         """
         Build LU decomposition of the Schur complement matrix for the lattice
 
@@ -1792,96 +1831,21 @@ class Lattice(object):
         schurComplementMatrix: coo_matrix
             Schur complement matrix of the lattice
         """
+        if dictSchurComplement is None:
+            dictSchurComplement = loadSchurComplement("LatticeOneGeom.txt")
         self.buildCouplingOperatorForEachCells()
-
         globalSchurComplement = coo_matrix((self.freeDOF, self.freeDOF))
         for cell in self.cells:
-            schurComplementMatrix = coo_matrix(self.loadSref_nearest(cell.hybridRadius[0]))
+            if cell.hybridRadius is not None:
+                radius = cell.hybridRadius
+            else:
+                radius = cell.beams[0].radius
+            schurComplementMatrix = coo_matrix(getSref_nearest(radius, SchurDict=dictSchurComplement))
             globalSchurComplement += cell.buildPreconditioner(schurComplementMatrix)
         globalSchurComplement = globalSchurComplement.tocsc()
         # Factorize preconditioner
         LUSchurComplement = splu(globalSchurComplement)
         return LUSchurComplement
-
-    def loadSchurComplement(self, file_name: str = "LatticeOneGeom.txt", solvingMethod:int = 1):
-        """
-        Loading Schur complement matrices from a file.
-
-        Parameters
-        ----------
-        file_name: str
-            Name of the file containing the Schur complement matrices.
-        solvingMethod: int
-            Method used to solve the Schur complement matrix. 0 for FenicsX, 1 for NN.
-
-        Returns
-        -------
-        SchurDict: dict
-            Dictionary of Schur complement matrices with radius as key and matrix as value
-        """
-        directory = "ConjugateGradientMethod/schurComplement/"
-        if not file_name.endswith(".txt"):
-            file_name += ".txt"
-        pathFile = directory + file_name
-        if not os.path.exists(pathFile):
-            raise ValueError("Loading file for Schur Complement not found.")
-
-        dictSchurComplement = {}
-        current_matrix = []
-        current_radius = None
-
-        with open(pathFile, 'r') as f:
-            for line in f:
-                if line.startswith("# Radius"):
-                    # Sauvegarder la matrice précédente si elle est à évaluer
-                    if current_matrix:
-                        dictSchurComplement[current_radius] = np.array(current_matrix)
-
-                    # Réinitialiser pour la prochaine matrice
-                    current_matrix = []
-                    current_radius = float(line.split(":")[1].strip())
-
-
-                elif line.strip():
-                    # Ajouter la ligne à la matrice courante
-                    current_matrix.append([float(x) for x in line.split()])
-
-            # Sauvegarder la dernière matrice si nécessaire
-            if current_matrix:
-                dictSchurComplement[current_radius] = np.array(current_matrix)
-
-        # Normaliser les matrices
-        if solvingMethod == 0:
-            for rad in dictSchurComplement:
-                dictSchurComplement[rad] = dictSchurComplement[rad] / np.linalg.norm(dictSchurComplement[rad])
-        self.dictSchurComplement = dictSchurComplement
-
-    def loadSref_nearest(self, radiusReference: float, file_name: str = "LatticeOneGeom.txt",
-                         printing: bool = False) -> np.ndarray:
-        """
-        Load the Schur complement matrix closest to the given radiusReference.
-
-        Parameters:
-        -------------
-        radiusReference: float
-            The reference radius for which the closest matrix should be loaded.
-        file_name: str
-            Name of the file containing the Schur complement matrices.
-
-        Returns:
-        ---------
-        np.ndarray
-            The matrix corresponding to the radius closest to the reference.
-        """
-        if self.dictSchurComplement is None:
-            self.loadSchurComplement(file_name)
-
-        closest_radius = min(self.dictSchurComplement.keys(), key=lambda rad: abs(rad - radiusReference))
-
-        if printing:
-            print(f"Using Schur complement matrix for radius {closest_radius}.")
-
-        return np.array(self.dictSchurComplement[closest_radius])
 
     def getCellSurface(self, surface: str) -> list[int]:
         """

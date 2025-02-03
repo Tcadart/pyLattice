@@ -232,12 +232,23 @@ class Cell(object):
         """
         return self.hybridRadius
 
+    def getRadius(self) -> float:
+        """
+        Get the radius of the beam
+        """
+        radius = 1000
+        for beam in self.beams:
+            if beam.radius < radius:
+                radius = beam.radius
+        return radius
+
     def getNodeOrderToSimulate(self) -> dict:
         """
         Get the order of nodes to simulate in the cell
         """
-        originalTags = [1000, 1001, 1002, 1003, 1004, 1005, 1006, 1007, 100, 101, 102, 103, 104, 105, 106, 107,
-                        108, 109, 110, 111]
+        originalTags = [1000, 1001, 1002, 1003, 1004, 1005, 1006, 1007,
+                        10, 11, 12, 13, 14,
+                        100, 101, 102, 103, 104, 105, 106, 107, 108, 109, 110, 111]
         tag_dict = {tag: None for tag in originalTags}
         for beam in self.beams:
             for point in [beam.point1, beam.point2]:
@@ -403,7 +414,7 @@ class Cell(object):
         if self.hybridRadius is None:
             assert len(newRadius) == 1, "Only one radius is allowed for non-hybrid cells"
             for beam in self.beams:
-                beam.setRadius(newRadius)
+                beam.setRadius(newRadius[0])
         else:
             self.defineHybridRadius(newRadius)
             for idx, radius in enumerate(self.hybridRadius):
