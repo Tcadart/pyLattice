@@ -1,6 +1,9 @@
 import json
 import os
 import pickle
+from statistics import mean
+
+from matplotlib import pyplot as plt
 
 from .Cell import *
 import math
@@ -117,6 +120,9 @@ class Lattice(object):
         self.freeDOF = None  # Free DOF gradient conjugate gradient method
         self.maxIndexBoundary = None
         self.globalDisplacementIndex = None
+        self.initialValueObjective = None
+        self.relativeDensityPoly = []
+        self.relativeDensityPolyDeriv = []
 
         # Process
         self.generateLattice()
@@ -1370,12 +1376,62 @@ class Lattice(object):
         """
         Get relative density of the lattice
         """
-        volumeLattice = self.getSizeLattice()[0] * self.getSizeLattice()[1] * self.getSizeLattice()[2]
-        volumeBeams = 0
+        cellRelDens = []
         for cell in self.cells:
-            for beam in cell.beams:
-                volumeBeams += beam.getVolume()
-        return volumeBeams / volumeLattice
+            cellRelDens.append(cell.getRelativeDensity())
+        return mean(cellRelDens)
+
+    def defineRelativeDensityFunction(self, degree: int = 3) -> None:
+        """
+        Define relative density function
+        Possible to define a more complex function with dependency on hybrid cells
+
+        Parameters:
+        -----------
+        degree: int
+            Degree of the polynomial function
+        """
+        if len(self.relativeDensityPoly) == 0:
+            fictiveCell = Cell([0,0,0], [self.cellSizeX, self.cellSizeY, self.cellSizeZ],
+                               [0,0,0], self.latticeType, self.Radius, self.gradRadius, self.gradDim, self.gradMat,
+                                self.uncertaintyNode)
+            domainRadius = np.linspace(0.01,0.1,10)
+            for idxRad in range(len(self.Radius)):
+                radius = np.zeros(len(self.Radius))
+                relativeDensity = []
+                for domainIdx in domainRadius:
+                    radius[idxRad] = domainIdx
+                    fictiveCell.changeBeamRadius([radius], self.gradRadius, self.penalizationCoefficient)
+                    relativeDensity.append(fictiveCell.getRelativeDensity())
+                poly_coeffs = np.polyfit(domainRadius, relativeDensity, degree).flatten()
+                print(poly_coeffs)
+                poly = np.poly1d(poly_coeffs)
+                self.relativeDensityPoly.append(poly)
+                self.relativeDensityPolyDeriv.append(poly.deriv())
+
+    def getRelativeDensityGradient(self, radius: list[float]) -> float:
+        """
+        Get relative density gradient of the lattice
+
+        Parameters:
+        -----------
+        radius: list of float
+            List of radius values
+
+        Returns:
+        --------
+        relativeDensityGradient: float
+            Relative density gradient
+        """
+        if len(self.relativeDensityPoly) == 0:
+            self.defineRelativeDensityFunction()
+        if len(radius) != len(self.relativeDensityPoly):
+            raise ValueError("Invalid radius data.")
+        deriv = 0
+        for idx, polyDeriv in enumerate(self.relativeDensityPolyDeriv):
+            deriv += polyDeriv(radius[idx])
+        return deriv
+
 
     def changeBeamRadiusForType(self, typeToChange: int, newRadius: float) -> None:
         """
@@ -1639,7 +1695,8 @@ class Lattice(object):
                             node.fixDOF([dof])
                             index += 1
 
-    def getDisplacementGlobal(self, withFixed=False) -> tuple[list[float], list[int]]:
+    def getDisplacementGlobal(self, withFixed: bool = False, OnlyImposed: bool = False) \
+            -> tuple[list[float], list[int]]:
         """
         Get global displacement of the lattice
 
@@ -1663,15 +1720,19 @@ class Lattice(object):
                 for node in [beam.point1, beam.point2]:
                     if node.indexBoundary is not None and node.indexBoundary not in processed_nodes:
                         for i in range(6):
-                            if node.fixedDOF[i] == 0:
+                            if node.fixedDOF[i] == 0 and not OnlyImposed:
                                 globalDisplacement.append(node.displacementValue[i])
                                 globalDisplacementIndex.append(node.indexBoundary)
-                            elif withFixed:
+                            elif node.fixedDOF[i] == 0:
+                                globalDisplacement.append(0)
+                            elif withFixed or OnlyImposed:
                                 globalDisplacement.append(node.displacementValue[i])
                                 globalDisplacementIndex.append(node.indexBoundary)
                         processed_nodes.add(node.indexBoundary)
-        self.globalDisplacementIndex = globalDisplacementIndex
+        if not OnlyImposed:
+            self.globalDisplacementIndex = globalDisplacementIndex
         return globalDisplacement, globalDisplacementIndex
+
 
     def defineNodeIndexBoundary(self) -> None:
         """
@@ -1819,11 +1880,7 @@ class Lattice(object):
         self.buildCouplingOperatorForEachCells()
         globalSchurComplement = coo_matrix((self.freeDOF, self.freeDOF))
         for cell in self.cells:
-            if cell.hybridRadius is not None:
-                radius = cell.hybridRadius
-            else:
-                radius = cell.beams[0].radius
-            schurComplementMatrix = coo_matrix(getSref_nearest(radius, SchurDict=dictSchurComplement))
+            schurComplementMatrix = coo_matrix(getSref_nearest(cell.radius, SchurDict=dictSchurComplement))
             globalSchurComplement += cell.buildPreconditioner(schurComplementMatrix)
         globalSchurComplement = globalSchurComplement.tocsc()
         # Factorize preconditioner
@@ -1881,26 +1938,6 @@ class Lattice(object):
             for beam in cell.beams:
                 return beam.radius
 
-    def changeCellRadiusProperties(self, cellIndex: int, radius: list[float]) -> None:
-        """
-        Change Cell radius properties
-
-        Parameters:
-        -----------
-        cellIndex: int
-            Index of the cell
-        radius: list of float
-            Radius of beams in the cell (necessary list in hybrid cells)
-        """
-        flagChangingCell = False
-        for cell in self.cells:
-            if cell.index == cellIndex:
-                flagChangingCell = True
-                cell.changeBeamRadius(radius, self.latticeType, self.gradRadius, self.penalizationCoefficient)
-                break
-        if not flagChangingCell:
-            raise ValueError("Cell index not found for changing beam radius data on cell : ", cellIndex)
-
     def setOptimizationParameters(self, optimizationParameters: list[float]) -> None:
         """
         Set optimization parameters for the lattice
@@ -1914,10 +1951,11 @@ class Lattice(object):
             raise ValueError("Invalid number of optimization parameters.")
 
         numberOfParametersPerCell = len(self.latticeType)
-        idx = 0
         for cell in self.cells:
-            self.changeCellRadiusProperties(cell.index, optimizationParameters[idx:idx + numberOfParametersPerCell])
-            idx += numberOfParametersPerCell
+            startIdx = cell.index * numberOfParametersPerCell
+            endIdx = (cell.index + 1) * numberOfParametersPerCell
+            radius = optimizationParameters[startIdx:endIdx]
+            cell.changeBeamRadius(radius, self.gradRadius, self.penalizationCoefficient)
 
     def calculateObjective(self, typeObjective: str) -> float:
         """
@@ -1936,8 +1974,11 @@ class Lattice(object):
         if typeObjective == "Compliance":
             reactionForce = self.getGlobalReactionForce()
             reaction_force_array = np.array(list(reactionForce.values())).flatten()
-            displacement = np.array(self.getDisplacementGlobal(withFixed=True)[0])
+            displacement = np.array(self.getDisplacementGlobal(OnlyImposed=True)[0])
             compliance = np.dot(reaction_force_array, displacement)
+            if self.initialValueObjective is None:
+                self.initialValueObjective = compliance
+            compliance = compliance/self.initialValueObjective
             return compliance
         # cellImportante = self.cells[0]
         # return -cellImportante.getInternalEnergy()
@@ -1958,11 +1999,7 @@ class Lattice(object):
         """
         numParameters = 0
         for cell in self.cells:
-            if cell.hybridRadius is not None:
-                numParameters += len(cell.hybridRadius)
-            else:
-                numParameters += 1
-        numParameters = len(self.cells)  # A supprimer quand les 3 rayons seront utilisés
+            numParameters += len(cell.radius)
         return numParameters
 
     def applyReactionForceOnNodeList(self, reactionForce: list, nodeCoordinatesList: list):
@@ -1973,13 +2010,16 @@ class Lattice(object):
         -----------
         reactionForce: list of float
             Reaction force to apply
-        nodeCoordinates: list of float
+        nodeCoordinatesList: list of float
             Coordinates of the node
         """
+        nodeCoordinatesArray = np.array(nodeCoordinatesList)
+
         for cell in self.cells:
             for beam in cell.beams:
                 for node in [beam.point1, beam.point2]:
-                    nodeCoord = [node.x, node.y, node.z]
-                    if np.any(np.all(nodeCoordinatesList == nodeCoord, axis=1)):
-                        index = np.where(np.all(nodeCoordinatesList == nodeCoord, axis=1))[0]
-                        node.setReactionForce(reactionForce[index][0][0])
+                    nodeCoord = np.array([node.x, node.y, node.z])
+                    match = np.all(nodeCoordinatesArray == nodeCoord, axis=1)
+                    if np.any(match):
+                        index = np.where(match)[0][0]
+                        node.setReactionForce(reactionForce[index])

@@ -222,15 +222,11 @@ class Cell(object):
         return [point for beam in self.beams for point in [beam.point1, beam.point2] if
                 getattr(point, coord_index[surfaceName]) == surface_value]
 
-    def getRadius(self) -> float:
+    def getRadius(self) -> list[float]:
         """
         Get the radius of the beam
         """
-        radius = 1000
-        for beam in self.beams:
-            if beam.radius < radius:
-                radius = beam.radius
-        return radius
+        return self.radius
 
     def getNodeOrderToSimulate(self) -> dict:
         """
@@ -414,3 +410,19 @@ class Cell(object):
             else:
                 beam.setRadius(beamRadius[beam.type])
 
+        self.radius = newRadius
+
+    def getVolumeCell(self) -> float:
+        """
+        Get the volume of the cell
+        """
+        return self.cellSize[0] * self.cellSize[1] * self.cellSize[2]
+
+    def getRelativeDensity(self) -> float:
+        """
+        Get the relative density of the cell
+        """
+        volumeBeams = 0
+        for beam in self.beams:
+            volumeBeams += beam.getVolume()
+        return volumeBeams / self.getVolumeCell()
