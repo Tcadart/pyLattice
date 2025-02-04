@@ -1161,7 +1161,7 @@ class Lattice(object):
                 radiusDict[idx + 100] = radius
         else:
             for idx, radius in enumerate(hybridRadiusData):
-                radiusDict[idx] = radius * self.penalizationCoefficient
+                radiusDict[idx + 1] = radius * self.penalizationCoefficient
                 radiusDict[idx] = radius
         for cell in self.cells:
             for beam in cell.beams:
