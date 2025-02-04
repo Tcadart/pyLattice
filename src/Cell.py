@@ -11,8 +11,8 @@ class Cell(object):
     Define Cell data for lattice structure
     """
 
-    def __init__(self, posCell: list, initialCellSize: list, startCellPos: list, latticeType: int,
-                 Radius: float, gradRadius: list, gradDim: list, gradMat: list, uncertaintyNode: int):
+    def __init__(self, posCell: list, initialCellSize: list, startCellPos: list, latticeType: list[int],
+                 Radius: list[float], gradRadius: list, gradDim: list, gradMat: list, uncertaintyNode: float = 0.0):
         """
         Initialize a Cell with its dimensions and position
 
@@ -34,6 +34,8 @@ class Cell(object):
             Gradient of the dimensions
         gradMat: list
             Gradient of the material
+        uncertaintyNode: float
+            Standard deviation for adding uncertainty to node coordinates. Defaults to 0.0.
         """
         self.centerPoint = None
         self._beamMaterial = None
@@ -43,15 +45,20 @@ class Cell(object):
         self.beams = []
         self.index = None
         self.latticeType = latticeType
-        self.hybridRadius = None
+        self.radius = Radius
         self.matB = None  # B matrix (Coupling matrix)
         self.uncertaintyNode = uncertaintyNode
 
-        self.getBeamMaterial(gradMat)
-        beamRadius = self.getBeamRadius(gradRadius, Radius)
-        self.getCellSize(initialCellSize, gradDim)
-        self.generateBeamsInCell(latticeType, startCellPos, beamRadius)
-        self.getCellCenter(startCellPos)
+        for idx, rad in enumerate(self.radius):
+            if idx == 0:
+                self.getBeamMaterial(gradMat)
+                beamRadius = self.getBeamRadius(gradRadius, rad)
+                self.getCellSize(initialCellSize, gradDim)
+                self.generateBeamsInCell(self.latticeType[idx], startCellPos, beamRadius, idx)
+                self.getCellCenter(startCellPos)
+            else:
+                hybridRadius = self.getBeamRadius(gradRadius, rad)
+                self.generateBeamsInCell(self.latticeType[idx], startCellPos, hybridRadius, idx)
 
     def generateBeamsInCell(self, latticeType: int, startCellPos: list, beamRadius: float, beamType: int = 0) -> None:
         """
@@ -214,23 +221,6 @@ class Cell(object):
 
         return [point for beam in self.beams for point in [beam.point1, beam.point2] if
                 getattr(point, coord_index[surfaceName]) == surface_value]
-
-    def defineHybridRadius(self, hybridRadius: list) -> None:
-        """
-        Define hybrid radius for the cell
-
-        Parameters:
-        -----------
-        hybridRadius: list of float dim 3
-            Hybrid radius of the cell
-        """
-        self.hybridRadius = hybridRadius
-
-    def getHybridRadius(self) -> list:
-        """
-        Return hybrid radius of the cell
-        """
-        return self.hybridRadius
 
     def getRadius(self) -> float:
         """
@@ -398,7 +388,7 @@ class Cell(object):
                     allBoundaryDisplacementData.append(point.getDisplacementValue())
         return allBoundaryDisplacementData
 
-    def changeBeamRadius(self, newRadius: list, hybridData: list = None, gradRadius: list = None) -> None:
+    def changeBeamRadius(self, newRadius: list, gradRadius: list = None, penalizationCoeff: float = 1.5) -> None:
         """
         Change beam radius in the cell
 
@@ -410,16 +400,17 @@ class Cell(object):
             Hybrid data type
         gradRadius: list
             Gradient of the radius
+        penalizationCoeff: float
         """
-        if self.hybridRadius is None:
-            assert len(newRadius) == 1, "Only one radius is allowed for non-hybrid cells"
-            for beam in self.beams:
-                beam.setRadius(newRadius[0])
-        else:
-            self.defineHybridRadius(newRadius)
-            for idx, radius in enumerate(self.hybridRadius):
-                beamRadius = self.getBeamRadius(gradRadius, radius)
-                if beamRadius != 0:
-                    for beam in self.beams:
-                        if beam.type == idx + 100:
-                            beam.setRadius(beamRadius)
+        assert len(newRadius) == len(self.radius), ("Length of new radius vector and already cell radius vector needs "
+                                                    "to be equal ")
+        beamRadius = []
+        for rad in newRadius:
+            beamRadius.append(self.getBeamRadius(gradRadius, rad))
+
+        for beam in self.beams:
+            if beam.modBeam:
+                beam.setRadius(beamRadius[beam.type] * penalizationCoeff)
+            else:
+                beam.setRadius(beamRadius[beam.type])
+

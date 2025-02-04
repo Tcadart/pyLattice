@@ -26,6 +26,7 @@ class Beam(object):
         self.angle1: Tuple[float, float] = None
         self.angle2: Tuple[float, float] = None
         self.length: float = self.getLength()
+        self.modBeam = False
 
     def __repr__(self) -> str:
         return f"Beam({self.point1}, {self.point2}, Radius:{self.radius}, Type:{self.type}, Index:{self.index})"
@@ -197,3 +198,6 @@ class Beam(object):
             radius (float): New radius to assign.
         """
         self.radius = radius
+
+    def setBeamMod(self):
+        self.modBeam = True

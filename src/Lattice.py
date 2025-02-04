@@ -9,7 +9,6 @@ import random
 import numpy as np
 from scipy.sparse.linalg import splu
 from scipy.sparse import coo_matrix
-from ConjugateGradientMethod.Utils_Schur import *
 
 
 class Lattice(object):
@@ -167,7 +166,7 @@ class Lattice(object):
 
     @classmethod
     def hybridgeometry(cls, cell_size_x: float, cell_size_y: float, cell_size_z: float,
-                       simMethod: int, Radius:list[float], latticeType:list[int], uncertaintyNode: int,
+                       simMethod: int, Radius: list[float], latticeType: list[int], uncertaintyNode: int,
                        periodicity: bool = True) -> "Lattice":
         """
         Generate hybrid geometry structure with just some parameters
@@ -186,7 +185,7 @@ class Lattice(object):
         gradRadiusProperty = [GradRadRule, GradRadDirection, GradRadParameters]
         gradMatProperty = [Multimat, GradMaterialDirection]
         return cls(cell_size_x, cell_size_y, cell_size_z, 1, 1, 1, latticeType,
-                   Radius,nameMaterial, gradRadiusProperty, gradDimProperty, gradMatProperty, simMethod,
+                   Radius, nameMaterial, gradRadiusProperty, gradDimProperty, gradMatProperty, simMethod,
                    uncertaintyNode, periodicity=periodicity)
 
     @classmethod
@@ -460,27 +459,11 @@ class Lattice(object):
                     initialCellSize = [self.cellSizeX, self.cellSizeY, self.cellSizeZ]
                     startCellPos = [xCellStart, yCellStart, zCellStart]
                     if not self.isNotInErasedRegion(startCellPos):
-                        new_cell = None
-                        for idx in range(len(self.Radius)):
-                            if not new_cell:
-                                new_cell = Cell(posCell, initialCellSize, startCellPos, self.latticeType[idx],
-                                                self.Radius[idx], self.gradRadius, self.gradDim, self.gradMat,
-                                                self.uncertaintyNode)
-                                if len(self.Radius) > 1: # Case hybrid lattice
-                                    for beam in new_cell.beams:
-                                        beam.changeBeamType(idx + 100)
-                            else:
-                                hybridRadius = new_cell.getBeamRadius(self.gradRadius, self.Radius[idx])
-                                new_cell.generateBeamsInCell(self.latticeType[idx], startCellPos,
-                                                             hybridRadius, idx + 100)
-                        if len(self.Radius) > 1:
-                            new_cell.defineHybridRadius(self.Radius)
-                        # Case random
-                        # else:
-                        #     new_cell.generate_beams_random(self.Radius, self.gradRadius, self.gradDim, self.gradMat,
-                        #                                    posCell)
+                        new_cell = Cell(posCell, initialCellSize, startCellPos, self.latticeType,
+                                        self.Radius, self.gradRadius, self.gradDim, self.gradMat,
+                                        self.uncertaintyNode)
                         self.cells.append(new_cell)
-        if self.latticeType == 1000:
+        if len(self.latticeType) > 1:
             self.checkHybridCollision()
 
     def defineBeamNodeIndex(self) -> None:
@@ -847,18 +830,16 @@ class Lattice(object):
                 pointExt1Obj = Point(pointExt1[0], pointExt1[1], pointExt1[2])
                 pointExt2 = beam.getPointOnBeamFromDistance(lengthMod[1], 2)
                 pointExt2Obj = Point(pointExt2[0], pointExt2[1], pointExt2[2])
-                if beam.type == 0:
-                    typeBeam = [1, 0, 1]
-                else:
-                    typeBeam = [beam.type + 100, beam.type, beam.type + 100]
 
-                beamToAdd.append(
-                    Beam(beam.point1, pointExt1Obj, beam.radius * self.penalizationCoefficient, beam.material,
-                         typeBeam[0]))
-                beamToAdd.append(Beam(pointExt1Obj, pointExt2Obj, beam.radius, beam.material, typeBeam[1]))
-                beamToAdd.append(
-                    Beam(pointExt2Obj, beam.point2, beam.radius * self.penalizationCoefficient, beam.material,
-                         typeBeam[2]))
+                b1 = Beam(beam.point1, pointExt1Obj, beam.radius * self.penalizationCoefficient, beam.material,
+                          beam.type)
+                b1.setBeamMod()
+                b2 = Beam(pointExt1Obj, pointExt2Obj, beam.radius, beam.material, beam.type)
+                b3 = Beam(pointExt2Obj, beam.point2, beam.radius * self.penalizationCoefficient, beam.material,
+                          beam.type)
+                b3.setBeamMod()
+
+                beamToAdd.append((b1, b2, b3))
 
                 beamsToRemove.append(beam)
 
@@ -1658,7 +1639,7 @@ class Lattice(object):
                             node.fixDOF([dof])
                             index += 1
 
-    def getDisplacementGlobal(self, withFixed = False) -> tuple[list[float], list[int]]:
+    def getDisplacementGlobal(self, withFixed=False) -> tuple[list[float], list[int]]:
         """
         Get global displacement of the lattice
 
@@ -1831,6 +1812,8 @@ class Lattice(object):
         schurComplementMatrix: coo_matrix
             Schur complement matrix of the lattice
         """
+        from ConjugateGradientMethod.Utils_Schur import loadSchurComplement, getSref_nearest
+
         if dictSchurComplement is None:
             dictSchurComplement = loadSchurComplement("LatticeOneGeom.txt")
         self.buildCouplingOperatorForEachCells()
@@ -1913,7 +1896,7 @@ class Lattice(object):
         for cell in self.cells:
             if cell.index == cellIndex:
                 flagChangingCell = True
-                cell.changeBeamRadius(radius, self.latticeType, self.gradRadius)
+                cell.changeBeamRadius(radius, self.latticeType, self.gradRadius, self.penalizationCoefficient)
                 break
         if not flagChangingCell:
             raise ValueError("Cell index not found for changing beam radius data on cell : ", cellIndex)
@@ -1979,9 +1962,8 @@ class Lattice(object):
                 numParameters += len(cell.hybridRadius)
             else:
                 numParameters += 1
-        numParameters = len(self.cells) # A supprimer quand les 3 rayons seront utilisés
+        numParameters = len(self.cells)  # A supprimer quand les 3 rayons seront utilisés
         return numParameters
-
 
     def applyReactionForceOnNodeList(self, reactionForce: list, nodeCoordinatesList: list):
         """
