@@ -426,3 +426,22 @@ class Cell(object):
         for beam in self.beams:
             volumeBeams += beam.getVolume()
         return volumeBeams / self.getVolumeCell()
+
+    def getRelativeDensityGradient(self, relativeDensityPolyDeriv) -> float:
+        """
+        Get the gradient of the relative density
+
+        Parameters:
+        -----------
+        relativeDensityPolyDeriv: list
+            List of polynomial derivative functions
+
+        Returns:
+        --------
+        deriv: float
+            Derivative of the relative density
+        """
+        deriv = 0
+        for idx, polyDeriv in enumerate(relativeDensityPolyDeriv):
+            deriv += polyDeriv(self.radius[idx])
+        return deriv

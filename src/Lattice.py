@@ -1404,33 +1404,27 @@ class Lattice(object):
                     fictiveCell.changeBeamRadius([radius], self.gradRadius, self.penalizationCoefficient)
                     relativeDensity.append(fictiveCell.getRelativeDensity())
                 poly_coeffs = np.polyfit(domainRadius, relativeDensity, degree).flatten()
-                print(poly_coeffs)
                 poly = np.poly1d(poly_coeffs)
                 self.relativeDensityPoly.append(poly)
                 self.relativeDensityPolyDeriv.append(poly.deriv())
 
-    def getRelativeDensityGradient(self, radius: list[float]) -> float:
+    def getRelativeDensityGradient(self) -> list[float]:
         """
         Get relative density gradient of the lattice
 
-        Parameters:
-        -----------
-        radius: list of float
-            List of radius values
-
         Returns:
         --------
-        relativeDensityGradient: float
-            Relative density gradient
+        grad: list of float
+            Gradient of relative density
         """
         if len(self.relativeDensityPoly) == 0:
             self.defineRelativeDensityFunction()
-        if len(radius) != len(self.relativeDensityPoly):
+        if len(self.cells[0].radius) != len(self.relativeDensityPoly):
             raise ValueError("Invalid radius data.")
-        deriv = 0
-        for idx, polyDeriv in enumerate(self.relativeDensityPolyDeriv):
-            deriv += polyDeriv(radius[idx])
-        return deriv
+        grad = []
+        for cell in self.cells:
+            grad.append(cell.getRelativeDensityGradient(self.relativeDensityPolyDeriv))
+        return grad
 
 
     def changeBeamRadiusForType(self, typeToChange: int, newRadius: float) -> None:
