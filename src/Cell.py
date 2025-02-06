@@ -49,16 +49,19 @@ class Cell(object):
         self.matB = None  # B matrix (Coupling matrix)
         self.uncertaintyNode = uncertaintyNode
 
+        idxCell = 0
         for idx, rad in enumerate(self.radius):
-            if idx == 0:
-                self.getBeamMaterial(gradMat)
-                beamRadius = self.getBeamRadius(gradRadius, rad)
-                self.getCellSize(initialCellSize, gradDim)
-                self.generateBeamsInCell(self.latticeType[idx], startCellPos, beamRadius, idx)
-                self.getCellCenter(startCellPos)
-            else:
-                hybridRadius = self.getBeamRadius(gradRadius, rad)
-                self.generateBeamsInCell(self.latticeType[idx], startCellPos, hybridRadius, idx)
+            if rad > 0.0:
+                if idxCell == 0:
+                    self.getBeamMaterial(gradMat)
+                    beamRadius = self.getBeamRadius(gradRadius, rad)
+                    self.getCellSize(initialCellSize, gradDim)
+                    self.generateBeamsInCell(self.latticeType[idx], startCellPos, beamRadius, idx)
+                    self.getCellCenter(startCellPos)
+                else:
+                    hybridRadius = self.getBeamRadius(gradRadius, rad)
+                    self.generateBeamsInCell(self.latticeType[idx], startCellPos, hybridRadius, idx)
+                idxCell += 1
 
     def generateBeamsInCell(self, latticeType: int, startCellPos: list, beamRadius: float, beamType: int = 0) -> None:
         """

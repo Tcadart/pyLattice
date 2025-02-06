@@ -1883,7 +1883,7 @@ class Lattice(object):
 
     def getCellSurface(self, surface: str) -> list[int]:
         """
-        Get cell list on the surface of the lattice
+        Get a cell list on the surface of the lattice
 
         Parameters:
         -----------

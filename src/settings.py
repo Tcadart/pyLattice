@@ -15,7 +15,7 @@ cell_size_X = 1
 cell_size_Y = cell_size
 cell_size_Z = cell_size
 number_cell = 1
-number_cell_X = 2
+number_cell_X = 1
 number_cell_Y = 1
 number_cell_Z = 1
 
