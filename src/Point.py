@@ -175,6 +175,16 @@ class Point:
         """
         self.displacementValue[DOF] = displacementValue
 
+    def setForceValue(self, forceValue: float, DOF: int) -> None:
+        """
+        Assign force value to a specific degree of freedom.
+
+        Args:
+            forceValue (float): Force value.
+            DOF (int): Degree of freedom (0 to 5).
+        """
+        self.appliedForce[DOF] = forceValue
+
     def setDisplacementVector(self, displacementVector: List[float]) -> None:
         """
         Assign displacement values to the point.
@@ -184,12 +194,16 @@ class Point:
         """
         self.displacementValue = displacementVector
 
-    def setAppliedForce(self, appliedForce: List[float], DOF:list[int] = []) -> None:
+    def setAppliedForce(self, appliedForce: List[float], DOF:list[int]) -> None:
         """
         Assign applied force to the point.
 
-        Args:
-            appliedForce (List[float]): Applied force values for each DOF.
+        Parameters
+        ----------
+        appliedForce : List[float]
+            Applied force values for each DOF.
+        DOF : list[int]
+            List of DOF to assign (0: x, 1: y, 2: z, 3: Rx, 4: Ry, 5: Rz).
         """
         if len(DOF) != len(appliedForce):
             raise ValueError("Length of DOF and appliedForce must be equal.")

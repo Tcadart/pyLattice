@@ -1330,8 +1330,8 @@ class Lattice(object):
             Example: lambda x, y: x**2 + y**2 (for a paraboloid).
         mode : str
             Adjustment mode:
-            - "z" : Adjust nodes on a surface \( z = f(x, y) \).
-            - "z_plan" : Adjust nodes on a plan \( z = f(x, y) \) without changing the z-coordinate.
+            - "z": Adjust nodes on a surface (z = f(x, y)).
+            - "z_plan": Adjust nodes on a plan (z = f(x, y)) without changing the z-coordinate.
         params : dict
             Additional parameters for the equation or mode (e.g., radius, angle, etc.).
         """
@@ -1490,7 +1490,8 @@ class Lattice(object):
         print("Number of beams: ", self.getNumberOfBeams())
         print("Number of nodes: ", self.getNumberOfNodes())
 
-    def applyBoundaryConditionsOnSurface(self, surfaceNames: list[str], valueDisplacement: float, DOF: int) -> None:
+    def applyBoundaryConditionsOnSurface(self, surfaceNames: list[str], valueDisplacement: list[float],
+                                         DOF: list[int]) -> None:
         """
         Apply boundary conditions to the lattice
 
@@ -1498,10 +1499,29 @@ class Lattice(object):
         -----------
         surfaceNames: list[str]
             List of surfaces to apply boundary conditions (e.g., ["Xmin", "Xmax", "Ymin"])
-        valueDisplacement: float
+        valueDisplacement: list of float
             Displacement value to apply to the boundary conditions
-        DOF: int
+        DOF: list of int
             Degree of freedom to fix (0: x, 1: y, 2: z, 3: Rx, 4: Ry, 5: Rz)
+        """
+        self.applyAllConstraintsOnNodes(surfaceNames, valueDisplacement, DOF, "Displacement")
+
+    def applyAllConstraintsOnNodes(self, surfaceNames: list[str], value: list[float], DOF: list[int],
+                                   type: str= "Displacement") -> None:
+        """
+        Apply boundary conditions to the lattice
+
+        Parameters:
+        -----------
+        surfaceNames: list[str]
+            List of surfaces to apply constraint (e.g., ["Xmin", "Xmax", "Ymin"])
+        value: list of float
+            Values to apply to the constraint
+        DOF: list of int
+            Degree of freedom to apply constraint (0: x, 1: y, 2: z, 3: Rx, 4: Ry, 5: Rz)
+        type: str
+            Type of constraint (Displacement, Force)
+
         """
         valid_surfaces = {"Xmin", "Xmax", "Ymin", "Ymax", "Zmin", "Zmax"}
 
@@ -1534,8 +1554,12 @@ class Lattice(object):
             for beam in cell.beams:
                 for node in [beam.point1, beam.point2]:
                     if node.indexBoundary in indexBoundaryList:
-                        node.setDisplacementValue(valueDisplacement, DOF)
-                        node.fixDOF([DOF])
+                        for val, DOFi in zip(value, DOF):
+                            if type == "Displacement":
+                                node.setDisplacementValue(val, DOFi)
+                            elif type == "Force":
+                                node.setForceValue(val, DOFi)
+                            node.fixDOF([DOFi])
 
     def applyBoundaryConditionsOnNode(self, nodeList: list[int], valueDisplacement: float,
                                       DOF: int) -> None:
@@ -1567,7 +1591,7 @@ class Lattice(object):
                         node.setDisplacementValue(valueDisplacement, DOF)
                         node.fixDOF([DOF])
 
-    def applyForceOnSurface(self, surfaceName: str, valueForce: list[float], DOF: list[int]) -> None:
+    def applyForceOnSurface(self, surfaceName: list[str], valueForce: list[float], DOF: list[int]) -> None:
         """
         Apply force to the lattice
 
@@ -1580,31 +1604,9 @@ class Lattice(object):
         DOF: list of int
             List of degree of freedom to fix (0: x, 1: y, 2: z, 3: Rx, 4: Ry, 5: Rz)
         """
-        if surfaceName not in ["Xmin", "Xmax", "Ymin", "Ymax", "Zmin", "Zmax"]:
-            raise ValueError("Invalid surface name.")
+        self.applyAllConstraintsOnNodes(surfaceName, valueForce, DOF, "Force")
 
-        cellList = self.getCellSurface(surfaceName)
-        if self.cells[-1].index < max(cellList):
-            raise ValueError("Invalid cell index, cell do not exist.")
-
-        if len(valueForce) != len(DOF):
-            raise ValueError("Invalid force value or degree of freedom.")
-
-        pointList = []
-        for cell in self.cells:
-            if cell.index in cellList:
-                pointList.append(cell.getPointOnSurface(surfaceName))
-        pointList = [point for sublist in pointList for point in sublist]
-        indexBoundaryList = []
-        for point in pointList:
-            indexBoundaryList.append(point.indexBoundary)
-        for cell in self.cells:
-            for beam in cell.beams:
-                for node in [beam.point1, beam.point2]:
-                    if node.indexBoundary in indexBoundaryList:
-                        node.setAppliedForce(valueForce, DOF)
-
-    def fixDOFOnSurface(self, surfaceName: str, dofFixed: list[int]) -> None:
+    def fixDOFOnSurface(self, surfaceName: list[str], dofFixed: list[int]) -> None:
         """
         Fix degree of freedom on the surface of the lattice
 
@@ -1617,28 +1619,8 @@ class Lattice(object):
         dofFixed: list of int
             List of degree of freedom to fix (0: x, 1: y, 2: z, 3: Rx, 4: Ry, 5: Rz)
         """
-        if surfaceName not in ["Xmin", "Xmax", "Ymin", "Ymax", "Zmin", "Zmax"]:
-            raise ValueError("Invalid surface name.")
+        self.applyAllConstraintsOnNodes(surfaceName, [0.0 for _ in dofFixed], dofFixed, "Displacement")
 
-        cellList = self.getCellSurface(surfaceName)
-        if self.cells[-1].index < max(cellList):
-            raise ValueError("Invalid cell index, cell do not exist.")
-
-        pointList = []
-        for cell in self.cells:
-            if cell.index in cellList:
-                pointList.append(cell.getPointOnSurface(surfaceName))
-        pointList = [point for sublist in pointList for point in sublist]
-        indexBoundaryList = []
-        for point in pointList:
-            indexBoundaryList.append(point.indexBoundary)
-        for cell in self.cells:
-            for beam in cell.beams:
-                for node in [beam.point1, beam.point2]:
-                    if node.indexBoundary in indexBoundaryList:
-                        for dofFixedI in dofFixed:  # case where displacement was already set
-                            node.setDisplacementValue(0, dofFixedI)
-                        node.fixDOF(dofFixed)
 
     def fixDOFOnNode(self, nodeList: list[int], dofFixed: list[int]) -> None:
         """
