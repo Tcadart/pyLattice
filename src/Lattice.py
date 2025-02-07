@@ -1490,35 +1490,46 @@ class Lattice(object):
         print("Number of beams: ", self.getNumberOfBeams())
         print("Number of nodes: ", self.getNumberOfNodes())
 
-    def applyBoundaryConditionsOnSurface(self, surfaceName: str, valueDisplacement: float,
-                                         DOF: int) -> None:
+    def applyBoundaryConditionsOnSurface(self, surfaceNames: list[str], valueDisplacement: float, DOF: int) -> None:
         """
         Apply boundary conditions to the lattice
 
         Parameters:
         -----------
-        surface: str
-            Surface to apply boundary conditions (Xmin, Xmax, Ymin, Ymax, Zmin, Zmax)
+        surfaceNames: list[str]
+            List of surfaces to apply boundary conditions (e.g., ["Xmin", "Xmax", "Ymin"])
         valueDisplacement: float
             Displacement value to apply to the boundary conditions
         DOF: int
             Degree of freedom to fix (0: x, 1: y, 2: z, 3: Rx, 4: Ry, 5: Rz)
         """
-        if surfaceName not in ["Xmin", "Xmax", "Ymin", "Ymax", "Zmin", "Zmax"]:
-            raise ValueError("Invalid surface name.")
+        valid_surfaces = {"Xmin", "Xmax", "Ymin", "Ymax", "Zmin", "Zmax"}
 
-        cellList = self.getCellSurface(surfaceName)
-        if self.cells[-1].index < max(cellList):
-            raise ValueError("Invalid cell index, cell do not exist.")
+        if not all(surface in valid_surfaces for surface in surfaceNames):
+            raise ValueError("Invalid surface name(s).")
 
-        pointList = []
+        cellLists = [set(self.getCellSurface(surface)) for surface in surfaceNames]
+        cellList = set.intersection(*cellLists) # Union of all cell indices from given surfaces
+
+        if self.cells[-1].index < max(cellList, default=-1):
+            raise ValueError("Invalid cell index, some cells do not exist.")
+
+        pointSet = None
         for cell in self.cells:
             if cell.index in cellList:
-                pointList.append(cell.getPointOnSurface(surfaceName))
-        pointList = [point for sublist in pointList for point in sublist]
-        indexBoundaryList = []
-        for point in pointList:
-            indexBoundaryList.append(point.indexBoundary)
+                cellPointSets = [set(cell.getPointOnSurface(surface)) for surface in surfaceNames]
+                if cellPointSets:
+                    if pointSet is None:
+                        pointSet = set.intersection(*cellPointSets)
+                    else:
+                        pointSet.update(set.intersection(*cellPointSets))
+        pointSet = pointSet if pointSet is not None else set()
+
+        if pointSet == set():
+            raise ValueError("No points found on the specified surfaces.")
+
+        indexBoundaryList = {point.indexBoundary for point in pointSet}
+
         for cell in self.cells:
             for beam in cell.beams:
                 for node in [beam.point1, beam.point2]:

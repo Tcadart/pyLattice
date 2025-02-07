@@ -180,7 +180,13 @@ class Cell(object):
         """
         Adding beam to cell
         """
-        self.beams.append(beamToAdd)
+        if isinstance(beamToAdd, Beam):
+            self.beams.append(beamToAdd)
+        if isinstance(beamToAdd, tuple):
+            for beam in beamToAdd:
+                self.beams.append(beam)
+        else:
+            raise ValueError("Invalid beam type")
 
     def setIndex(self, index: int) -> None:
         """
@@ -370,7 +376,10 @@ class Cell(object):
         for beam in self.beams:
             for point in [beam.point1, beam.point2]:
                 if point.indexBoundary is not None:
-                    internalEnergy += point.calculatePointEnergy()
+                    pointEnergy = point.calculatePointEnergy()
+                    # if pointEnergy < 0:
+                    #     print("Negative energy", pointEnergy)
+                    internalEnergy += pointEnergy
         return internalEnergy
 
     def getDisplacementData(self) -> list:
