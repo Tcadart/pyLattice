@@ -1,6 +1,9 @@
+import Beam
+import src.Beam
 
 from .Point import *
 from .Beam import *
+from src.Beam import Beam
 from .Geometry_Lattice import Lattice_geometry
 
 from scipy.sparse import coo_matrix
@@ -185,7 +188,7 @@ class Cell(object):
         """
         if isinstance(beamToAdd, Beam):
             self.beams.append(beamToAdd)
-        if isinstance(beamToAdd, tuple):
+        elif isinstance(beamToAdd, tuple):
             for beam in beamToAdd:
                 self.beams.append(beam)
         else:

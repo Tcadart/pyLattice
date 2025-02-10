@@ -8,7 +8,7 @@
 # *******************************************************************************************************************
 # *******************************************************************************************************************
 # Lattice properties
-Radius = [0.1, 0.2, 0.01]
+Radius = [0.1, 0.1, 0.1]
 materialName = 'VeroClear'
 cell_size = 1
 cell_size_X = 1
@@ -59,7 +59,7 @@ Multimat = 0
 # 1 -> multimat par couche
 GradMaterialDirection = 3  # 1:X / 2:Y / 3:Z
 
-MethodSim = 0
+MethodSim = 1
 # 0 No modification
 # 1 Node Modification
 
