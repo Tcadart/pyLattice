@@ -175,6 +175,15 @@ class Point:
         """
         self.displacementValue[DOF] = displacementValue
 
+    def setDisplacementVector(self, displacementVector: List[float]) -> None:
+        """
+        Assign displacement values to the point.
+
+        Args:
+            displacementVector (List[float]): Displacement values for all DOF.
+        """
+        self.displacementValue = displacementVector
+
     def setForceValue(self, forceValue: float, DOF: int) -> None:
         """
         Assign force value to a specific degree of freedom.
@@ -184,15 +193,6 @@ class Point:
             DOF (int): Degree of freedom (0 to 5).
         """
         self.appliedForce[DOF] = forceValue
-
-    def setDisplacementVector(self, displacementVector: List[float]) -> None:
-        """
-        Assign displacement values to the point.
-
-        Args:
-            displacementVector (List[float]): Displacement values for all DOF.
-        """
-        self.displacementValue = displacementVector
 
     def setAppliedForce(self, appliedForce: List[float], DOF:list[int]) -> None:
         """

@@ -1,9 +1,7 @@
-import Beam
-import src.Beam
+import numpy as np
 
 from .Point import *
 from .Beam import *
-from src.Beam import Beam
 from .Geometry_Lattice import Lattice_geometry
 
 from scipy.sparse import coo_matrix
@@ -40,6 +38,9 @@ class Cell(object):
         uncertaintyNode: float
             Standard deviation for adding uncertainty to node coordinates. Defaults to 0.0.
         """
+        self.originalTags = [1000, 1001, 1002, 1003, 1004, 1005, 1006, 1007,
+                        10, 11, 12, 13, 14, 15,
+                        100, 101, 102, 103, 104, 105, 106, 107, 108, 109, 110, 111]
         self.centerPoint = None
         self._beamMaterial = None
         self.cellSize = None
@@ -244,23 +245,22 @@ class Cell(object):
         """
         Get the order of nodes to simulate in the cell
         """
-        originalTags = [1000, 1001, 1002, 1003, 1004, 1005, 1006, 1007,
-                        10, 11, 12, 13, 14,
-                        100, 101, 102, 103, 104, 105, 106, 107, 108, 109, 110, 111]
-        tag_dict = {tag: None for tag in originalTags}
+        tag_dict = {tag: None for tag in self.originalTags}
         for beam in self.beams:
-            for point in [beam.point1, beam.point2]:
-                if point.indexBoundary is not None:
-                    tag = point.tagPoint(self.coordinateCell[0], self.coordinateCell[0] + self.cellSize[0],
-                                         self.coordinateCell[1], self.coordinateCell[1] + self.cellSize[1],
-                                         self.coordinateCell[2], self.coordinateCell[2] + self.cellSize[2])
-                    if tag:  # Ensure tags is not an empty list
-                        tag = tag[0]  # Take the first tag from the list
-                        if tag in originalTags:
-                            tag_dict[tag] = point
-                            if not point.localTag:
-                                point.localTag.append(tag)
+            if beam.radius > 0:
+                for point in [beam.point1, beam.point2]:
+                    if point.indexBoundary is not None:
+                        tag = point.tagPoint(self.coordinateCell[0], self.coordinateCell[0] + self.cellSize[0],
+                                             self.coordinateCell[1], self.coordinateCell[1] + self.cellSize[1],
+                                             self.coordinateCell[2], self.coordinateCell[2] + self.cellSize[2])
+                        if tag:  # Ensure tags is not an empty list
+                            tag = tag[0]  # Take the first tag from the list
+                            if tag in self.originalTags:
+                                tag_dict[tag] = point
+                                if not point.localTag:
+                                    point.localTag.append(tag)
         return tag_dict
+
 
     def setDisplacementAtBoundaryNodes(self, displacementArray: list, displacementIndex: list) -> None:
         """
@@ -460,3 +460,21 @@ class Cell(object):
         for idx, polyDeriv in enumerate(relativeDensityPolyDeriv):
             deriv += polyDeriv(self.radius[idx])
         return deriv
+
+    def getNumberNodesAtBoundary(self):
+        """
+        Get the number of nodes at the boundary
+
+        Returns:
+        --------
+        int
+            Number of nodes at the boundary
+        """
+        counterNodes = 0
+        nodeAlreadyCounted = []
+        for beam in self.beams:
+            for point in [beam.point1, beam.point2]:
+                if point.indexBoundary is not None and point.indexBoundary not in nodeAlreadyCounted:
+                    counterNodes += 1
+                    nodeAlreadyCounted.append(point.indexBoundary)
+        return counterNodes

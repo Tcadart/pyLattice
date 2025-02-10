@@ -121,8 +121,10 @@ class Lattice(object):
         self.maxIndexBoundary = None
         self.globalDisplacementIndex = None
         self.initialValueObjective = None
+        self.initialRelativeDensityConstraint = None
         self.relativeDensityPoly = []
         self.relativeDensityPolyDeriv = []
+        self.nDOFperNode = 6
 
         # Process
         self.generateLattice()
@@ -1160,19 +1162,12 @@ class Lattice(object):
         """
         if len(hybridRadiusData) != len(self.Radius):
             raise ValueError("Invalid hybrid radius data.")
-        radiusDict = {}
-        if len(hybridRadiusData) != 1:
-            for idx, radius in enumerate(hybridRadiusData):
-                radiusDict[idx + 200] = radius * self.penalizationCoefficient
-                radiusDict[idx + 100] = radius
-        else:
-            for idx, radius in enumerate(hybridRadiusData):
-                radiusDict[idx + 1] = radius * self.penalizationCoefficient
-                radiusDict[idx] = radius
         for cell in self.cells:
             for beam in cell.beams:
-                if beam.type in radiusDict:
-                    beam.radius = radiusDict[beam.type]
+                if beam.modBeam:
+                    beam.radius = hybridRadiusData[beam.type] * self.penalizationCoefficient
+                else:
+                    beam.radius = hybridRadiusData[beam.type]
 
     def attractorLattice(self, PointAttractorList: list[float] = None, alpha: float = 0.5,
                          inverse: bool = False) -> None:
@@ -1372,14 +1367,24 @@ class Lattice(object):
                 else:
                     cell.removeBeam(beam)
 
-    def getRelativeDensity(self) -> float:
+    def getRelativeDensityConstraint(self, targetRelativeDensity) -> float:
         """
         Get relative density of the lattice
         """
+        meanRelDens = self.getRelativeDensity()
+        error = -(targetRelativeDensity - meanRelDens)
+        print("Relative density error: ", error)
+        if self.initialRelativeDensityConstraint is None:
+            self.initialRelativeDensityConstraint = error
+        error = error/self.initialRelativeDensityConstraint
+        return error
+
+    def getRelativeDensity(self):
         cellRelDens = []
         for cell in self.cells:
             cellRelDens.append(cell.getRelativeDensity())
-        return mean(cellRelDens)
+        meanRelDens = mean(cellRelDens)
+        return meanRelDens
 
     def defineRelativeDensityFunction(self, degree: int = 3) -> None:
         """
@@ -1557,9 +1562,9 @@ class Lattice(object):
                         for val, DOFi in zip(value, DOF):
                             if type == "Displacement":
                                 node.setDisplacementValue(val, DOFi)
+                                node.fixDOF([DOFi])
                             elif type == "Force":
                                 node.setForceValue(val, DOFi)
-                            node.fixDOF([DOFi])
 
     def applyBoundaryConditionsOnNode(self, nodeList: list[int], valueDisplacement: float,
                                       DOF: int) -> None:
@@ -1661,26 +1666,22 @@ class Lattice(object):
                                 node.setDisplacementValue(random.uniform(-0.01, 0.01), dof)
                             node.fixDOF([dof])
 
-    def setDisplacementWithVector(self, displacementVector: list[float]) -> None:
+    def setDisplacementWithVector(self, displacementMatrix: list[float]) -> None:
         """
         Set displacement on the lattice with vector
 
         Parameters:
         -----------
-        displacementVector: list of float
-            Displacement vector to apply to the lattice
+        displacementMatrix: list of float of dim n_nodes*n_dofperNode
+            Displacement matrix to apply to the lattice
         """
-        displacementVector = np.array(displacementVector).flatten()
-        index = 0
         for cell in self.cells:
-            for beam in cell.beams:
-                for node in [beam.point1, beam.point2]:
-                    if node.indexBoundary is not None:
-                        print(node.tag)
-                        for dof in range(6):
-                            node.setDisplacementValue(displacementVector[index], dof)
-                            node.fixDOF([dof])
-                            index += 1
+            nodeInOrder = cell.getNodeOrderToSimulate()
+            for idx, node in enumerate(nodeInOrder.values()):
+                if node is not None:
+                    node.setDisplacementVector(displacementMatrix[idx])
+                    node.fixDOF([i for i in range(6)])
+
 
     def getDisplacementGlobal(self, withFixed: bool = False, OnlyImposed: bool = False) \
             -> tuple[list[float], list[int]]:
@@ -1710,7 +1711,7 @@ class Lattice(object):
                             if node.fixedDOF[i] == 0 and not OnlyImposed:
                                 globalDisplacement.append(node.displacementValue[i])
                                 globalDisplacementIndex.append(node.indexBoundary)
-                            elif node.fixedDOF[i] == 0:
+                            elif node.fixedDOF[i] == 0 and node.appliedForce[i] == 0:
                                 globalDisplacement.append(0)
                             elif withFixed or OnlyImposed:
                                 globalDisplacement.append(node.displacementValue[i])
@@ -1741,7 +1742,7 @@ class Lattice(object):
                             IndexCounter += 1
         self.maxIndexBoundary = IndexCounter - 1
 
-    def getGlobalReactionForce(self) -> dict:
+    def getGlobalReactionForce(self, appliedForceAdded:bool = False) -> dict:
         """
         Get local reaction force of the lattice and sum if identical TagIndex
 
@@ -1758,9 +1759,14 @@ class Lattice(object):
                         globalReactionForce[node.indexBoundary] = [
                             x + y for x, y in zip(globalReactionForce[node.indexBoundary], node.getReactionForce())
                         ]
+                        if appliedForceAdded:
+                            for i in range(6):
+                                if node.appliedForce[i] != 0:
+                                    globalReactionForce[node.indexBoundary][i] = node.appliedForce[i]
         return globalReactionForce
 
-    def getGlobalReactionForceWithoutFixedDOF(self, globalReactionForce: dict) -> np.ndarray:
+    def getGlobalReactionForceWithoutFixedDOF(self, globalReactionForce: dict, rightHandSide:bool = False) \
+            -> np.ndarray:
         """
         Get global reaction force of free degree of freedom
 
@@ -1781,9 +1787,18 @@ class Lattice(object):
                 for node in [beam.point1, beam.point2]:
                     if node.indexBoundary is not None and node.indexBoundary not in processed_nodes:
                         # Append reaction force components where fixedDOF is 0
-                        globalReactionForceWithoutFixedDOF.append([
-                            v1 for v1, v2 in zip(globalReactionForce[node.indexBoundary], node.fixedDOF) if v2 == 0
-                        ])
+                        RFToAdd = []
+                        for i in range(6):
+                            if node.appliedForce[i] != 0 and rightHandSide:
+                                RFToAdd.append(-node.appliedForce[i])
+                                # Add a sign minus because right-hand side already with a sign minus see (b = -b)
+                            elif node.fixedDOF[i] == 0:
+                                RFToAdd.append(globalReactionForce[node.indexBoundary][i])
+                        globalReactionForceWithoutFixedDOF.append(RFToAdd)
+                        # globalReactionForceWithoutFixedDOF.append([
+                        #     v1 for v1, v2 in zip(globalReactionForce[node.indexBoundary], node.fixedDOF)
+                        #     if v2 == 0])
+                        # print(globalReactionForceWithoutFixedDOF[-1])
                         # Mark this node as processed
                         processed_nodes.add(node.indexBoundary)
         return np.concatenate(globalReactionForceWithoutFixedDOF)
@@ -1959,21 +1974,22 @@ class Lattice(object):
             Objective function value
         """
         if typeObjective == "Compliance":
-            reactionForce = self.getGlobalReactionForce()
+            reactionForce = self.getGlobalReactionForce(appliedForceAdded=True)
             reaction_force_array = np.array(list(reactionForce.values())).flatten()
             displacement = np.array(self.getDisplacementGlobal(OnlyImposed=True)[0])
             compliance = np.dot(reaction_force_array, displacement)
+            np.set_printoptions(threshold=np.inf)
+            print("Reaction force: ", reaction_force_array[displacement != 0])
+            print("Displacement: ", displacement[displacement != 0])
+            print("Compliance: ", compliance)
             if self.initialValueObjective is None:
                 self.initialValueObjective = compliance
             compliance = compliance/self.initialValueObjective
+            print("Compliance normalized: ", compliance)
             return compliance
-        # cellImportante = self.cells[0]
-        # return -cellImportante.getInternalEnergy()
-        # for beam in cellImportante.beams:
-        #     for node in [beam.point1, beam.point2]:
-        #         if len(node.localTag) > 0:
-        #             if node.localTag[0] == 1007:
-        #                 return node.getDisplacementValue()[0]
+        if typeObjective == "Stiffness":
+            pass
+
 
     def getNumberParametersOptimization(self) -> int:
         """
@@ -2010,3 +2026,43 @@ class Lattice(object):
                     if np.any(match):
                         index = np.where(match)[0][0]
                         node.setReactionForce(reactionForce[index])
+
+    def expandSchurToFullBasis(self, SchurReduced, nodeInOrder):
+        """
+        Expand the reduced Schur complement matrix into the full 156-DOF boundary space.
+
+        Parameters:
+        -----------
+        SchurReduced : np.ndarray
+            The Schur complement matrix computed only for the active boundary nodes.
+        nodeInOrder : dict
+            Dictionary with node tags as keys and corresponding node objects as values.
+
+        Returns:
+        --------
+        SchurFull : np.ndarray
+            The expanded Schur complement matrix in the full 156-DOF boundary space.
+        """
+
+        num_total_boundary_nodes = len(nodeInOrder)  # Nombre total de nœuds frontière
+        total_dofs = num_total_boundary_nodes * 6  # Chaque nœud a 6 DOFs
+        SchurFull = np.zeros((total_dofs, total_dofs))  # Matrice complète initialisée à zéro
+
+        # Construire un mapping entre les indices de SchurReduced et les indices globaux
+        boundary_dof_map = {}  # Associe index local -> index global dans SchurFull
+        dof_counter = 0  # Compteur pour attribuer des indices locaux à la matrice réduite
+
+        for node_idx, node in enumerate(nodeInOrder.values()):
+            if node is not None:  # Le nœud est utilisé
+                for dof in range(6):  # Chaque nœud a 6 DOFs
+                    boundary_dof_map[dof_counter] = node_idx * 6 + dof
+                    dof_counter += 1
+
+        # Remplir SchurFull en utilisant les indices mappés
+        for i in range(SchurReduced.shape[0]):
+            global_i = boundary_dof_map[i]  # Trouver l'index global correspondant
+            for j in range(SchurReduced.shape[1]):
+                global_j = boundary_dof_map[j]
+                SchurFull[global_i, global_j] = SchurReduced[i, j]
+
+        return SchurFull

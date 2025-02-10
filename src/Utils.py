@@ -66,34 +66,35 @@ def visualizeLattice3D(cells: list["Cell"], latticeDimDict: dict, beamColor: str
 
         for cell in cells:
             for beam in cell.beams:
-                node1 = beam.point1.getDeformedPos() if deformedForm else (beam.point1.x, beam.point1.y, beam.point1.z)
-                node2 = beam.point2.getDeformedPos() if deformedForm else (beam.point2.x, beam.point2.y, beam.point2.z)
+                if beam.radius != 0.0:
+                    node1 = beam.point1.getDeformedPos() if deformedForm else (beam.point1.x, beam.point1.y, beam.point1.z)
+                    node2 = beam.point2.getDeformedPos() if deformedForm else (beam.point2.x, beam.point2.y, beam.point2.z)
 
-                if beam not in beamDraw:
-                    # Assign colors based on the selected scheme
-                    if beamColor == "Material":
-                        colorBeam = color_palette[beam.material % len(color_palette)]
-                    elif beamColor == "Type":
-                        colorBeam = color_palette[beam.type % len(color_palette)]
-                    elif beamColor == "Radius":
-                        if beam.radius not in idxColor:
-                            idxColor.append(beam.radius)
-                        colorBeam = color_palette[idxColor.index(beam.radius) % len(color_palette)]
-                    else:
-                        colorBeam = "blue"  # Default color
+                    if beam not in beamDraw:
+                        # Assign colors based on the selected scheme
+                        if beamColor == "Material":
+                            colorBeam = color_palette[beam.material % len(color_palette)]
+                        elif beamColor == "Type":
+                            colorBeam = color_palette[beam.type % len(color_palette)]
+                        elif beamColor == "Radius":
+                            if beam.radius not in idxColor:
+                                idxColor.append(beam.radius)
+                            colorBeam = color_palette[idxColor.index(beam.radius) % len(color_palette)]
+                        else:
+                            colorBeam = "blue"  # Default color
 
-                    # Add line data
-                    lines.append([(node1[0], node1[1], node1[2]), (node2[0], node2[1], node2[2])])
-                    colors.append(colorBeam)
-                    beamDraw.add(beam)
+                        # Add line data
+                        lines.append([(node1[0], node1[1], node1[2]), (node2[0], node2[1], node2[2])])
+                        colors.append(colorBeam)
+                        beamDraw.add(beam)
 
-                # Add node data
-                for node in [node1, node2]:
-                    if node not in nodeDraw:
-                        nodeDraw.add(node)
-                        nodeX.append(node[0])
-                        nodeY.append(node[1])
-                        nodeZ.append(node[2])
+                    # Add node data
+                    for node in [node1, node2]:
+                        if node not in nodeDraw:
+                            nodeDraw.add(node)
+                            nodeX.append(node[0])
+                            nodeY.append(node[1])
+                            nodeZ.append(node[2])
 
             if plotCellIndex:
                 ax.text(cell.centerPoint[0], cell.centerPoint[1], cell.centerPoint[2], str(cell.index),
