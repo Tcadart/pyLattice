@@ -39,8 +39,8 @@ class Cell(object):
             Standard deviation for adding uncertainty to node coordinates. Defaults to 0.0.
         """
         self.originalTags = [1000, 1001, 1002, 1003, 1004, 1005, 1006, 1007,
-                        10, 11, 12, 13, 14, 15,
-                        100, 101, 102, 103, 104, 105, 106, 107, 108, 109, 110, 111]
+                             10, 11, 12, 13, 14, 15,
+                             100, 101, 102, 103, 104, 105, 106, 107, 108, 109, 110, 111]
         self.centerPoint = None
         self._beamMaterial = None
         self.cellSize = None
@@ -261,7 +261,6 @@ class Cell(object):
                                     point.localTag.append(tag)
         return tag_dict
 
-
     def setDisplacementAtBoundaryNodes(self, displacementArray: list, displacementIndex: list) -> None:
         """
         Set displacement at nodes.
@@ -283,7 +282,7 @@ class Cell(object):
                             point.setDisplacementValue(displacementArray[index + indexActual], i)
                             indexActual += 1
 
-    def getDisplacementAtNodes(self, nodeList: dict, printing:bool = False) -> list:
+    def getDisplacementAtNodes(self, nodeList: dict, printing: bool = False) -> list:
         """
         Get the displacement at nodes.
 
@@ -478,3 +477,6 @@ class Cell(object):
                     counterNodes += 1
                     nodeAlreadyCounted.append(point.indexBoundary)
         return counterNodes
+
+    def getRGBcolorDependingOfRadius(self):
+        return tuple(r / 0.1 for r in self.radius)
