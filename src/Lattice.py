@@ -1878,7 +1878,8 @@ class Lattice(object):
         from ConjugateGradientMethod.Utils_Schur import loadSchurComplement, getSref_nearest
 
         if dictSchurComplement is None:
-            dictSchurComplement = loadSchurComplement("LatticeOneGeom.txt")
+            dictSchurComplement = loadSchurComplement("Hybrid_3.json")
+
         self.buildCouplingOperatorForEachCells()
         globalSchurComplement = coo_matrix((self.freeDOF, self.freeDOF))
         for cell in self.cells:

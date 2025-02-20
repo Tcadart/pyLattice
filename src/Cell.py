@@ -344,15 +344,13 @@ class Cell(object):
         """
         Build the coupling operator for the cell
         """
-        originalTags = [1000, 1001, 1002, 1003, 1004, 1005, 1006, 1007, 100, 101, 102, 103, 104, 105, 106, 107,
-                        108, 109, 110, 111]
         data = []
         row, col = [], []
         listBndNodes = []
         for beam in self.beams:
             for point in [beam.point1, beam.point2]:
                 if point.indexBoundary is not None and point.indexBoundary not in listBndNodes:
-                    localNodeIndex = originalTags.index(point.localTag[0])
+                    localNodeIndex = self.originalTags.index(point.localTag[0])
                     listBndNodes.append(point.indexBoundary)
                     for i in range(6):
                         if point.fixedDOF[i] == 0:
