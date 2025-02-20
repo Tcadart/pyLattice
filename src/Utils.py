@@ -114,10 +114,12 @@ def visualizeLattice3D(cells: list["Cell"], latticeDimDict: dict, beamColor: str
                 colorCell = color_palette[cell.beams[0].material % len(color_palette)]
             elif beamColor == "Type":
                 colorCell = color_palette[cell.latticeType % len(color_palette)]
+            elif beamColor == "Radius":
+                colorCell = cell.getRGBcolorDependingOfRadius()
             else:
                 colorCell = "blue"  # Default color
 
-            ax.bar3d(x, y, z, dx, dy, dz, color=colorCell, alpha=1, shade=True, edgecolor='k')
+            ax.bar3d(x, y, z, dx, dy, dz, color=colorCell, alpha=0.5, shade=True, edgecolor='k')
 
     # Set axis labels and limits
     ax.set_xlabel('X')

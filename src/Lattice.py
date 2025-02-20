@@ -467,8 +467,14 @@ class Lattice(object):
                     initialCellSize = [self.cellSizeX, self.cellSizeY, self.cellSizeZ]
                     startCellPos = [xCellStart, yCellStart, zCellStart]
                     if not self.isNotInErasedRegion(startCellPos):
+                        if self.randomHybrid:
+                            radius = [random.uniform(0, 0.1) for _ in self.latticeType]
+                            while sum(radius) == 0:
+                                radius = [random.uniform(0, 0.1) for _ in self.latticeType]
+                        else:
+                            radius = self.Radius
                         new_cell = Cell(posCell, initialCellSize, startCellPos, self.latticeType,
-                                        self.Radius, self.gradRadius, self.gradDim, self.gradMat,
+                                        radius, self.gradRadius, self.gradDim, self.gradMat,
                                         self.uncertaintyNode)
                         self.cells.append(new_cell)
         if len(self.latticeType) > 1:
