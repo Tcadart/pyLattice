@@ -6,6 +6,7 @@ from statistics import mean
 from matplotlib import pyplot as plt
 
 from .Cell import *
+from Mesh.Mesh import *
 import math
 import random
 
@@ -24,7 +25,8 @@ class Lattice(object):
                  Lattice_Type: list[int], Radius: list[float], materialName: str,
                  gradRadiusProperty: list, gradDimProperty: list, gradMatProperty: list,
                  simMethod: int = 0, uncertaintyNode: float = 0.0,
-                 periodicity: int = 0, erasedParts: list = None, randomHybrid: bool = False):
+                 periodicity: int = 0, erasedParts: list = None, randomHybrid: bool = False,
+                 meshObject: "meshObject" = None):
         """
         Constructor general for the Lattice class.
 
@@ -76,6 +78,10 @@ class Lattice(object):
             Applying periodicity on the outer box of the lattice structure to calculate penalization method
         erasedParts: list of float in dim 6
             (xStart, yStart, zStart, xDim, yDim, zDim) of the erased region
+        randomHybrid: boolean
+            Randomize the hybrid lattice structure
+        meshObject: meshObject
+            Mesh object to check if the lattice structure is inside the mesh
         """
         self._validate_inputs(cell_size_x, cell_size_y, cell_size_z, num_cells_x, num_cells_y, num_cells_z,
                               Lattice_Type, Radius, materialName, gradRadiusProperty, gradDimProperty, gradMatProperty,
@@ -111,6 +117,7 @@ class Lattice(object):
         self.penalizationCoefficient = 1.5  # Fixed with previous optimization
         self.erasedParts = erasedParts
         self.randomHybrid = randomHybrid
+        self.meshObject = meshObject
 
         self.cells = []
         self._nodes = []
@@ -133,19 +140,22 @@ class Lattice(object):
         self.defineCellIndex()
 
         self.applyTagToAllPoint()
-        self.getAllAngles()
 
         # Case of penalization at beam near nodes
         if self.simMethod == 1:
+            self.getAllAngles()
             self.getBeamNodeMod()
 
         # Get some data about lattice structures
-        self.getNodeData()
-        self.getBeamData()
+        # self.getNodeData()
+        # self.getBeamData()
+        # print("Data retrieved")
 
         # Simulation FenicsX necessaries
         # Define global indexation
         self.defineNodeIndexBoundary()
+
+        self.printStatistics()
 
     @classmethod
     def simpleLattice(cls, cell_size_x: float, cell_size_y: float, cell_size_z: float,
@@ -416,21 +426,34 @@ class Lattice(object):
 
     def isNotInErasedRegion(self, startCellPos: list[float]) -> bool:
         """
-        Check if the cell is not in the erased region
+        Check if the cell is not in the erased region or inside the mesh.
 
         Parameters:
         -----------
-        startCellPos: list of float in dim 6
-            (xStart, yStart, zStart, xDim, yDim, zDim) of the erased region
+        startCellPos: list of float
+            (xStart, yStart, zStart) position of the cell to check.
+
+        Returns:
+        --------
+        bool:
+            True if the cell should be removed.
         """
-        if self.erasedParts is None:
-            return False
-        counterIn = 0
-        for delPart in self.erasedParts:
-            for direction in range(3):
-                if delPart[direction] <= startCellPos[direction] <= delPart[direction + 3] + delPart[direction]:
-                    counterIn += 1
-        return counterIn == 3
+        # Vérifier si le point est dans `erasedParts`
+        if self.erasedParts is not None:
+            for delPart in self.erasedParts:
+                inside_erased = all(
+                    delPart[direction] <= startCellPos[direction] <= delPart[direction] + delPart[direction + 3]
+                    for direction in range(3)
+                )
+                if inside_erased:
+                    return True  # La cellule est supprimée si elle est dans `erasedParts`
+
+        # Vérifier si le point est dans le mesh STL
+        if self.meshObject is not None:
+            if not self.meshObject.is_inside_mesh(startCellPos):
+                return True  # La cellule est supprimée si elle est dans le mesh STL
+
+        return False  # La cellule est conservée
 
     def generateLattice(self) -> None:
         """
@@ -2073,3 +2096,13 @@ class Lattice(object):
                 SchurFull[global_i, global_j] = SchurReduced[i, j]
 
         return SchurFull
+
+    def printStatistics(self):
+        """
+        Print statistics about the lattice
+        """
+        print("Number of cells: ", len(self.cells))
+        # print("Number of beams: ", self.getNumberOfBeams())
+        # print("Number of nodes: ", self.getNumberOfNodes())
+        print("Relative density: ", self.getRelativeDensity())
+
