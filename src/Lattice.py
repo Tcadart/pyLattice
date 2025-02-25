@@ -1842,7 +1842,7 @@ class Lattice(object):
             Total number of degrees of freedom in the lattice
         """
         self.freeDOF = 0
-        processed_nodes = set()  # Use a set for faster lookup
+        processed_nodes = set()
         for cell in self.cells:
             for beam in cell.beams:
                 for node in [beam.point1, beam.point2]:
@@ -1909,12 +1909,21 @@ class Lattice(object):
         if dictSchurComplement is None:
             dictSchurComplement = loadSchurComplement("Hybrid_3.json")
 
+        dictSchurComplement = loadSchurComplement("ConjugateGradientMethod/schurComplement/Hybrid_1.json")
         self.buildCouplingOperatorForEachCells()
         globalSchurComplement = coo_matrix((self.freeDOF, self.freeDOF))
         for cell in self.cells:
-            schurComplementMatrix = coo_matrix(getSref_nearest(cell.radius, SchurDict=dictSchurComplement))
+            schurComplementMatrix = coo_matrix(getSref_nearest(cell.radius, SchurDict=dictSchurComplement,
+                                                               printing=False))
             globalSchurComplement += cell.buildPreconditioner(schurComplementMatrix)
         globalSchurComplement = globalSchurComplement.tocsc()
+
+        if np.any(globalSchurComplement.sum(axis=1) == 0):
+            print("Attention : There are some rows with all zeros in the Schur complement matrix.")
+        cond_number = np.linalg.cond(globalSchurComplement.toarray())
+        if cond_number > 1e6:
+            print("Attention : The condition number of the Schur complement matrix is very high: ", cond_number)
+
         # Factorize preconditioner
         LUSchurComplement = splu(globalSchurComplement)
         return LUSchurComplement

@@ -41,6 +41,9 @@ class Cell(object):
         self.originalTags = [1000, 1001, 1002, 1003, 1004, 1005, 1006, 1007,
                              10, 11, 12, 13, 14, 15,
                              100, 101, 102, 103, 104, 105, 106, 107, 108, 109, 110, 111]
+        self.originalCellGeom = [0, 0, 0, 0, 0, 0, 0, 0,
+                                 1, 1, 1, 1, 1, 1,
+                                 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2]
         self.centerPoint = None
         self._beamMaterial = None
         self.cellSize = None
@@ -246,6 +249,7 @@ class Cell(object):
         Get the order of nodes to simulate in the cell
         """
         tag_dict = {tag: None for tag in self.originalTags}
+
         for beam in self.beams:
             if beam.radius > 0:
                 for point in [beam.point1, beam.point2]:
@@ -256,9 +260,9 @@ class Cell(object):
                         if tag:  # Ensure tags is not an empty list
                             tag = tag[0]  # Take the first tag from the list
                             if tag in self.originalTags:
-                                tag_dict[tag] = point
-                                if not point.localTag:
-                                    point.localTag.append(tag)
+                                    tag_dict[tag] = point
+                                    if not point.localTag:
+                                        point.localTag.append(tag)
         return tag_dict
 
     def setDisplacementAtBoundaryNodes(self, displacementArray: list, displacementIndex: list) -> None:
@@ -282,7 +286,7 @@ class Cell(object):
                             point.setDisplacementValue(displacementArray[index + indexActual], i)
                             indexActual += 1
 
-    def getDisplacementAtNodes(self, nodeList: dict, printing: bool = False) -> list:
+    def getDisplacementAtNodes(self, nodeList: dict, nodeListNN: dict, printing: bool = False) -> list:
         """
         Get the displacement at nodes.
 
@@ -297,10 +301,14 @@ class Cell(object):
             A flattened list of displacement values.
         """
         displacementList = []
-        for node in nodeList.values():
+        nullDisplacement = [0.0,0.0,0.0,0.0,0.0,0.0]
+
+        for key, node in nodeList.items():
             if node:
                 displacement = node.getDisplacementValue()
                 displacementList.append(displacement)
+            elif nodeListNN[key] == 1:
+                displacementList.append(nullDisplacement)
                 # if printing:
                 #     if any(0 < abs(value) > 0.1 for value in displacementList[-1][:3]):
                 #         print(Fore.RED + "Displacement exceeded 0.1" + Style.RESET_ALL)
