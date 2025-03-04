@@ -3,15 +3,17 @@ import os
 import pickle
 from statistics import mean
 
+from colorama import Style, Fore
 from matplotlib import pyplot as plt
 
 from .Cell import *
-from Mesh.Mesh import *
+from Lattice.Mesh.Mesh import *
 import math
 import random
 
 import numpy as np
 from scipy.sparse.linalg import splu
+from scipy.linalg import pinvh
 from scipy.sparse import coo_matrix
 
 
@@ -26,7 +28,7 @@ class Lattice(object):
                  gradRadiusProperty: list, gradDimProperty: list, gradMatProperty: list,
                  simMethod: int = 0, uncertaintyNode: float = 0.0,
                  periodicity: int = 0, erasedParts: list = None, randomHybrid: bool = False,
-                 meshObject: "meshObject" = None):
+                 meshObject: "meshObject" = None, printing: bool = False):
         """
         Constructor general for the Lattice class.
 
@@ -118,6 +120,7 @@ class Lattice(object):
         self.erasedParts = erasedParts
         self.randomHybrid = randomHybrid
         self.meshObject = meshObject
+        self.printing = printing
 
         self.cells = []
         self._nodes = []
@@ -154,8 +157,8 @@ class Lattice(object):
         # Simulation FenicsX necessaries
         # Define global indexation
         self.defineNodeIndexBoundary()
-
-        self.printStatistics()
+        if self.printing:
+            self.printStatistics()
 
     @classmethod
     def simpleLattice(cls, cell_size_x: float, cell_size_y: float, cell_size_z: float,
@@ -1007,8 +1010,14 @@ class Lattice(object):
         for cell in self.cells:
             for beam in cell.beams:
                 for node in [beam.point1, beam.point2]:
-                    tag = node.tagPoint(self.xMin, self.xMax, self.yMin, self.yMax, self.zMin, self.zMax)
+                    tag = node.tagPoint(self.getLatticeBoundaryBox())
                     node.setTag(tag)
+
+    def getLatticeBoundaryBox(self) -> list[float]:
+        """
+        Get the boundary box of the lattice
+        """
+        return [self.xMin, self.xMax, self.yMin, self.yMax, self.zMin, self.zMax]
 
     def getConnectedNode(self, node: "Point") -> list["Point"]:
         """
@@ -1727,13 +1736,15 @@ class Lattice(object):
         """
         for cell in self.cells:
             nodeInOrder = cell.getNodeOrderToSimulate()
+            idxNode = 0
             for idx, node in enumerate(nodeInOrder.values()):
                 if node is not None:
-                    node.setDisplacementVector(displacementMatrix[idx])
+                    node.setDisplacementVector(displacementMatrix[idxNode])
                     node.fixDOF([i for i in range(6)])
+                    idxNode += 1
 
 
-    def getDisplacementGlobal(self, withFixed: bool = False, OnlyImposed: bool = False) \
+    def getDisplacementGlobal(self, withFixed: bool = False, OnlyImposed: bool = False, printLevel = 0) \
             -> tuple[list[float], list[int]]:
         """
         Get global displacement of the lattice
@@ -1769,21 +1780,24 @@ class Lattice(object):
                         processed_nodes.add(node.indexBoundary)
         if not OnlyImposed:
             self.globalDisplacementIndex = globalDisplacementIndex
+        if printLevel > 2:
+            print("globalDisplacement: ", globalDisplacement)
+            print("globalDisplacementIndex: ", globalDisplacementIndex)
         return globalDisplacement, globalDisplacementIndex
 
 
     def defineNodeIndexBoundary(self) -> None:
         """
-        Define tag for all boundary nodes and calculate the total number of boundary nodes
+        Define boundary tag for all boundary nodes and calculate the total number of boundary nodes
         """
         IndexCounter = 0
         nodeAlreadyIndexed = {}
         for cell in self.cells:
             for beam in cell.beams:
                 for node in [beam.point1, beam.point2]:
-                    if node.tagPoint(cell.coordinateCell[0], cell.coordinateCell[0] + cell.cellSize[0],
-                                     cell.coordinateCell[1], cell.coordinateCell[1] + cell.cellSize[1],
-                                     cell.coordinateCell[2], cell.coordinateCell[2] + cell.cellSize[2]):
+                    localTag = node.tagPoint(cell.getCellBoundaryBox())
+                    node.setLocalTag(localTag)
+                    if localTag:
                         if node in nodeAlreadyIndexed:
                             node.setIndexBoundary(nodeAlreadyIndexed[node])
                         else:
@@ -1803,9 +1817,10 @@ class Lattice(object):
         """
         globalReactionForce = {i: [0, 0, 0, 0, 0, 0] for i in range(self.maxIndexBoundary + 1)}
         for cell in self.cells:
+            nodeIndexProcessed = set()
             for beam in cell.beams:
                 for node in [beam.point1, beam.point2]:
-                    if node.indexBoundary is not None:
+                    if node.indexBoundary is not None and node.index not in nodeIndexProcessed:
                         globalReactionForce[node.indexBoundary] = [
                             x + y for x, y in zip(globalReactionForce[node.indexBoundary], node.getReactionForce())
                         ]
@@ -1813,6 +1828,7 @@ class Lattice(object):
                             for i in range(6):
                                 if node.appliedForce[i] != 0:
                                     globalReactionForce[node.indexBoundary][i] = node.appliedForce[i]
+                        nodeIndexProcessed.add(node.index)
         return globalReactionForce
 
     def getGlobalReactionForceWithoutFixedDOF(self, globalReactionForce: dict, rightHandSide:bool = False) \
@@ -1853,14 +1869,9 @@ class Lattice(object):
                         processed_nodes.add(node.indexBoundary)
         return np.concatenate(globalReactionForceWithoutFixedDOF)
 
-    def getFreeDOF(self) -> int:
+    def getFreeDOF(self):
         """
         Get total number of degrees of freedom in the lattice
-
-        Returns:
-        --------
-        freeDOF: int
-            Total number of degrees of freedom in the lattice
         """
         self.freeDOF = 0
         processed_nodes = set()
@@ -1870,7 +1881,11 @@ class Lattice(object):
                     if node.indexBoundary is not None and node.indexBoundary not in processed_nodes:
                         self.freeDOF += node.fixedDOF.count(0)
                         processed_nodes.add(node.indexBoundary)
-        return self.freeDOF
+                        if node.index == 201:
+                            print(node)
+                            print(node.indexBoundary)
+                            print(node.fixedDOF)
+                            print(node.globalFreeDOFIndex)
 
     def setGlobalFreeDOFIndex(self) -> None:
         """
@@ -1889,6 +1904,12 @@ class Lattice(object):
                             processed_nodes[node.indexBoundary] = node.globalFreeDOFIndex
                         else:
                             node.globalFreeDOFIndex[:] = processed_nodes[node.indexBoundary]
+                        if node.index == 201:
+                            print(node)
+                            print(node.indexBoundary)
+                            print(node.fixedDOF)
+                            print(node.globalFreeDOFIndex)
+                            print(processed_nodes[node.indexBoundary])
 
     def initializeReactionForce(self) -> None:
         """
@@ -1913,7 +1934,6 @@ class Lattice(object):
         Build coupling operator for each cell in the lattice
         """
         for cell in self.cells:
-            cell.getNodeOrderToSimulate()
             cell.buildCouplingOperator(self.freeDOF)
 
     def buildLUSchurComplement(self, dictSchurComplement: dict = None) -> splu:
@@ -1928,16 +1948,16 @@ class Lattice(object):
         from ConjugateGradientMethod.Utils_Schur import loadSchurComplement, getSref_nearest
 
         if dictSchurComplement is None:
-            dictSchurComplement = loadSchurComplement("Hybrid_3.json")
+            nameFileSchur = "ConjugateGradientMethod/schurComplement/Hybrid_" + str(
+                len(self.latticeType)) + ".npz"
+            dictSchurComplement = loadSchurComplement(nameFileSchur)
 
-        dictSchurComplement = loadSchurComplement("ConjugateGradientMethod/schurComplement/Hybrid_1.json")
         self.buildCouplingOperatorForEachCells()
         globalSchurComplement = coo_matrix((self.freeDOF, self.freeDOF))
         for cell in self.cells:
             schurComplementMatrix = coo_matrix(getSref_nearest(cell.radius, SchurDict=dictSchurComplement,
                                                                printing=False))
             globalSchurComplement += cell.buildPreconditioner(schurComplementMatrix)
-        globalSchurComplement = globalSchurComplement.tocsc()
 
         if np.any(globalSchurComplement.sum(axis=1) == 0):
             print("Attention : There are some rows with all zeros in the Schur complement matrix.")
@@ -1946,8 +1966,14 @@ class Lattice(object):
             print("Attention : The condition number of the Schur complement matrix is very high: ", cond_number)
 
         # Factorize preconditioner
-        LUSchurComplement = splu(globalSchurComplement)
-        return LUSchurComplement
+        LUSchurComplement = None
+        inverseSchurComplement = None
+        if cond_number > 1e6:
+            inverseSchurComplement = np.linalg.pinv(globalSchurComplement.toarray())
+        else:
+            globalSchurComplement = globalSchurComplement.tocsc()
+            LUSchurComplement = splu(globalSchurComplement)
+        return LUSchurComplement, inverseSchurComplement
 
     def getCellSurface(self, surface: str) -> list[int]:
         """

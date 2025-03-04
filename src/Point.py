@@ -20,10 +20,10 @@ class Point:
         self.x = float(x) + random.gauss(0, nodeUncertaintySD)
         self.y = float(y) + random.gauss(0, nodeUncertaintySD)
         self.z = float(z) + random.gauss(0, nodeUncertaintySD)
-        self.index = None
-        self.tag = []
-        self.localTag = []
-        self.indexBoundary = None
+        self.index = None # Global index of the point
+        self.tag = None # Global boundary tag
+        self.localTag = [] # Cell local boundary tag
+        self.indexBoundary = None # Global index for boundary cell
         self.displacementValue= [0.0] * 6  # Displacement vector of 6 DOF (Degrees of Freedom).
         self.reactionForceValue = [0.0] * 6  # Reaction force vector of 6 DOF.
         self.appliedForce = [0.0] * 6  # Applied force vector of 6 DOF.
@@ -80,16 +80,25 @@ class Point:
         """
         return [self.index, self.x, self.y, self.z]
 
-    def tagPoint(self, xMin: float, xMax: float, yMin: float, yMax: float, zMin: float, zMax: float) -> List[int]:
+
+    def tagPoint(self, boundaryBoxDomain) -> List[int]:
         """
         Generate standardized tags for the point based on its position.
 
-        Args:
-            xMin, xMax, yMin, yMax, zMin, zMax (float): Domain boundaries.
+        Parameters
+        ----------
+        boundaryBoxDomain : List[float]
+            Boundary box domain containing [xMin, xMax, yMin, yMax, zMin, zMax].
 
-        Returns:
-            List[int]: Tags identifying the position of the point (e.g., face, edge, corner).
+        Returns
+        -------
+        List[int]
+            List of tags associated with the point.
         """
+        if len(boundaryBoxDomain) != 6:
+            raise ValueError("Boundary box domain must contain 6 values.")
+        xMin, xMax, yMin, yMax, zMin, zMax = boundaryBoxDomain
+
         tag: List[int] = []
         # Faces
         if self.x == xMin and (yMin < self.y < yMax) and (
@@ -306,4 +315,17 @@ class Point:
             float: Internal energy based on displacement and reaction forces.
         """
         return sum([self.displacementValue[i] * self.reactionForceValue[i] for i in range(6)])
+
+    def setLocalTag(self, localTag: List[int]) -> None:
+        """
+        Assign local tags to the point.
+
+        Parameters
+        ----------
+        localTag : List[int]
+            Local tags to assign.
+        """
+        if not isinstance(localTag, list):
+            raise ValueError("Local tag must be a list.")
+        self.localTag = localTag
 

@@ -38,12 +38,18 @@ class Cell(object):
         uncertaintyNode: float
             Standard deviation for adding uncertainty to node coordinates. Defaults to 0.0.
         """
-        self.originalTags = [1000, 1001, 1002, 1003, 1004, 1005, 1006, 1007,
-                             10, 11, 12, 13, 14, 15,
-                             100, 101, 102, 103, 104, 105, 106, 107, 108, 109, 110, 111]
-        self.originalCellGeom = [0, 0, 0, 0, 0, 0, 0, 0,
-                                 1, 1, 1, 1, 1, 1,
-                                 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2]
+        if len(Radius) == 2:
+            self.originalTags = [1000, 1001, 1002, 1003, 1004, 1005, 1006, 1007,
+                                 100, 101, 102, 103, 104, 105, 106, 107, 108, 109, 110, 111]
+            self.originalCellGeom = [0, 0, 0, 0, 0, 0, 0, 0,
+                                     1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
+        else:
+            self.originalTags = [1000, 1001, 1002, 1003, 1004, 1005, 1006, 1007,
+                                 10, 11, 12, 13, 14, 15,
+                                 100, 101, 102, 103, 104, 105, 106, 107, 108, 109, 110, 111]
+            self.originalCellGeom = [0, 0, 0, 0, 0, 0, 0, 0,
+                                     2, 2, 2, 2, 2, 2,
+                                     1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
         self.centerPoint = None
         self._beamMaterial = None
         self.cellSize = None
@@ -254,18 +260,13 @@ class Cell(object):
             if beam.radius > 0:
                 for point in [beam.point1, beam.point2]:
                     if point.indexBoundary is not None:
-                        tag = point.tagPoint(self.coordinateCell[0], self.coordinateCell[0] + self.cellSize[0],
-                                             self.coordinateCell[1], self.coordinateCell[1] + self.cellSize[1],
-                                             self.coordinateCell[2], self.coordinateCell[2] + self.cellSize[2])
+                        tag = point.localTag
                         if tag:  # Ensure tags is not an empty list
-                            tag = tag[0]  # Take the first tag from the list
-                            if tag in self.originalTags:
-                                    tag_dict[tag] = point
-                                    if not point.localTag:
-                                        point.localTag.append(tag)
+                            if tag[0] in self.originalTags:
+                                tag_dict[tag[0]] = point
         return tag_dict
 
-    def setDisplacementAtBoundaryNodes(self, displacementArray: list, displacementIndex: list) -> None:
+    def setDisplacementAtBoundaryNodes(self, displacementArray: list, displacementIndex: list, printLevel = 0) -> None:
         """
         Set displacement at nodes.
 
@@ -276,6 +277,10 @@ class Cell(object):
         displacementIndex: array of int
             Boundary node index of each displacement value.
         """
+        if printLevel > 1:
+            print("Displacement array", displacementArray)
+            print("Displacement index", displacementIndex)
+            print("Non-zero displacements:", displacementArray[displacementArray != 0])
         for beam in self.beams:
             for point in [beam.point1, beam.point2]:
                 if point.indexBoundary is not None and point.indexBoundary in displacementIndex:
@@ -302,43 +307,40 @@ class Cell(object):
         """
         displacementList = []
         nullDisplacement = [0.0,0.0,0.0,0.0,0.0,0.0]
-
         for key, node in nodeList.items():
             if node:
                 displacement = node.getDisplacementValue()
                 displacementList.append(displacement)
             elif nodeListNN[key] == 1:
                 displacementList.append(nullDisplacement)
-                # if printing:
-                #     if any(0 < abs(value) > 0.1 for value in displacementList[-1][:3]):
-                #         print(Fore.RED + "Displacement exceeded 0.1" + Style.RESET_ALL)
-                #         print(node, displacementList[-1])
-                #     if any(0 < abs(value) > 0.01 for value in displacementList[-1][3:]):
-                #         print(Fore.RED + "Rotation exceeded 0.01" + Style.RESET_ALL)
-                #         print(node, displacementList[-1])
-                #     print(node, node.getDisplacementValue())
         return displacementList
 
     def setReactionForceOnEachNodes(self, nodeList: dict, reactionForce: list) -> None:
         """
-        Set reaction force on each nodes.
+        Set reaction force on each node.
 
         Parameters:
         -----------
-        nodeList: list of Point objects
-            List of nodes to set the reaction force.
+        nodeList: dict
+            Dictionary mapping node tags to Point objects.
         reactionForce: list
-            List of reaction force values.
+            List of reaction force values corresponding to the nodes.
         """
-        tagAlreadySet = []
-        tagList = list(nodeList.keys())
-        for beam in self.beams:
-            for point in [beam.point1, beam.point2]:
-                for tag, node in nodeList.items():
-                    if node == point and tag not in tagAlreadySet:
-                        point.setReactionForce(reactionForce[tagList.index(tag)])
-                        tagAlreadySet.append(tag)
-                        break
+        # Vérification que la longueur des listes correspond
+        if len([v for v in nodeList.values() if v is not None]) != len(reactionForce):
+            print("Lenght nodeList ",len([v for v in nodeList.values() if v is not None])
+                  , "Lenght reactionForce ", len(reactionForce))
+            raise ValueError("Mismatch: nodeList and reactionForce must have the same length.")
+
+        # for beam in self.beams:
+        #     for point in [beam.point1, beam.point2]:
+        #         print(point, point.indexBoundary)
+        #         if point.indexBoundary is not None:
+        #             index = list(nodeList.keys()).index(point.localTag[0])
+        #             point.setReactionForce(reactionForce[index])
+        for idx, node in enumerate(nodeList):
+            if nodeList[node]:
+                nodeList[node].setReactionForce(reactionForce[idx])
 
     def getNumberOfBoundaryNodes(self) -> int:
         """
@@ -350,6 +352,11 @@ class Cell(object):
     def buildCouplingOperator(self, nbFreeDOF: int) -> None:
         """
         Build the coupling operator for the cell
+
+        Parameters:
+        -----------
+        nbFreeDOF: int
+            Number of free degrees of freedom
         """
         data = []
         row, col = [], []
@@ -360,7 +367,7 @@ class Cell(object):
                     localNodeIndex = self.originalTags.index(point.localTag[0])
                     listBndNodes.append(point.indexBoundary)
                     for i in range(6):
-                        if point.fixedDOF[i] == 0:
+                        if point.globalFreeDOFIndex[i] is not None:
                             data.append(1)
                             col.append(localNodeIndex * 6 + i)
                             row.append(point.globalFreeDOFIndex[i])
@@ -377,6 +384,13 @@ class Cell(object):
         SchurMatrix: coo_matrix
             Schur matrix
         """
+        if self.matB is None:
+            raise ValueError("Coupling matrix has not been built yet. Please build it first.")
+        if self.matB.shape[1] != SchurMatrix.shape[0]:
+            print("Shape of B matrix", self.matB.shape)
+            print("Shape of Schur matrix", SchurMatrix.shape)
+            raise ValueError("Incompatible dimensions between the coupling matrix and the Schur matrix.")
+
         return self.matB @ SchurMatrix @ self.matB.transpose()
 
     def getInternalEnergy(self) -> float:
@@ -484,6 +498,23 @@ class Cell(object):
                     nodeAlreadyCounted.append(point.indexBoundary)
         return counterNodes
 
+    def getCellBoundaryBox(self):
+        """
+        Get the boundary box of the cell
+
+        Returns:
+        --------
+        list
+            List of the boundary box coordinates
+        """
+        xMin = self.coordinateCell[0]
+        xMax = self.coordinateCell[0] + self.cellSize[0]
+        yMin = self.coordinateCell[1]
+        yMax = self.coordinateCell[1] + self.cellSize[1]
+        zMin = self.coordinateCell[2]
+        zMax = self.coordinateCell[2] + self.cellSize[2]
+        return [xMin, xMax, yMin, yMax, zMin, zMax]
+
     def getRGBcolorDependingOfRadius(self):
         return tuple(r / 0.1 for r in self.radius)
 
@@ -513,4 +544,20 @@ class Cell(object):
 
         return corners
 
+    def printCellData(self):
+        print("Cell position: ", self.posCell)
+        print("Cell coordinates: ", self.coordinateCell)
+        print("Cell size: ", self.cellSize)
+        print("Lattice type: ", self.latticeType)
+        print("Beam radius: ", self.radius)
+        print("Beam material: ", self._beamMaterial)
+        print("Beams in cell: ", self.beams)
+        print("Cell center point: ", self.centerPoint)
+        print("Cell index: ", self.index)
+        print("Beam material: ", self._beamMaterial)
+        print("Coupling matrix: ", self.matB)
+        print("Number of beams: ", len(self.beams))
+        print("Volume of the cell: ", self.getVolumeCell())
+        print("Relative density: ", self.getRelativeDensity())
+        print("Number of nodes at boundary: ", self.getNumberNodesAtBoundary())
 
