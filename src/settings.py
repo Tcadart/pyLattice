@@ -10,16 +10,16 @@
 # Lattice properties
 Radius = [0.1, 0.0, 0.0]
 materialName = 'VeroClear'
-cell_size = 1
-cell_size_X = 1
+cell_size = 2.5
+cell_size_X = cell_size
 cell_size_Y = cell_size
 cell_size_Z = cell_size
-number_cell = 100
+number_cell = 50
 number_cell_X = number_cell
-number_cell_Y = number_cell
+number_cell_Y = 20
 number_cell_Z = number_cell
 
-Lattice_Type = [0, 16, 19]
+Lattice_Type = [8, 16, 19]
 # -2 => Method random cell
 # -1 => Full random
 # 0 => BCC
@@ -39,13 +39,13 @@ Lattice_Type = [0, 16, 19]
 # 14 => Auxetic
 
 # Gradient on cell dimensions
-GradDimRule = 'constant'
-GradDimDirection = [1, 0, 0]
-GradDimParameters = [2.5, 0.0, 1.5]  # Float
+GradDimRule = 'sinusoide'
+GradDimDirection = [0, 1, 0]
+GradDimParameters = [2.5, 5.0, 1.5]  # Float
 # Gradient on radius of beams
-GradRadRule = 'constant'
-GradRadDirection = [1, 0, 0]
-GradRadParameters = [0.01, 0.0, 1]
+GradRadRule = 'linear'
+GradRadDirection = [0, 0, 1]
+GradRadParameters = [0.01, 0.0, 0.15]
 # Gradient Rule
 # - constant
 # - linear

@@ -486,3 +486,31 @@ class Cell(object):
 
     def getRGBcolorDependingOfRadius(self):
         return tuple(r / 0.1 for r in self.radius)
+
+    def getCellCornerCoordinates(self) -> list:
+        """
+        Get the corner coordinates of the cell.
+
+        Returns:
+        --------
+        list of tuples
+            List of (x, y, z) coordinates of the corner points.
+        """
+        x0, y0, z0 = self.coordinateCell  # Position de départ de la cellule
+        dx, dy, dz = self.cellSize  # Dimensions de la cellule
+
+        # Liste des 8 coins de la cellule
+        corners = [
+            (x0, y0, z0),
+            (x0 + dx, y0, z0),
+            (x0, y0 + dy, z0),
+            (x0 + dx, y0 + dy, z0),
+            (x0, y0, z0 + dz),
+            (x0 + dx, y0, z0 + dz),
+            (x0, y0 + dy, z0 + dz),
+            (x0 + dx, y0 + dy, z0 + dz),
+        ]
+
+        return corners
+
+

@@ -335,9 +335,9 @@ class Lattice(object):
             Parameters:
             -----------
             i : int
-                Current cell index.
+                Current cell index in active direction.
             total_cells : int
-                Total number of cells in the direction.
+                Total number of cells in the active direction.
             param_value : float
                 Gradient parameter value.
             rule : str
@@ -372,16 +372,19 @@ class Lattice(object):
         # Determine the number of cells in each direction
         number_cells = [self.numCellsX, self.numCellsY, self.numCellsZ]
 
-        # Generate gradient data
-        gradientData = [
-            [
-                apply_rule(i, number_cells[dim], parameters[dim], rule)
-                if direction[dim] == 1 else 1.0
-                for dim in range(3)
-            ]
-            for i in range(max(number_cells))
-        ]
+        indices = [0, 0, 0]
 
+        gradientData = []
+
+        for _ in range(max(number_cells)):
+            gradientData.append([
+                apply_rule(indices[dim], number_cells[dim], parameters[dim], rule) if direction[dim] == 1 else 1.0
+                for dim in range(3)
+            ])
+
+            for dim in range(3):
+                if direction[dim] == 1 and indices[dim] < number_cells[dim] - 1:
+                    indices[dim] += 1
         return gradientData
 
     def gradMaterialSetting(self, gradMatProperty: list) -> list:
@@ -448,12 +451,25 @@ class Lattice(object):
                 if inside_erased:
                     return True  # La cellule est supprimée si elle est dans `erasedParts`
 
-        # Vérifier si le point est dans le mesh STL
-        if self.meshObject is not None:
-            if not self.meshObject.is_inside_mesh(startCellPos):
-                return True  # La cellule est supprimée si elle est dans le mesh STL
+        return False  # cell removed
 
-        return False  # La cellule est conservée
+    def isPointInMesh(self, point):
+        """
+        Check if the point is inside the mesh.
+        """
+        if self.meshObject is not None:
+            return self.meshObject.is_inside_mesh(point)
+
+    def isCellInMesh(self, cell) -> bool:
+        """
+        Check if the cell is in the erased region.
+        """
+        cellBoundaryPoint = cell.getCellCornerCoordinates()
+        for point in cellBoundaryPoint:
+            self.isPointInMesh(point)
+            if self.isPointInMesh(point):
+                return True
+        return False
 
     def generateLattice(self) -> None:
         """
@@ -499,7 +515,12 @@ class Lattice(object):
                         new_cell = Cell(posCell, initialCellSize, startCellPos, self.latticeType,
                                         radius, self.gradRadius, self.gradDim, self.gradMat,
                                         self.uncertaintyNode)
-                        self.cells.append(new_cell)
+                        if self.meshObject is not None and self.isCellInMesh(new_cell):
+                            self.cells.append(new_cell)
+                        elif self.meshObject is None:
+                            self.cells.append(new_cell)
+                        else:
+                            del new_cell
         if len(self.latticeType) > 1:
             self.checkHybridCollision()
 
@@ -2114,4 +2135,80 @@ class Lattice(object):
         # print("Number of beams: ", self.getNumberOfBeams())
         # print("Number of nodes: ", self.getNumberOfNodes())
         print("Relative density: ", self.getRelativeDensity())
+        radMax, radMin = self.getRadiusMinMax()
+        print("Radius max: ", radMax)
+        print("Radius min: ", radMin)
 
+    def getRadiusMinMax(self):
+        """
+        Get the maximum and minimum radius of the lattice
+
+        Returns:
+        --------
+        radMax: float
+            Maximum radius of the lattice
+        radMin: float
+            Minimum radius of the lattice
+        """
+        radMin = 1000000
+        radMax = 0
+        for cell in self.cells:
+            for beam in cell.beams:
+                if not beam.modBeam:
+                    radMin = min(radMin, beam.radius)
+                    radMax = max(radMax, beam.radius)
+        return radMax, radMin
+
+    def addMeshObject(self, meshObject):
+        """
+        Add a mesh object to the lattice
+
+        Parameters:
+        -----------
+        meshObject: MeshObject
+            Mesh object to add to the lattice
+        """
+        self.meshObject = meshObject
+
+    def cutBeamsAtMeshIntersection(self):
+        """
+        Cut beams at the intersection with the mesh
+        """
+        if self.meshObject is None:
+            raise ValueError("A mesh object must be assigned to the lattice before cutting beams.")
+
+        new_beams = []
+        beams_to_remove = []
+
+        for cell in self.cells:
+            for beam in cell.beams:
+                if not beam.modBeam:
+                    p1_inside = self.meshObject.is_inside_mesh([beam.point1.x, beam.point1.y, beam.point1.z])
+                    p2_inside = self.meshObject.is_inside_mesh([beam.point2.x, beam.point2.y, beam.point2.z])
+
+                    if not p1_inside and not p2_inside:
+                        # The Beam is outside the mesh, remove it
+                        beams_to_remove.append(beam)
+                    elif not p1_inside or not p2_inside:
+                        # The Beam intersects the mesh, cut it
+                        intersection_point = beam.findIntersectionWithMesh(self.meshObject)
+                        if intersection_point is not None:
+                            new_point = Point(intersection_point[0], intersection_point[1], intersection_point[2])
+
+                            if not p1_inside:
+                                new_beam = Beam(new_point, beam.point2, beam.radius, beam.material, beam.type)
+                            else:
+                                new_beam = Beam(beam.point1, new_point, beam.radius, beam.material, beam.type)
+
+                            new_beams.append(new_beam)
+                            beams_to_remove.append(beam)
+                else:
+                    raise ValueError("Cutting is only available for non modified lattice.")
+            # Apply changes
+            for beam in beams_to_remove:
+                cell.removeBeam(beam)
+            for beam in new_beams:
+                cell.addBeam(beam)
+
+            new_beams = []
+            beams_to_remove = []

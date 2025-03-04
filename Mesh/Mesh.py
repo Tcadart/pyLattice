@@ -24,6 +24,24 @@ class mesh:
             meshPath = 'Mesh/' + meshPath
         self.mesh = trimesh.load_mesh(meshPath)
 
+    def saveMesh(self, outputPath: str):
+        """
+        Save the mesh to a file.
+
+        Parameters
+        ----------
+        outputPath : str
+            Path where the mesh should be saved.
+        """
+        if not outputPath.endswith('.stl'):
+            outputPath += '.stl'
+        if not outputPath.startswith('Mesh/'):
+            outputPath = 'Mesh/' + outputPath
+
+        self.mesh.export(outputPath)
+        print(f"Mesh saved to {outputPath}")
+
+
     def scaleMesh(self, scale: float):
         """
         Scale the mesh.
@@ -34,6 +52,7 @@ class mesh:
             Scale factor.
         """
         self.mesh.apply_scale(scale)
+        self.moveMeshToOrigin()
 
     def moveMeshToOrigin(self):
         translation = -self.mesh.bounds[0]

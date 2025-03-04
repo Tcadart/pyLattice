@@ -331,10 +331,9 @@ class LatticeUtils:
 
         plt.show()
 
-
-    def saveJSONToGrasshopper(self, lattice, nameLattice: str = "LatticeObject") -> None:
+    def saveJSONToGrasshopper(self, lattice, nameLattice: str = "LatticeObject", multipleParts: int = 1) -> None:
         """
-        Save the current lattice object to a JSON file for Grasshopper compatibility.
+        Save the current lattice object to JSON files for Grasshopper compatibility, separating by cells.
 
         Parameters:
         -----------
@@ -342,65 +341,61 @@ class LatticeUtils:
             Lattice object to save.
         nameLattice: str
             Name of the lattice file to save.
+        multipleParts: int, optional (default: 1)
+            Number of parts to save.
         """
         folder = "Saved_Lattice"
         if not os.path.exists(folder):
             os.makedirs(folder)
 
-        file_pathJSON = os.path.join(folder, nameLattice + ".json")
+        numberCell = len(lattice.cells)
+        cellsPerPart = max(1, numberCell // multipleParts)
 
-        outNodesX = []
-        outNodesY = []
-        outNodesZ = []
-        outRadius = []
-        c = 0
-        beamAdded = []
-        for cell in lattice.cells:
-            for beam in cell.beams:
-                if beam not in beamAdded:
-                    beamAdded.append(beam)
-                    outNodesX.append(beam.point1.x)
-                    outNodesX.append(beam.point2.x)
-                    outNodesY.append(beam.point1.y)
-                    outNodesY.append(beam.point2.y)
-                    outNodesZ.append(beam.point1.z)
-                    outNodesZ.append(beam.point2.z)
-                    outRadius.append(beam.radius)
-                    if outRadius[-1] < 0.015:
-                        c += 1
-                        outRadius[-1] = 0.015
+        for partIdx in range(multipleParts):
+            partName = f"{nameLattice}_part{partIdx + 1}.json"
+            file_pathJSON = os.path.join(folder, partName)
 
-        outMaxX = lattice.xMax
-        outMinX = lattice.xMin
-        outMaxY = lattice.yMax
-        outMinY = lattice.yMin
-        outMaxZ = lattice.zMax
-        outMinZ = lattice.zMin
-        relativeDensity = lattice.getRelativeDensity()
+            partNodesX = []
+            partNodesY = []
+            partNodesZ = []
+            partRadius = []
 
-        obj = {
-            "nodesX": outNodesX,
-            "nodesY": outNodesY,
-            "nodesZ": outNodesZ,
-            "radius": outRadius,
-            "maxX": outMaxX,
-            "minX": outMinX,
-            "maxY": outMaxY,
-            "minY": outMinY,
-            "maxZ": outMaxZ,
-            "minZ": outMinZ,
-            "relativeDensity": relativeDensity
-        }
-        # Sauvegarder les données au format JSON
-        with open(file_pathJSON, 'w') as f:
-            json.dump(obj, f)
+            startIdx = partIdx * cellsPerPart
+            endIdx = min((partIdx + 1) * cellsPerPart, numberCell)
 
-        print(f"Saved lattice to {file_pathJSON}")
+            for cell in lattice.cells[startIdx:endIdx]:
+                for beam in cell.beams:
+                    partNodesX.append(beam.point1.x)
+                    partNodesX.append(beam.point2.x)
+                    partNodesY.append(beam.point1.y)
+                    partNodesY.append(beam.point2.y)
+                    partNodesZ.append(beam.point1.z)
+                    partNodesZ.append(beam.point2.z)
+                    partRadius.append(max(beam.radius, 0.015))
+
+            obj = {
+                "nodesX": partNodesX,
+                "nodesY": partNodesY,
+                "nodesZ": partNodesZ,
+                "radius": partRadius,
+                "maxX": lattice.xMax,
+                "minX": lattice.xMin,
+                "maxY": lattice.yMax,
+                "minY": lattice.yMin,
+                "maxZ": lattice.zMax,
+                "minZ": lattice.zMin,
+                "relativeDensity": lattice.getRelativeDensity()
+            }
+
+            with open(file_pathJSON, 'w') as f:
+                json.dump(obj, f)
+
+            print(f"Saved lattice part {partIdx + 1} to {file_pathJSON}")
 
     def visualizeMesh(self, meshObject: "MeshObject"):
         mesh = meshObject.mesh
         faces = mesh.vertices[mesh.faces]
-        self.ax.add_collection3d(Poly3DCollection(faces, facecolors='cyan', linewidths=0.2, edgecolors='k', alpha=0.5))
+        self.ax.add_collection3d(Poly3DCollection(faces, facecolors='cyan', linewidths=0.2, edgecolors='k', alpha=0.2))
 
         minAxis = min(mesh.bounds[0])
         maxAxis = max(mesh.bounds[1])

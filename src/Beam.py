@@ -1,6 +1,10 @@
 from typing import List, Tuple
 import math
 
+import numpy as np
+import trimesh
+
+
 class Beam(object):
     """
     Class Beam represents a beam element in lattice structures.
@@ -201,3 +205,32 @@ class Beam(object):
 
     def setBeamMod(self):
         self.modBeam = True
+
+    def findIntersectionWithMesh(self, meshObject: 'Mesh') -> Tuple[float, float, float] | None:
+        """
+        Find the intersection point of the beam with a mesh.
+        Returns the first intersection point if it exists, None otherwise.
+        """
+        ray_origin = np.array([self.point1.x, self.point1.y, self.point1.z])
+        ray_direction = np.array([self.point2.x - self.point1.x,
+                                  self.point2.y - self.point1.y,
+                                  self.point2.z - self.point1.z])
+
+        # Normalisation du vecteur directionnel
+        norm = np.linalg.norm(ray_direction)
+        if norm == 0:
+            return None  # Évite les erreurs en cas de direction nulle
+        ray_direction /= norm  # Normalisation
+
+        # Création de l'intersecteur de rayons
+        intersector = trimesh.ray.ray_pyembree.RayMeshIntersector(meshObject.mesh)
+
+        # Recherche des intersections
+        locations, _, _ = intersector.intersects_location(
+            ray_origins=[ray_origin],
+            ray_directions=[ray_direction]
+        )
+
+        if len(locations) > 0:
+            return tuple(locations[0])  # Retourne la première intersection trouvée
+        return None

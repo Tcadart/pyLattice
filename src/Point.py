@@ -306,3 +306,4 @@ class Point:
             float: Internal energy based on displacement and reaction forces.
         """
         return sum([self.displacementValue[i] * self.reactionForceValue[i] for i in range(6)])
+
