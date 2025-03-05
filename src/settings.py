@@ -14,9 +14,9 @@ cell_size = 2.5
 cell_size_X = cell_size
 cell_size_Y = cell_size
 cell_size_Z = cell_size
-number_cell = 50
+number_cell = 2 #50
 number_cell_X = number_cell
-number_cell_Y = 20
+number_cell_Y = 2 #20
 number_cell_Z = number_cell
 
 Lattice_Type = [8, 16, 19]

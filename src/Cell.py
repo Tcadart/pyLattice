@@ -61,6 +61,7 @@ class Cell(object):
         self.radius = Radius
         self.matB = None  # B matrix (Coupling matrix)
         self.uncertaintyNode = uncertaintyNode
+        self.neighbourCells = []
 
         idxCell = 0
         for idx, rad in enumerate(self.radius):
@@ -75,6 +76,10 @@ class Cell(object):
                     hybridRadius = self.getBeamRadius(gradRadius, rad)
                     self.generateBeamsInCell(self.latticeType[idx], startCellPos, hybridRadius, idx)
                 idxCell += 1
+
+    def __repr__(self) -> str:
+        return f"Cell(Coordinates:{self.coordinateCell}, Size: {self.cellSize}, Index:{self.index})"
+
 
     def generateBeamsInCell(self, latticeType: int, startCellPos: list, beamRadius: float, beamType: int = 0) -> None:
         """
@@ -543,6 +548,17 @@ class Cell(object):
         ]
 
         return corners
+
+    def addCellNeighbour(self, neighbourCell: "Cell") -> None:
+        """
+        Add a neighbour cell to the current cell
+
+        Parameters:
+        -----------
+        neighbourCell: Cell
+            Neighbour cell to add
+        """
+        self.neighbourCells.append(neighbourCell)
 
     def printCellData(self):
         print("Cell position: ", self.posCell)

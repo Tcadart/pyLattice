@@ -7,7 +7,6 @@ from colorama import Style, Fore
 from matplotlib import pyplot as plt
 
 from .Cell import *
-from Lattice.Mesh.Mesh import *
 import math
 import random
 
@@ -141,6 +140,7 @@ class Lattice(object):
         self.getMinMaxValues()
         self.defineBeamNodeIndex()
         self.defineCellIndex()
+        self.defineCellNeighbours()
 
         self.applyTagToAllPoint()
 
@@ -583,6 +583,34 @@ class Lattice(object):
                     cell.setIndex(nextCellIndex)
                     cellIndexed[cell] = nextCellIndex
                     nextCellIndex += 1
+
+    def defineCellNeighbours(self) -> None:
+        """
+        Define neighbours for each cell in the lattice
+        """
+        cell_dict = {}  # Dictionary to store cells by position
+
+        # Store cells in a dictionary with their position as key
+        for cell in self.cells:
+            cell_dict[tuple(cell.posCell)] = cell
+
+        # Neighbor offsets for 6-connectivity
+        neighbor_offsets = [
+            (-1, 0, 0), (1, 0, 0),  # X direction neighbors
+            (0, -1, 0), (0, 1, 0),  # Y direction neighbors
+            (0, 0, -1), (0, 0, 1)  # Z direction neighbors
+        ]
+
+        # Iterate over all cells and find their neighbors
+        for cell in self.cells:
+            cell.neighbourCells = []  # Reset neighbor list
+            for offset in neighbor_offsets:
+                neighbor_pos = (cell.posCell[0] + offset[0],
+                                cell.posCell[1] + offset[1],
+                                cell.posCell[2] + offset[2])
+                if neighbor_pos in cell_dict:  # Check if neighbor exists
+                    cell.addCellNeighbour(cell_dict[neighbor_pos])
+
 
     def getNodeData(self) -> None:
         """
