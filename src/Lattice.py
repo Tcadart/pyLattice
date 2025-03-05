@@ -1461,9 +1461,10 @@ class Lattice(object):
         meanRelDens = self.getRelativeDensity()
         error = -(targetRelativeDensity - meanRelDens)
         print("Relative density error: ", error)
-        if self.initialRelativeDensityConstraint is None:
-            self.initialRelativeDensityConstraint = error
-        error = error/self.initialRelativeDensityConstraint
+        if error != 0:
+            if self.initialRelativeDensityConstraint is None:
+                self.initialRelativeDensityConstraint = error
+            error = error/self.initialRelativeDensityConstraint
         return error
 
     def getRelativeDensity(self):
@@ -1909,11 +1910,6 @@ class Lattice(object):
                     if node.indexBoundary is not None and node.indexBoundary not in processed_nodes:
                         self.freeDOF += node.fixedDOF.count(0)
                         processed_nodes.add(node.indexBoundary)
-                        if node.index == 201:
-                            print(node)
-                            print(node.indexBoundary)
-                            print(node.fixedDOF)
-                            print(node.globalFreeDOFIndex)
 
     def setGlobalFreeDOFIndex(self) -> None:
         """
@@ -1932,12 +1928,6 @@ class Lattice(object):
                             processed_nodes[node.indexBoundary] = node.globalFreeDOFIndex
                         else:
                             node.globalFreeDOFIndex[:] = processed_nodes[node.indexBoundary]
-                        if node.index == 201:
-                            print(node)
-                            print(node.indexBoundary)
-                            print(node.fixedDOF)
-                            print(node.globalFreeDOFIndex)
-                            print(processed_nodes[node.indexBoundary])
 
     def initializeReactionForce(self) -> None:
         """
@@ -1996,11 +1986,14 @@ class Lattice(object):
         # Factorize preconditioner
         LUSchurComplement = None
         inverseSchurComplement = None
-        if cond_number > 1e6:
+        if cond_number > 1e15:
             inverseSchurComplement = np.linalg.pinv(globalSchurComplement.toarray())
+            # inverseSchurComplement = None
+            print("Using pseudo-inverse of the Schur complement matrix.")
         else:
             globalSchurComplement = globalSchurComplement.tocsc()
             LUSchurComplement = splu(globalSchurComplement)
+            print("Using LU decomposition of the Schur complement matrix.")
         return LUSchurComplement, inverseSchurComplement
 
     def getCellSurface(self, surface: str) -> list[int]:
@@ -2091,18 +2084,19 @@ class Lattice(object):
             reactionForce = self.getGlobalReactionForce(appliedForceAdded=True)
             reaction_force_array = np.array(list(reactionForce.values())).flatten()
             displacement = np.array(self.getDisplacementGlobal(OnlyImposed=True)[0])
-            compliance = np.dot(reaction_force_array, displacement)
+            objective = np.dot(reaction_force_array, displacement)
             np.set_printoptions(threshold=np.inf)
             print("Reaction force: ", reaction_force_array[displacement != 0])
             print("Displacement: ", displacement[displacement != 0])
-            print("Compliance: ", compliance)
-            if self.initialValueObjective is None:
-                self.initialValueObjective = compliance
-            compliance = compliance/self.initialValueObjective
-            print("Compliance normalized: ", compliance)
-            return compliance
+            print("Compliance: ", objective)
         if typeObjective == "Stiffness":
             pass
+
+        if self.initialValueObjective is None:
+            self.initialValueObjective = objective
+        objective_normalized = objective / self.initialValueObjective
+        print("Objective normalized: ", objective_normalized)
+        return objective_normalized
 
 
     def getNumberParametersOptimization(self) -> int:

@@ -271,6 +271,30 @@ class Cell(object):
                                 tag_dict[tag[0]] = point
         return tag_dict
 
+    def getNodesOrderNN(self, nodeInOrder: dict, numberRadiusNN) -> dict:
+        """
+        Get the nodes order for the neural network
+
+        Parameters:
+        -----------
+        nodeInOrder: dict
+            Dictionary of nodes in order
+        originalCellGeom: list
+            Original cell geometry
+        """
+        tag_dictNN = nodeInOrder.copy()
+        idx = 0
+        for i, key in nodeInOrder.items():
+            if key:
+                tag_dictNN[i] = 1
+            elif self.originalCellGeom[idx] < numberRadiusNN:
+                tag_dictNN[i] = 1
+            else:
+                tag_dictNN[i] = 0
+            idx += 1
+        return tag_dictNN
+
+
     def setDisplacementAtBoundaryNodes(self, displacementArray: list, displacementIndex: list, printLevel = 0) -> None:
         """
         Set displacement at nodes.
@@ -296,7 +320,7 @@ class Cell(object):
                             point.setDisplacementValue(displacementArray[index + indexActual], i)
                             indexActual += 1
 
-    def getDisplacementAtNodes(self, nodeList: dict, nodeListNN: dict, printing: bool = False) -> list:
+    def getDisplacementAtNodes(self, nodeList: dict, numberRadiusNN: int) -> list:
         """
         Get the displacement at nodes.
 
@@ -304,12 +328,16 @@ class Cell(object):
         -----------
         nodeList: list of Point objects
             List of nodes to get the displacement.
+        numberRadiusNN: int
+            Number of radius for the neural network
 
         Returns:
         --------
         list
             A flattened list of displacement values.
         """
+        nodeListNN = self.getNodesOrderNN(nodeList, numberRadiusNN)
+
         displacementList = []
         nullDisplacement = [0.0,0.0,0.0,0.0,0.0,0.0]
         for key, node in nodeList.items():
