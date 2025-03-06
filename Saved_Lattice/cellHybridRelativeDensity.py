@@ -2,6 +2,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from sklearn.decomposition import PCA
 from scipy.interpolate import griddata
+from sklearn.gaussian_process import GaussianProcessRegressor
 
 # === Paramètre global : Activer/Désactiver la coupe ===
 apply_cut = True  # Mettre False pour voir toute la surface
@@ -319,15 +320,109 @@ def remove_large_volume_variations(radii, volumes, distance_threshold=0.02, vari
 
     return filtered_radii, filtered_volumes
 
+from sklearn.gaussian_process.kernels import RBF, ConstantKernel as C
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import mean_squared_error, r2_score
+import joblib  # Pour sauvegarder et charger le modèle
+
+def evaluate_kriging_model(radii, volumes, test_size=0.2, save_path="Saved_Lattice/RelativeDensityKrigingModel.pkl"):
+    """
+    Entraîne un modèle de Kriging et évalue sa précision.
+
+    Paramètres :
+    ------------
+    radii : np.ndarray
+        Matrice des rayons de taille (n_samples, 3).
+    volumes : np.ndarray
+        Vecteur des volumes de taille (n_samples,).
+    test_size : float
+        Fraction des données utilisées pour le test (ex: 0.2 = 20%).
+
+    Retourne :
+    ----------
+    metrics : dict
+        Dictionnaire contenant les valeurs des métriques (MSE, RMSE, R²).
+    """
+
+    # Séparer les données en train/test
+    X_train, X_test, y_train, y_test = train_test_split(radii, volumes, test_size=test_size, random_state=42)
+
+    # Définition du noyau du GPR (Kriging)
+    kernel = C(1.0, (1e-3, 1e3)) * RBF(length_scale=1.0, length_scale_bounds=(1e-2, 1e2))
+    gpr = GaussianProcessRegressor(kernel=kernel, n_restarts_optimizer=10, normalize_y=True)
+
+    # Entraînement du modèle
+    gpr.fit(X_train, y_train)
+
+    # Prédictions sur le test set
+    y_pred, std_dev = gpr.predict(X_test, return_std=True)
+
+    # Calcul des métriques d'évaluation
+    mse = mean_squared_error(y_test, y_pred)
+    rmse = np.sqrt(mse)
+    nrmse = rmse / (np.max(y_test) - np.min(y_test))  # Normalisation
+    r2 = r2_score(y_test, y_pred)
+
+    # Affichage des résultats
+    print(f"✅ Évaluation du modèle Kriging :")
+    print(f"   • MSE    = {mse:.6f}")
+    print(f"   • RMSE   = {rmse:.6f}")
+    print(f"   • NRMSE  = {nrmse:.6f}")
+    print(f"   • R²     = {r2:.6f}")
+
+    # Sauvegarde du modèle entraîné
+    joblib.dump(gpr, save_path)
+    print(f"Modèle sauvegardé dans : {save_path}")
+
+    return {"MSE": mse, "RMSE": rmse, "NRMSE": nrmse, "R2": r2}
 
 
-# === Exécution du programme ===
+
+def train_kriging_model(radii, volumes, save_path="Saved_Lattice/RelativeDensityKrigingModel.pkl"):
+    """
+    Entraîne un modèle de Kriging (Gaussian Process Regression) sur les données de volumes.
+
+    Paramètres :
+    ------------
+    radii : np.ndarray
+        Matrice des rayons de taille (n_samples, 3).
+    volumes : np.ndarray
+        Vecteur des volumes de taille (n_samples,).
+    save_path : str
+        Chemin pour sauvegarder le modèle entraîné.
+
+    Retourne :
+    ----------
+    gpr : GaussianProcessRegressor
+        Modèle entraîné.
+    """
+
+    # Définition du noyau : produit d'un coefficient de variance (C) et d'un noyau RBF
+    kernel = C(1.0, (1e-3, 1e3)) * RBF(length_scale=1.0, length_scale_bounds=(1e-2, 1e2))
+
+    # Création du modèle de Kriging (Gaussian Process)
+    gpr = GaussianProcessRegressor(kernel=kernel, n_restarts_optimizer=10, normalize_y=True)
+
+    # Entraînement du modèle sur les données
+    gpr.fit(radii, volumes)
+
+    # Affichage des paramètres appris
+    print(f"Modèle entraîné avec noyau optimisé : {gpr.kernel_}")
+
+    # Sauvegarde du modèle entraîné
+    joblib.dump(gpr, save_path)
+    print(f"Modèle sauvegardé dans : {save_path}")
+
+    return gpr
+
 radii, volumes = load_and_filter_data(csv_file)
-# Exemple d'utilisation
 
 # === Exécution de la suppression des points aberrants ===
 radii, volumes = remove_large_volume_variations(radii, volumes, distance_threshold=0.02,
                                                                   variation_threshold=0.1)
+
+metrics = evaluate_kriging_model(radii, volumes)
+
 
 # radii_2D = project_radii_to_2D(radii)
 # grid_x, grid_y, grid_z = interpolate_volume_grid(radii_2D, volumes)
