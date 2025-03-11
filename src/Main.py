@@ -11,7 +11,8 @@ from src.settings import *
 vizualizer = LatticeUtils()
 lattice = Lattice(cell_size_X, cell_size_Y, cell_size_Z, number_cell_X, number_cell_Y, number_cell_Z,
                   Lattice_Type, Radius, materialName, gradRadiusProperty, gradDimProperty, gradMatProperty,
-                  MethodSim, uncertaintyNodeSD, periodicity=False, randomHybrid=False, meshObject=None)
+                  MethodSim, uncertaintyNodeSD, erasedParts=erasedParts, periodicity=False, randomHybrid=False,
+                  meshObject=None, symmetryData={"symPlane": "YZ", "symPoint": (-1, 0, 0)})
 
 # lattice.cutBeamsAtMeshIntersection()
 

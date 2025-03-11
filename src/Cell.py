@@ -61,6 +61,9 @@ class Cell(object):
         self.radius = Radius
         self.matB = None  # B matrix (Coupling matrix)
         self.uncertaintyNode = uncertaintyNode
+        self.gradRadius = gradRadius
+        self.gradMat = gradMat
+        self.gradDim = gradDim
         self.neighbourCells = []
 
         idxCell = 0

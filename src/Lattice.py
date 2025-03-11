@@ -27,7 +27,7 @@ class Lattice(object):
                  gradRadiusProperty: list, gradDimProperty: list, gradMatProperty: list,
                  simMethod: int = 0, uncertaintyNode: float = 0.0,
                  periodicity: int = 0, erasedParts: list = None, randomHybrid: bool = False,
-                 meshObject: "meshObject" = None, printing: bool = False):
+                 meshObject: "meshObject" = None, printing: bool = False, symmetryData: dict = None):
         """
         Constructor general for the Lattice class.
 
@@ -83,6 +83,10 @@ class Lattice(object):
             Randomize the hybrid lattice structure
         meshObject: meshObject
             Mesh object to check if the lattice structure is inside the mesh
+        printing: boolean
+            Print information about the lattice structure
+        symmetryData: dictionary {"symPlane": string, "symPoint": tuple}
+            Data to apply symmetry on the lattice structure
         """
         self._validate_inputs(cell_size_x, cell_size_y, cell_size_z, num_cells_x, num_cells_y, num_cells_z,
                               Lattice_Type, Radius, materialName, gradRadiusProperty, gradDimProperty, gradMatProperty,
@@ -137,6 +141,8 @@ class Lattice(object):
 
         # Process
         self.generateLattice()
+        if symmetryData is not None:
+            self.applySymmetry(symmetryData["symPlane"], symmetryData["symPoint"])
         self.getMinMaxValues()
         self.defineBeamNodeIndex()
         self.defineCellIndex()
@@ -287,8 +293,9 @@ class Lattice(object):
         assert isinstance(periodicity, int), "periodicity must be an integer"
 
         if erasedParts is not None:
-            assert isinstance(erasedParts, list) and len(erasedParts) == 6 and all(
-                isinstance(x, float) for x in erasedParts), "erasedParts must be a list of 6 floats"
+            assert isinstance(erasedParts, list), "erasedParts must be a list of tuples."
+            assert all(isinstance(part, tuple) and len(part) == 6 and all(isinstance(x, float) for x in part)
+                       for part in erasedParts), "Each element of erasedParts must be a tuple of 6 floats."
 
         assert isinstance(randomHybrid, bool), "randomHybrid must be a boolean"
 
@@ -451,6 +458,7 @@ class Lattice(object):
                     delPart[direction] <= startCellPos[direction] <= delPart[direction] + delPart[direction + 3]
                     for direction in range(3)
                 )
+
                 if inside_erased:
                     return True  # La cellule est supprimée si elle est dans `erasedParts`
 
@@ -2260,3 +2268,80 @@ class Lattice(object):
 
             new_beams = []
             beams_to_remove = []
+
+    def applySymmetry(self, symmetry_plane: str, reference_point: tuple = (0, 0, 0)) -> None:
+        """
+        Apply symmetry to the lattice structure based on a reference point.
+
+        Parameters:
+        -----------
+        symmetry_plane : str
+            The plane of symmetry, can be "XY", "XZ", "YZ" (default symmetries),
+            or "X", "Y", "Z" for symmetry about a specific coordinate.
+        reference_point : tuple (x_ref, y_ref, z_ref), optional
+            The reference point for the symmetry. Defaults to (0,0,0).
+        """
+
+        if symmetry_plane not in ["XY", "XZ", "YZ", "X", "Y", "Z"]:
+            raise ValueError("Invalid symmetry plane. Choose from 'XY', 'XZ', 'YZ', 'X', 'Y', or 'Z'.")
+
+        x_ref, y_ref, z_ref = reference_point
+        new_cells = []
+        node_map = {}
+
+        for cell in self.cells:
+            new_pos = list(cell.posCell)
+            new_start_pos = list(cell.coordinateCell)
+            mirrored_beams = []
+
+            for beam in cell.beams:
+                new_point1 = Point(beam.point1.x, beam.point1.y, beam.point1.z)
+                new_point2 = Point(beam.point2.x, beam.point2.y, beam.point2.z)
+
+                # Apply symmetry transformation based on the selected plane
+                if symmetry_plane == "XY":
+                    new_point1.z = 2 * z_ref - new_point1.z
+                    new_point2.z = 2 * z_ref - new_point2.z
+                    new_start_pos[2] = 2 * z_ref - new_start_pos[2]
+                elif symmetry_plane == "XZ":
+                    new_point1.y = 2 * y_ref - new_point1.y
+                    new_point2.y = 2 * y_ref - new_point2.y
+                    new_start_pos[1] = 2 * y_ref - new_start_pos[1]
+                elif symmetry_plane == "YZ":
+                    new_point1.x = 2 * x_ref - new_point1.x
+                    new_point2.x = 2 * x_ref - new_point2.x
+                    new_start_pos[0] = 2 * x_ref - new_start_pos[0]
+                elif symmetry_plane == "X":
+                    new_point1.x = 2 * x_ref - new_point1.x
+                    new_point2.x = 2 * x_ref - new_point2.x
+                    new_start_pos[0] = 2 * x_ref - new_start_pos[0]
+                elif symmetry_plane == "Y":
+                    new_point1.y = 2 * y_ref - new_point1.y
+                    new_point2.y = 2 * y_ref - new_point2.y
+                    new_start_pos[1] = 2 * y_ref - new_start_pos[1]
+                elif symmetry_plane == "Z":
+                    new_point1.z = 2 * z_ref - new_point1.z
+                    new_point2.z = 2 * z_ref - new_point2.z
+                    new_start_pos[2] = 2 * z_ref - new_start_pos[2]
+
+                # Ensure uniqueness of nodes
+                if new_point1 not in node_map:
+                    node_map[new_point1] = new_point1
+                if new_point2 not in node_map:
+                    node_map[new_point2] = new_point2
+
+                mirrored_beams.append(
+                    Beam(node_map[new_point1], node_map[new_point2], beam.radius, beam.material, beam.type))
+
+            # Create a new mirrored cell
+            new_cell = Cell(new_pos, cell.cellSize, new_start_pos, cell.latticeType,
+                            cell.radius, cell.gradRadius, cell.gradDim, cell.gradMat, cell.uncertaintyNode)
+
+            new_cell.beams = mirrored_beams
+            new_cells.append(new_cell)
+
+        self.cells.extend(new_cells)
+        self.getMinMaxValues()  # Recalculate the lattice boundaries
+
+
+
