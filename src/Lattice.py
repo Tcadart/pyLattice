@@ -3,6 +3,7 @@ import os
 import pickle
 from statistics import mean
 
+import joblib
 from colorama import Style, Fore
 from matplotlib import pyplot as plt
 
@@ -119,7 +120,6 @@ class Lattice(object):
         self.sizeX, self.sizeY, self.sizeZ = self.getSizeLattice()
         self.uncertaintyNode = uncertaintyNode
         self.periodicity = periodicity  # Not finish to implemented
-        self.penalizationCoefficient = 1.5  # Fixed with previous optimization
         self.erasedParts = erasedParts
         self.randomHybrid = randomHybrid
         self.meshObject = meshObject
@@ -135,9 +135,13 @@ class Lattice(object):
         self.globalDisplacementIndex = None
         self.initialValueObjective = None
         self.initialRelativeDensityConstraint = None
+        self.initialContinuityConstraint = None
         self.relativeDensityPoly = []
         self.relativeDensityPolyDeriv = []
         self.nDOFperNode = 6
+        self.parameterOptimization = []
+        self.krigingModelRelativeDensity = None
+        self.penalizationCoefficient = 1.5 # Fixed with previous optimization
 
         # Process
         self.generateLattice()
@@ -165,6 +169,9 @@ class Lattice(object):
         self.defineNodeIndexBoundary()
         if self.printing:
             self.printStatistics()
+
+        # Optimization necessary
+        self.loadRelativeDensityModel()
 
     @classmethod
     def simpleLattice(cls, cell_size_x: float, cell_size_y: float, cell_size_z: float,
@@ -293,9 +300,15 @@ class Lattice(object):
         assert isinstance(periodicity, int), "periodicity must be an integer"
 
         if erasedParts is not None:
+<<<<<<< Updated upstream
             assert isinstance(erasedParts, list), "erasedParts must be a list of tuples."
             assert all(isinstance(part, tuple) and len(part) == 6 and all(isinstance(x, float) for x in part)
                        for part in erasedParts), "Each element of erasedParts must be a tuple of 6 floats."
+=======
+            for erasedPart in erasedParts:
+                assert len(erasedPart) == 6 and all(
+                    isinstance(x, float) for x in erasedPart), "erasedParts must be a list of 6 floats"
+>>>>>>> Stashed changes
 
         assert isinstance(randomHybrid, bool), "randomHybrid must be a boolean"
 
@@ -518,9 +531,9 @@ class Lattice(object):
                     startCellPos = [xCellStart, yCellStart, zCellStart]
                     if not self.isNotInErasedRegion(startCellPos):
                         if self.randomHybrid:
-                            radius = [random.uniform(0, 0.1) for _ in self.latticeType]
+                            radius = [random.uniform(0.01, 0.1) for _ in self.latticeType]
                             while sum(radius) == 0:
-                                radius = [random.uniform(0, 0.1) for _ in self.latticeType]
+                                radius = [random.uniform(0.01, 0.1) for _ in self.latticeType]
                         else:
                             radius = self.Radius
                         new_cell = Cell(posCell, initialCellSize, startCellPos, self.latticeType,
@@ -618,7 +631,6 @@ class Lattice(object):
                                 cell.posCell[2] + offset[2])
                 if neighbor_pos in cell_dict:  # Check if neighbor exists
                     cell.addCellNeighbour(cell_dict[neighbor_pos])
-
 
     def getNodeData(self) -> None:
         """
@@ -925,14 +937,16 @@ class Lattice(object):
                 lengthMod = beam.getLengthMod()
                 pointExt1 = beam.getPointOnBeamFromDistance(lengthMod[0], 1)
                 pointExt1Obj = Point(pointExt1[0], pointExt1[1], pointExt1[2])
+                pointExt1Obj.setNodeMod(True)
                 pointExt2 = beam.getPointOnBeamFromDistance(lengthMod[1], 2)
                 pointExt2Obj = Point(pointExt2[0], pointExt2[1], pointExt2[2])
+                pointExt2Obj.setNodeMod(True)
 
-                b1 = Beam(beam.point1, pointExt1Obj, beam.radius * self.penalizationCoefficient, beam.material,
+                b1 = Beam(beam.point1, pointExt1Obj, beam.radius, beam.material,
                           beam.type)
                 b1.setBeamMod()
                 b2 = Beam(pointExt1Obj, pointExt2Obj, beam.radius, beam.material, beam.type)
-                b3 = Beam(pointExt2Obj, beam.point2, beam.radius * self.penalizationCoefficient, beam.material,
+                b3 = Beam(pointExt2Obj, beam.point2, beam.radius, beam.material,
                           beam.type)
                 b3.setBeamMod()
 
@@ -1260,7 +1274,7 @@ class Lattice(object):
         for cell in self.cells:
             for beam in cell.beams:
                 if beam.modBeam:
-                    beam.radius = hybridRadiusData[beam.type] * self.penalizationCoefficient
+                    beam.radius = hybridRadiusData[beam.type] * beam.penalizationCoefficient
                 else:
                     beam.radius = hybridRadiusData[beam.type]
 
@@ -1462,23 +1476,33 @@ class Lattice(object):
                 else:
                     cell.removeBeam(beam)
 
-    def getRelativeDensityConstraint(self, targetRelativeDensity) -> float:
+    def getRelativeDensityConstraint(self, relativeDensityMax) -> float:
         """
         Get relative density of the lattice
         """
-        meanRelDens = self.getRelativeDensity()
-        error = -(targetRelativeDensity - meanRelDens)
-        print("Relative density error: ", error)
-        if error != 0:
-            if self.initialRelativeDensityConstraint is None:
-                self.initialRelativeDensityConstraint = error
-            error = error/self.initialRelativeDensityConstraint
+        error = self.getRelativeDensity() - relativeDensityMax
+        # if error != 0:
+        #     if self.initialRelativeDensityConstraint is None:
+        #         self.initialRelativeDensityConstraint = error
+        # if self.initialRelativeDensityConstraint is not None:
+        #     error /= self.initialRelativeDensityConstraint
         return error
 
     def getRelativeDensity(self):
+        """
+        Get mean relative density of all cells in lattice
+
+        Returns:
+        --------
+        meanRelDens: float
+            Mean relative density of the lattice
+        """
         cellRelDens = []
         for cell in self.cells:
-            cellRelDens.append(cell.getRelativeDensity())
+            if self.krigingModelRelativeDensity is not None:
+                cellRelDens.append(cell.getRelativeDensityKriging(self.krigingModelRelativeDensity))
+            else:
+                cellRelDens.append(cell.getRelativeDensity())
         meanRelDens = mean(cellRelDens)
         return meanRelDens
 
@@ -1502,7 +1526,7 @@ class Lattice(object):
                 relativeDensity = []
                 for domainIdx in domainRadius:
                     radius[idxRad] = domainIdx
-                    fictiveCell.changeBeamRadius([radius], self.gradRadius, self.penalizationCoefficient)
+                    fictiveCell.changeBeamRadius([radius], self.gradRadius)
                     relativeDensity.append(fictiveCell.getRelativeDensity())
                 poly_coeffs = np.polyfit(domainRadius, relativeDensity, degree).flatten()
                 poly = np.poly1d(poly_coeffs)
@@ -1522,11 +1546,89 @@ class Lattice(object):
             self.defineRelativeDensityFunction()
         if len(self.cells[0].radius) != len(self.relativeDensityPoly):
             raise ValueError("Invalid radius data.")
+
         grad = []
         for cell in self.cells:
             grad.append(cell.getRelativeDensityGradient(self.relativeDensityPolyDeriv))
         return grad
 
+    def getRelativeDensityGradientKriging(self) -> list[float]:
+        """
+        Get relative density gradient of the lattice using kriging model
+
+        Returns:
+        --------
+        grad: list of float
+            Gradient of relative density
+        """
+        grad = []
+        for cell in self.cells:
+            gradient3Geom = cell.getRelativeDensityGradientKriging(self.krigingModelRelativeDensity)
+            grad.extend(gradient3Geom[:len(self.Radius)])
+        return grad
+
+    def getRadiusContinuityDifference(self, delta: float = 0.01) -> list[float]:
+        """
+        Get the difference in radius between connected beams in the lattice
+
+        Parameters:
+        -----------
+        delta: float
+            Minimum difference in radius between connected cells
+        """
+        radiusContinuityDifference = []
+        for cell in self.cells:
+            radiusCell = cell.getRadius()
+            for neighbours in cell.neighbourCells:
+                for rad in range(len(radiusCell)):
+                    radiusContinuityDifference.append(abs(radiusCell[rad] - neighbours.getRadius()[rad]) - delta)
+        return radiusContinuityDifference
+
+    def getRadiusContinuityJacobian(self) -> np.ndarray:
+        """
+        Compute the Jacobian of the radius continuity constraint.
+
+        Parameters:
+        -----------
+        num_radii: int
+            Total number of radii in the lattice structure.
+
+        Returns:
+        --------
+        np.ndarray
+            Jacobian matrix of shape (num_constraints, num_radii)
+        """
+        rows = []
+        cols = []
+        values = []
+        constraint_index = 0
+
+        for cell in self.cells:
+            radiusCell = cell.getRadius()
+            for neighbour in cell.neighbourCells:
+                for rad in range(len(radiusCell)):
+                    # Identify indices of the radii in a global vector
+                    i = cell.index * len(radiusCell) + rad
+                    j = neighbour.index * len(radiusCell) + rad
+
+                    # d(h)/d(r_i) = 1
+                    rows.append(constraint_index)
+                    cols.append(i)
+                    values.append(1)
+
+                    # d(h)/d(r_j) = -1
+                    rows.append(constraint_index)
+                    cols.append(j)
+                    values.append(-1)
+
+                    constraint_index += 1
+
+        # Convert to sparse matrix format (or dense if necessary)
+        jacobian = np.zeros((constraint_index, self.getNumberParametersOptimization()))
+        for r, c, v in zip(rows, cols, values):
+            jacobian[r, c] = v
+
+        return jacobian
 
     def changeBeamRadiusForType(self, typeToChange: int, newRadius: float) -> None:
         """
@@ -1814,6 +1916,7 @@ class Lattice(object):
                             elif withFixed or OnlyImposed:
                                 globalDisplacement.append(node.displacementValue[i])
                                 globalDisplacementIndex.append(node.indexBoundary)
+
                         processed_nodes.add(node.indexBoundary)
         if not OnlyImposed:
             self.globalDisplacementIndex = globalDisplacementIndex
@@ -1988,8 +2091,6 @@ class Lattice(object):
         if np.any(globalSchurComplement.sum(axis=1) == 0):
             print("Attention : There are some rows with all zeros in the Schur complement matrix.")
         cond_number = np.linalg.cond(globalSchurComplement.toarray())
-        if cond_number > 1e6:
-            print("Attention : The condition number of the Schur complement matrix is very high: ", cond_number)
 
         # Factorize preconditioner
         LUSchurComplement = None
@@ -1997,11 +2098,11 @@ class Lattice(object):
         if cond_number > 1e15:
             inverseSchurComplement = np.linalg.pinv(globalSchurComplement.toarray())
             # inverseSchurComplement = None
-            print("Using pseudo-inverse of the Schur complement matrix.")
+            # print("Using pseudo-inverse of the Schur complement matrix.")
         else:
             globalSchurComplement = globalSchurComplement.tocsc()
             LUSchurComplement = splu(globalSchurComplement)
-            print("Using LU decomposition of the Schur complement matrix.")
+            # print("Using LU decomposition of the Schur complement matrix.")
         return LUSchurComplement, inverseSchurComplement
 
     def getCellSurface(self, surface: str) -> list[int]:
@@ -2055,6 +2156,18 @@ class Lattice(object):
             for beam in cell.beams:
                 return beam.radius
 
+    def unnormalize_r(self, r_norm):
+        """
+        Denormalize optimization parameters
+
+        Parameters:
+        -----------
+        r_norm: float
+            Normalized optimization parameter
+        """
+        r_min, r_max = 0.01, 0.1
+        return r_min + (r_max - r_min) * r_norm  # Dé-normalisation
+
     def setOptimizationParameters(self, optimizationParameters: list[float]) -> None:
         """
         Set optimization parameters for the lattice
@@ -2072,7 +2185,7 @@ class Lattice(object):
             startIdx = cell.index * numberOfParametersPerCell
             endIdx = (cell.index + 1) * numberOfParametersPerCell
             radius = optimizationParameters[startIdx:endIdx]
-            cell.changeBeamRadius(radius, self.gradRadius, self.penalizationCoefficient)
+            cell.changeBeamRadius(radius, self.gradRadius)
 
     def calculateObjective(self, typeObjective: str) -> float:
         """
@@ -2090,21 +2203,19 @@ class Lattice(object):
         """
         if typeObjective == "Compliance":
             reactionForce = self.getGlobalReactionForce(appliedForceAdded=True)
+            print("Reaction force: ", reactionForce)
             reaction_force_array = np.array(list(reactionForce.values())).flatten()
             displacement = np.array(self.getDisplacementGlobal(OnlyImposed=True)[0])
-            objective = np.dot(reaction_force_array, displacement)
-            np.set_printoptions(threshold=np.inf)
-            print("Reaction force: ", reaction_force_array[displacement != 0])
-            print("Displacement: ", displacement[displacement != 0])
-            print("Compliance: ", objective)
+            print("Displacement: ", displacement)
+            objective = 0.5 * np.dot(reaction_force_array, displacement)
+            if self.printing > 2:
+                np.set_printoptions(threshold=np.inf)
+                print("Reaction force: ", reaction_force_array[displacement != 0])
+                print("Displacement: ", displacement[displacement != 0])
+                print("Compliance: ", objective)
         if typeObjective == "Stiffness":
             pass
-
-        if self.initialValueObjective is None:
-            self.initialValueObjective = objective
-        objective_normalized = objective / self.initialValueObjective
-        print("Objective normalized: ", objective_normalized)
-        return objective_normalized
+        return objective
 
 
     def getNumberParametersOptimization(self) -> int:
@@ -2142,6 +2253,29 @@ class Lattice(object):
                     if np.any(match):
                         index = np.where(match)[0][0]
                         node.setReactionForce(reactionForce[index])
+
+    def applyDisplacementOnNodeList(self, displacement: list, nodeCoordinatesList: list):
+        """
+        Apply displacement on node list
+
+        Parameters:
+        -----------
+        displacement: list of float
+            Displacement to apply
+        nodeCoordinatesList: list of float
+            Coordinates of the node
+        """
+        nodeCoordinatesArray = np.array(nodeCoordinatesList)
+
+        for cell in self.cells:
+            for beam in cell.beams:
+                for node in [beam.point1, beam.point2]:
+                    nodeCoord = np.array([node.x, node.y, node.z])
+                    match = np.all(nodeCoordinatesArray == nodeCoord, axis=1)
+                    if np.any(match):
+                        index = np.where(match)[0][0]
+                        node.setDisplacementVector(displacement[index])
+                        node.fixDOF([i for i in range(6)])
 
     def expandSchurToFullBasis(self, SchurReduced, nodeInOrder):
         """
@@ -2344,4 +2478,20 @@ class Lattice(object):
         self.getMinMaxValues()  # Recalculate the lattice boundaries
 
 
+    def loadRelativeDensityModel(self,model_path="Lattice/Saved_Lattice/RelativeDensityKrigingModel.pkl"):
+        """
+        Load the relative density model from a file
+
+        Parameters:
+        -----------
+        model_path: str
+            Path to the model file
+
+        Returns:
+        --------
+        model: Kriging
+            The loaded model
+        """
+        gpr = joblib.load(model_path)
+        self.krigingModelRelativeDensity = gpr
 

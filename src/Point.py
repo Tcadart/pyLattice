@@ -29,6 +29,7 @@ class Point:
         self.appliedForce = [0.0] * 6  # Applied force vector of 6 DOF.
         self.fixedDOF = [0] * 6  # Fixed DOF vector (0: free, 1: fixed).
         self.globalFreeDOFIndex = [None] * 6  # Global free DOF index.
+        self.nodeMod = False
 
     def __eq__(self, other: object) -> bool:
         return isinstance(other, Point) and self.x == other.x and self.y == other.y and self.z == other.z
@@ -328,4 +329,15 @@ class Point:
         if not isinstance(localTag, list):
             raise ValueError("Local tag must be a list.")
         self.localTag = localTag
+
+    def setNodeMod(self, nodeMod: bool) -> None:
+        """
+        Assign node modification status.
+
+        Parameters
+        ----------
+        nodeMod : bool
+            Node modification status.
+        """
+        self.nodeMod = nodeMod
 

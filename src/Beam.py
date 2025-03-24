@@ -31,6 +31,8 @@ class Beam(object):
         self.angle2: Tuple[float, float] = None
         self.length: float = self.getLength()
         self.modBeam = False
+        self.penalizationCoefficient = 1.5  # Fixed with previous optimization
+        self.initialRadius = None
 
     def __repr__(self) -> str:
         return f"Beam({self.point1}, {self.point2}, Radius:{self.radius}, Type:{self.type}, Index:{self.index})"
@@ -204,7 +206,12 @@ class Beam(object):
         self.radius = radius
 
     def setBeamMod(self):
+        """
+        Set the beam as modified.
+        """
         self.modBeam = True
+        self.initialRadius = self.radius
+        self.radius *= self.penalizationCoefficient
 
     def findIntersectionWithMesh(self, meshObject: 'Mesh') -> Tuple[float, float, float] | None:
         """

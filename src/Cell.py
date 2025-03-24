@@ -454,8 +454,9 @@ class Cell(object):
                     allBoundaryDisplacementData.append(point.getDisplacementValue())
         return allBoundaryDisplacementData
 
-    def changeBeamRadius(self, newRadius: list, gradRadius: list = None, penalizationCoeff: float = 1.5) -> None:
+    def changeBeamRadius(self, newRadius: list, gradRadius: list = None) -> None:
         """
+        ATTENTION /!\ : BEAM MOD IS NOT WORKING
         Change beam radius in the cell
 
         Parameters:
@@ -476,7 +477,7 @@ class Cell(object):
 
         for beam in self.beams:
             if beam.modBeam:
-                beam.setRadius(beamRadius[beam.type] * penalizationCoeff)
+                beam.setRadius(beamRadius[beam.type] * beam.penalizationCoefficient)
             else:
                 beam.setRadius(beamRadius[beam.type])
 
@@ -497,6 +498,21 @@ class Cell(object):
             volumeBeams += beam.getVolume()
         return volumeBeams / self.getVolumeCell()
 
+    def getRelativeDensityKriging(self, krigingModel) -> float:
+        """
+        Get the relative density of the cell using kriging model
+
+        Parameters:
+        -----------
+        krigingModel: Kriging
+            Kriging model to use for prediction
+        """
+        radii = np.zeros(3)
+        for idx, rad in enumerate(self.radius):
+            radii[idx] = rad
+        radii = np.array(radii).reshape(-1, 3)
+        return krigingModel.predict(radii)[0]
+
     def getRelativeDensityGradient(self, relativeDensityPolyDeriv) -> float:
         """
         Get the gradient of the relative density
@@ -515,6 +531,35 @@ class Cell(object):
         for idx, polyDeriv in enumerate(relativeDensityPolyDeriv):
             deriv += polyDeriv(self.radius[idx])
         return deriv
+
+    def getRelativeDensityGradientKriging(self, gpr):
+        """
+        Retourne le gradient de la fonction volume par rapport aux rayons (dérivée partielle).
+
+        Paramètres :
+        ------------
+        gpr : GaussianProcessRegressor
+            Modèle de Kriging entraîné.
+        radii : np.ndarray
+            Tableau de taille (n_samples, 3) contenant les rayons.
+
+        Retourne :
+        ----------
+        gradients : np.ndarray
+            Gradient du volume par rapport aux rayons (shape: (n_samples, 3)).
+        """
+        epsilon = 1e-3
+        radii = np.zeros(3)
+        for idx, rad in enumerate(self.radius):
+            radii[idx] = rad
+        radii = np.array(radii).reshape(-1, 3)
+        grad = np.zeros(3)
+
+        for idx, rad in enumerate(self.radius):
+            perturbed_radii = radii.copy()
+            perturbed_radii[0][idx] += epsilon
+            grad[idx] = (gpr.predict(perturbed_radii) - gpr.predict(radii)) / epsilon
+        return grad
 
     def getNumberNodesAtBoundary(self):
         """
@@ -608,3 +653,41 @@ class Cell(object):
         print("Relative density: ", self.getRelativeDensity())
         print("Number of nodes at boundary: ", self.getNumberNodesAtBoundary())
 
+    def getTranslationRigidBody(self):
+        """
+        Get the translation of the rigid body
+        """
+        translation = np.zeros(3)
+        for beam in self.beams:
+            for point in [beam.point1, beam.point2]:
+                if point.indexBoundary is not None:
+                    translation += point.getDisplacementValue()[:3]
+        return translation / self.getNumberNodesAtBoundary()
+
+    def getRotationRigidBody(self):
+        """
+        Get the rotation matrix of the rigid body using SVD.
+        """
+        all_points = self.getAllPoints()
+        initial_positions = np.array([point.getPos() for point in all_points])  # P_i
+        final_positions = np.array([point.getDeformedPos() for point in all_points])  # P_i'
+
+        # Soustraction du centre de gravité
+        center_initial = np.mean(initial_positions, axis=0)
+        center_final = np.mean(final_positions, axis=0)
+        P = initial_positions - center_initial
+        P_prime = final_positions - center_final
+
+        # Matrice de covariance
+        H = P.T @ P_prime
+
+        # Décomposition SVD
+        U, _, Vt = np.linalg.svd(H)
+        R = Vt.T @ U.T
+
+        # Correction si nécessaire (assurer que R est une rotation propre)
+        if np.linalg.det(R) < 0:
+            Vt[-1, :] *= -1
+            R = Vt.T @ U.T
+
+        return R
