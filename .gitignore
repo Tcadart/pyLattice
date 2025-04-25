@@ -34,4 +34,6 @@ __pycache__
 /Saved_Lattice/RelativeDensity
 *.json
 *.pkl
+*.stlbak
+
 

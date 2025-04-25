@@ -11,18 +11,18 @@ from src.settings import *
 vizualizer = LatticeUtils()
 lattice = Lattice(cell_size_X, cell_size_Y, cell_size_Z, number_cell_X, number_cell_Y, number_cell_Z,
                   Lattice_Type, Radius, materialName, gradRadiusProperty, gradDimProperty, gradMatProperty,
-                  MethodSim, uncertaintyNodeSD, erasedParts=erasedParts, periodicity=False, randomHybrid=False,
-                  meshObject=None, symmetryData={"symPlane": "YZ", "symPoint": (-1, 0, 0)})
+                  MethodSim, uncertaintyNodeSD, periodicity=True, randomHybrid=False,
+                  meshObject=None)
 
 # lattice.cutBeamsAtMeshIntersection()
 
 # print(lattice.getRelativeDensity())
-# vizualizer.saveJSONToGrasshopper(lattice, "bike-helmet_lattice_cutted", multipleParts=2)
-vizualizer.visualizeLattice3D(lattice.cells, lattice.latticeDimensionsDict, "Radius", voxelViz=False,
-                              explodeVoxel=0.1, plotting = False)
+vizualizer.saveJSONToGrasshopper(lattice, "2geomFigure", multipleParts=1)
+# vizualizer.visualizeLattice3D(lattice.cells, lattice.latticeDimensionsDict, "Radius", voxelViz=False,
+#                               explodeVoxel=0.1, plotting = False)
 
 
 # vizualizer.visualizeMesh(meshObject)
 
-vizualizer.show()
+# vizualizer.show()
 # fig.show()

@@ -8,18 +8,19 @@
 # *******************************************************************************************************************
 # *******************************************************************************************************************
 # Lattice properties
-Radius = [0.1, 0.0, 0.0]
+Radius = [0.1]
 materialName = 'VeroClear'
 cell_size = 1
 cell_size_X = cell_size
 cell_size_Y = cell_size
 cell_size_Z = cell_size
 number_cell = 2  #50
-number_cell_X = 30
-number_cell_Y = 5
-number_cell_Z = 18
+number_cell_X = 1
+number_cell_Y = 1
+number_cell_Z = 1
 
 Lattice_Type = [0, 16, 19]
+Lattice_Type = [1]
 # -2 => Method random cell
 # -1 => Full random
 # 0 => BCC
@@ -66,12 +67,12 @@ MethodSim = 0
 uncertaintyNodeSD = 0.0
 # Value of the standard deviation for the uncertainty on the nodes
 
-erasedParts = [(5.0, 0.0, 0.0, 20.0, 5.0, 5.0),
-               (10.0, 0.0, 5.0, 10.0, 5.0, 5.0),
-               (0.0, 0.0, 15.0, 4.0, 5.0, 5.0),
-               (25.0, 0.0, 15.0, 5.0, 5.0, 5.0),
-               (0.0, 0.0, 10.0, 2.0, 5.0, 5.0),
-               (27.0, 0.0, 10.0, 2.0, 5.0, 5.0)]
+# erasedParts = [(5.0, 0.0, 0.0, 20.0, 5.0, 5.0),
+#                (10.0, 0.0, 5.0, 10.0, 5.0, 5.0),
+#                (0.0, 0.0, 15.0, 4.0, 5.0, 5.0),
+#                (25.0, 0.0, 15.0, 5.0, 5.0, 5.0),
+#                (0.0, 0.0, 10.0, 2.0, 5.0, 5.0),
+#                (27.0, 0.0, 10.0, 2.0, 5.0, 5.0)]
 
 # List of erased parts in the lattice
 # [(xStart, yStart, zStart, xDim, yDim, zDim), ...] of the erased region
