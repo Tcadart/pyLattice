@@ -5,6 +5,7 @@ Created in 2025-01-16 by Cadart Thomas, University of technology Belfort Montbé
 """
 import json
 import os
+import pickle
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -12,7 +13,7 @@ from mpl_toolkits.mplot3d.art3d import Line3DCollection, Poly3DCollection
 import matplotlib.colors as mcolors
 import plotly.graph_objects as go
 
-from .Cell import Cell
+from src.Cell import Cell
 
 class LatticeUtils:
 
@@ -391,6 +392,28 @@ class LatticeUtils:
                 json.dump(obj, f)
 
             print(f"Saved lattice part {partIdx + 1} to {file_pathJSON}")
+
+    def saveLatticeObject(self, lattice, file_name: str = "LatticeObject") -> None:
+        """
+        Save the lattice object to a file.
+
+        Parameters:
+        -----------
+        file_name: str
+            Name of the file to save (with or without the '.pkl' extension).
+        """
+        folder = "Saved_Lattice"
+        os.makedirs(folder, exist_ok=True)
+
+        if not file_name.endswith(".pkl"):
+            file_name += ".pkl"
+
+        file_path = os.path.join(folder, file_name)
+
+        with open(file_path, "wb") as file:
+            pickle.dump(lattice, file)
+
+        print(f"Lattice saved successfully to {file_path}")
 
     def visualizeMesh(self, meshObject: "MeshObject"):
         mesh = meshObject.mesh

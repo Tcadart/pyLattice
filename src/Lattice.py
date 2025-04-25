@@ -2474,7 +2474,7 @@ class Lattice(object):
         self.getMinMaxValues()  # Recalculate the lattice boundaries
 
 
-    def loadRelativeDensityModel(self,model_path="Lattice/Saved_Lattice/RelativeDensityKrigingModel.pkl"):
+    def loadRelativeDensityModel(self,model_path="Saved_Lattice/RelativeDensityKrigingModel.pkl"):
         """
         Load the relative density model from a file
 
@@ -2488,6 +2488,9 @@ class Lattice(object):
         model: Kriging
             The loaded model
         """
-        gpr = joblib.load(model_path)
-        self.krigingModelRelativeDensity = gpr
+        if not os.path.exists(model_path):
+            print(f"Model file not found: {model_path}")
+        else:
+            gpr = joblib.load(model_path)
+            self.krigingModelRelativeDensity = gpr
 

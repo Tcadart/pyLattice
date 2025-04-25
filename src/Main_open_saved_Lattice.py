@@ -1,8 +1,11 @@
+from Utils import LatticeUtils
 from src.Lattice import *
 
-nameLattice = "HybridRandom"
+nameLattice = "BeamFlexionOptimization.json"
 
 lattice = Lattice.loadLatticeObject(nameLattice)
 
-fig = lattice.visualizeLattice3D("Radius", deformedForm=True, plotCellIndex=False, voxelViz=False)
-
+vizualizer = LatticeUtils()
+vizualizer.visualizeLattice3D(lattice.cells, lattice.latticeDimensionsDict, "Radius", voxelViz=False,
+                              explodeVoxel=0.1, plotting = False)
+vizualizer.show()
