@@ -260,6 +260,18 @@ class Lattice(object):
     def beams(self):
         return self._beams
 
+    def __repr__(self) -> str:
+        string = f"Lattice name: {self.name}\n"
+        string += f"Dimensions: {self.sizeX} x {self.sizeY} x {self.sizeZ}\n"
+        string += f"Number of cells: {self.numCellsX} x {self.numCellsY} x {self.numCellsZ}\n"
+        string += f"Cell size: {self.cellSizeX} x {self.cellSizeY} x {self.cellSizeZ}\n"
+        string += f"Material: {self.materialName}\n"
+        if self.randomHybrid:
+            string += f"Random radius hybrid lattice\n"
+        else:
+            string += f"Radius: {self.Radius}\n"
+        return string
+
     def _validate_inputs(self, cell_size_x, cell_size_y, cell_size_z,
                          num_cells_x, num_cells_y, num_cells_z,
                          Lattice_Type, Radius, materialName, gradRadiusProperty, gradDimProperty, gradMatProperty,
@@ -300,16 +312,9 @@ class Lattice(object):
         assert isinstance(periodicity, int), "periodicity must be an integer"
 
         if erasedParts is not None:
-<<<<<<< Updated upstream
-            assert isinstance(erasedParts, list), "erasedParts must be a list of tuples."
-            assert all(isinstance(part, tuple) and len(part) == 6 and all(isinstance(x, float) for x in part)
-                       for part in erasedParts), "Each element of erasedParts must be a tuple of 6 floats."
-=======
             for erasedPart in erasedParts:
                 assert len(erasedPart) == 6 and all(
                     isinstance(x, float) for x in erasedPart), "erasedParts must be a list of 6 floats"
->>>>>>> Stashed changes
-
         assert isinstance(randomHybrid, bool), "randomHybrid must be a boolean"
 
     def getSizeLattice(self) -> list[float]:
@@ -1581,17 +1586,12 @@ class Lattice(object):
             radiusCell = cell.getRadius()
             for neighbours in cell.neighbourCells:
                 for rad in range(len(radiusCell)):
-                    radiusContinuityDifference.append(abs(radiusCell[rad] - neighbours.getRadius()[rad]) - delta)
+                    radiusContinuityDifference.append((radiusCell[rad] - neighbours.getRadius()[rad])**2 - delta**2)
         return radiusContinuityDifference
 
     def getRadiusContinuityJacobian(self) -> np.ndarray:
         """
         Compute the Jacobian of the radius continuity constraint.
-
-        Parameters:
-        -----------
-        num_radii: int
-            Total number of radii in the lattice structure.
 
         Returns:
         --------
@@ -1606,24 +1606,22 @@ class Lattice(object):
         for cell in self.cells:
             radiusCell = cell.getRadius()
             for neighbour in cell.neighbourCells:
+                radiusNeighbour = neighbour.getRadius()
                 for rad in range(len(radiusCell)):
-                    # Identify indices of the radii in a global vector
                     i = cell.index * len(radiusCell) + rad
                     j = neighbour.index * len(radiusCell) + rad
+                    diff = radiusCell[rad] - radiusNeighbour[rad]
 
-                    # d(h)/d(r_i) = 1
                     rows.append(constraint_index)
                     cols.append(i)
-                    values.append(1)
+                    values.append(2 * diff)
 
-                    # d(h)/d(r_j) = -1
                     rows.append(constraint_index)
                     cols.append(j)
-                    values.append(-1)
+                    values.append(-2 * diff)
 
                     constraint_index += 1
 
-        # Convert to sparse matrix format (or dense if necessary)
         jacobian = np.zeros((constraint_index, self.getNumberParametersOptimization()))
         for r, c, v in zip(rows, cols, values):
             jacobian[r, c] = v
@@ -2203,10 +2201,8 @@ class Lattice(object):
         """
         if typeObjective == "Compliance":
             reactionForce = self.getGlobalReactionForce(appliedForceAdded=True)
-            print("Reaction force: ", reactionForce)
             reaction_force_array = np.array(list(reactionForce.values())).flatten()
             displacement = np.array(self.getDisplacementGlobal(OnlyImposed=True)[0])
-            print("Displacement: ", displacement)
             objective = 0.5 * np.dot(reaction_force_array, displacement)
             if self.printing > 2:
                 np.set_printoptions(threshold=np.inf)

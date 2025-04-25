@@ -352,7 +352,7 @@ class LatticeUtils:
         cellsPerPart = max(1, numberCell // multipleParts)
 
         for partIdx in range(multipleParts):
-            partName = f"{nameLattice}_part{partIdx + 1}.json"
+            partName = f"{nameLattice}_part{partIdx + 1}.json" if multipleParts > 1 else f"{nameLattice}.json"
             file_pathJSON = os.path.join(folder, partName)
 
             partNodesX = []
