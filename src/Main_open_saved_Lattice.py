@@ -1,7 +1,7 @@
-from Utils import LatticeUtils
+from src.Utils import *
 from src.Lattice import *
 
-nameLattice = "BeamFlexionOptimization.json"
+nameLattice = "BeamFlexionOptimization"
 
 lattice = Lattice.loadLatticeObject(nameLattice)
 

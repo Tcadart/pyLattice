@@ -252,6 +252,28 @@ class Lattice(object):
         print(f"Lattice loaded successfully from {file_path}")
         return lattice
 
+    def saveLatticeObject(self, file_name: str = "LatticeObject") -> None:
+        """
+        Save the lattice object to a file.
+
+        Parameters:
+        -----------
+        file_name: str
+            Name of the file to save (with or without the '.pkl' extension).
+        """
+        folder = "Saved_Lattice"
+        os.makedirs(folder, exist_ok=True)
+
+        if not file_name.endswith(".pkl"):
+            file_name += ".pkl"
+
+        file_path = os.path.join(folder, file_name)
+
+        with open(file_path, "wb") as file:
+            pickle.dump(self, file)
+
+        print(f"Lattice saved successfully to {file_path}")
+
     @property
     def nodes(self):
         return self._nodes
