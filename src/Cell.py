@@ -498,6 +498,14 @@ class Cell(object):
             volumeBeams += beam.getVolume()
         return volumeBeams / self.getVolumeCell()
 
+    def getVolumeGeomSeparated(self) -> list:
+        volumes = np.zeros(len(self.radius))
+        for beam in self.beams:
+            if not beam.modBeam:
+                volumeBeam = beam.getVolume()
+                volumes[beam.type] += volumeBeam
+        return volumes
+
     def getRelativeDensityKriging(self, krigingModel) -> float:
         """
         Get the relative density of the cell using kriging model

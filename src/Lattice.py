@@ -2496,7 +2496,7 @@ class Lattice(object):
         self.getMinMaxValues()  # Recalculate the lattice boundaries
 
 
-    def loadRelativeDensityModel(self,model_path="Saved_Lattice/RelativeDensityKrigingModel.pkl"):
+    def loadRelativeDensityModel(self,model_path="Lattice/Saved_Lattice/RelativeDensityKrigingModel.pkl"):
         """
         Load the relative density model from a file
 

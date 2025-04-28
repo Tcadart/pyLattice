@@ -1,5 +1,5 @@
-from src.Utils import *
-from src.Lattice import *
+from Lattice.src.Utils import *
+from Lattice.src.Lattice import *
 
 nameLattice = "BeamFlexionOptimization"
 

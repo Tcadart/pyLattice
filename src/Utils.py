@@ -13,19 +13,94 @@ from mpl_toolkits.mplot3d.art3d import Line3DCollection, Poly3DCollection
 import matplotlib.colors as mcolors
 import plotly.graph_objects as go
 
-from src.Cell import Cell
+from .Cell import Cell
+import matplotlib
+matplotlib.use('TkAgg')  # Ou 'Qt5Agg', selon ton système
+
 
 class LatticeUtils:
 
-    def __init__(self):
-        self.fig = plt.figure()
-        self.ax = self.fig.add_subplot(111, projection='3d')
+    def __init__(self, initFig: bool = False):
+        if initFig:
+            self.initFigure()
+        self.fig = None
+        self.ax = None
         self.minAxis = None
         self.maxAxis = None
+        self.initFig = initFig
+        self.axisSet = False
+
+    def initFigure(self):
+        self.fig = plt.figure()
+        self.ax = self.fig.add_subplot(111, projection='3d')
+        self.initFig = True
+
+    def _prepareLatticePlotData(self, cells: list["Cell"], deformedForm: bool = False):
+        """Prepare lines and node positions for lattice plotting."""
+        beamDraw = set()
+        lines = []
+        nodes = set()
+
+        for cell in cells:
+            for beam in cell.beams:
+                if beam.radius != 0.0 and beam not in beamDraw:
+                    node1 = beam.point1.getDeformedPos() if deformedForm else (
+                    beam.point1.x, beam.point1.y, beam.point1.z)
+                    node2 = beam.point2.getDeformedPos() if deformedForm else (
+                    beam.point2.x, beam.point2.y, beam.point2.z)
+                    lines.append([node1, node2])
+                    nodes.update([node1, node2])
+                    beamDraw.add(beam)
+
+        return lines, nodes
+
+    def _getBeamColor(self, beam, color_palette, beamColor,idxColor, cells,nbRadiusBins):
+        # Assign colors based on the selected scheme
+        if beamColor == "Material":
+            colorBeam = color_palette[beam.material % len(color_palette)]
+        elif beamColor == "Type":
+            colorBeam = color_palette[beam.type % len(color_palette)]
+        elif beamColor == "Radius":
+            if beam.radius not in idxColor:
+                idxColor.append(beam.radius)
+            colorBeam = color_palette[idxColor.index(beam.radius) % len(color_palette)]
+        elif beamColor == "RadiusBin":
+            dimRadius = len(cells[0].radius)
+            # Ensure radii are extracted properly depending on the dimension
+            if not idxColor:
+                all_radii = sorted({
+                    b.radius[dimRadius] if hasattr(b.radius, '__len__') else b.radius
+                    for c in cells for b in c.beams if
+                    (b.radius[dimRadius] if hasattr(b.radius, '__len__') else b.radius) > 0
+                })
+                if not all_radii:
+                    idxColor = [0.0]
+                else:
+                    min_r, max_r = min(all_radii), max(all_radii)
+                    bin_edges = np.linspace(min_r, max_r, nbRadiusBins + 1)
+                    idxColor = bin_edges
+
+            # Get the beam radius at the specified dimension
+            radius_value = beam.radius[dimRadius] if hasattr(beam.radius,
+                                                             '__len__') else beam.radius
+            bin_idx = np.digitize(radius_value, idxColor, right=True) - 1
+            colorBeam = color_palette[bin_idx % len(color_palette)]
+        else:
+            colorBeam = "blue"
+        return colorBeam, idxColor
+
+    def _setMinMaxAxis(self, latticeDimDict: dict) -> None:
+        limMin = min(latticeDimDict["xMin"], latticeDimDict["yMin"], latticeDimDict["zMin"])
+        limMax = max(latticeDimDict["xMax"], latticeDimDict["yMax"], latticeDimDict["zMax"])
+        self.minAxis = min(limMin, self.minAxis) if self.minAxis is not None else limMin
+        self.maxAxis = max(limMax, self.maxAxis) if self.maxAxis is not None else limMax
+        self.axisSet= True
 
     def visualizeLattice3D(self, cells: list["Cell"], latticeDimDict: dict, beamColor: str = "Material",
                            voxelViz: bool = False, deformedForm: bool = False, nameSave: str = None,
-                           plotCellIndex: bool = False, explodeVoxel: float = 0.0, plotting: bool = True) -> None:
+                           plotCellIndex: bool = False, explodeVoxel: float = 0.0, plotting: bool = True,
+                           nbRadiusBins: int = 5) -> None:
+
         """
         Visualizes the lattice in 3D using matplotlib.
 
@@ -49,6 +124,8 @@ class LatticeUtils:
         plotCellIndex: bool, optional (default: False)
             If True, plot cell indices.
         """
+        if self.initFig is False:
+            self.initFigure()
 
         def generate_colors(n: int) -> list:
             """Generate a list of `n` distinct colors."""
@@ -74,29 +151,15 @@ class LatticeUtils:
             for cell in cells:
                 for beam in cell.beams:
                     if beam.radius != 0.0:
-                        node1 = beam.point1.getDeformedPos() if deformedForm else (beam.point1.x, beam.point1.y, beam.point1.z)
-                        node2 = beam.point2.getDeformedPos() if deformedForm else (beam.point2.x, beam.point2.y, beam.point2.z)
-
                         if beam not in beamDraw:
-                            # Assign colors based on the selected scheme
-                            if beamColor == "Material":
-                                colorBeam = color_palette[beam.material % len(color_palette)]
-                            elif beamColor == "Type":
-                                colorBeam = color_palette[beam.type % len(color_palette)]
-                            elif beamColor == "Radius":
-                                if beam.radius not in idxColor:
-                                    idxColor.append(beam.radius)
-                                colorBeam = color_palette[idxColor.index(beam.radius) % len(color_palette)]
-                            else:
-                                colorBeam = "blue"  # Default color
-
+                            colorBeam, idxColor = self._getBeamColor(beam, color_palette, beamColor, idxColor, cells, nbRadiusBins)
                             # Add line data
-                            lines.append([(node1[0], node1[1], node1[2]), (node2[0], node2[1], node2[2])])
+                            lines, nodes = self._prepareLatticePlotData(cells, deformedForm)
                             colors.append(colorBeam)
                             beamDraw.add(beam)
 
                         # Add node data
-                        for node in [node1, node2]:
+                        for node in nodes:
                             if node not in nodeDraw:
                                 nodeDraw.add(node)
                                 nodeX.append(node[0])
@@ -133,11 +196,8 @@ class LatticeUtils:
                 self.ax.bar3d(x + x_offset, y + y_offset, z + z_offset,
                          dx, dy, dz, color=colorCell, alpha=0.5, shade=True, edgecolor='k')
 
-
-        limMin = min(latticeDimDict["xMin"], latticeDimDict["yMin"], latticeDimDict["zMin"])
-        limMax = max(latticeDimDict["xMax"], latticeDimDict["yMax"], latticeDimDict["zMax"])
-        self.minAxis = min(limMin, self.minAxis) if self.minAxis is not None else limMin
-        self.maxAxis = max(limMax, self.maxAxis) if self.maxAxis is not None else limMax
+        if self.axisSet is False:
+            self._setMinMaxAxis(latticeDimDict)
 
         # Save or show the plot
         if plotting:
@@ -425,6 +485,109 @@ class LatticeUtils:
         self.minAxis = min(minAxis, self.minAxis) if self.minAxis is not None else minAxis
         self.maxAxis = max(maxAxis, self.maxAxis) if self.maxAxis is not None else maxAxis
 
+    def plotRadiusDistribution(self, cells: list["Cell"], nbRadiusBins: int = 5):
+        """
+        Plot the radius distribution of beams in the lattice.
+
+        Parameters:
+        -----------
+        cells: list of Cell
+            List of cells to visualize.
+        latticeDimDict: dict
+            Dictionary containing lattice dimension information (xMin, xMax, yMin, zMin, zMax).
+        nbRadiusBins: int
+            Number of bins for the histogram.
+        """
+        all_radii = []
+        all_volumes = []
+
+        for cell in cells:
+            radius = cell.getRadius()
+            if hasattr(radius, '__len__'):
+                all_radii.append(radius)
+            else:
+                all_radii.append([radius])
+            all_volumes.append(cell.getVolumeGeomSeparated())
+
+        all_radii = np.array(all_radii)
+        dimRadius = all_radii.shape[1]
+        all_volumes = np.array(all_volumes)
+        sumVolume = np.sum(all_volumes, axis=0)
+        ratio_volume = sumVolume / np.sum(sumVolume) * 100
+
+        colors = plt.cm.tab10.colors  # Up to 10 colors predefined
+
+        plt.figure(figsize=(7, 5))
+        bins = np.linspace(np.min(all_radii), np.max(all_radii), nbRadiusBins + 1)
+        bin_width = (bins[1] - bins[0]) / (dimRadius + 1)
+
+        for i in range(dimRadius):
+            shifted_bins = bins[:-1] + i * bin_width
+            plt.bar(shifted_bins, np.histogram(all_radii[:, i], bins=bins)[0],
+                    width=bin_width, align='edge', color=colors[i % len(colors)], edgecolor='black',
+                    label=f'Geometry {i}, Ratio Volume: {ratio_volume[i]:.2f}%')
+
+        plt.title('Radius Distribution')
+        plt.xlabel('Radius')
+        plt.ylabel('Count')
+        plt.legend()
+        plt.show()
+
+    def subplotLatticeGeometries(self, cells: list["Cell"], latticeDimDict: dict, nbRadiusBins: int = 5,
+                                 explodeVoxel: float = 0.0):
+        """
+        Create subplots:
+        - One subplot per geometry (radius index) with voxel visualization.
+        """
+        rmin = 0
+        rmax = 0.1
+
+        # Determine number of geometries
+        dimRadius = len(cells[0].radius) if hasattr(cells[0].radius, '__len__') else 1
+        fig, axs = plt.subplots(1, dimRadius, figsize=(5 * dimRadius, 5), subplot_kw={'projection': '3d'})
+
+        # Handle case when dimRadius == 1 (axs is not a list)
+        if dimRadius == 1:
+            axs = [axs]
+
+        for rad in range(dimRadius):
+            ax = axs[rad]
+            for cell in cells:
+                x, y, z = cell.coordinateCell
+                dx, dy, dz = cell.cellSize
+
+                # Get color based on the radius value for current geometry
+                radius = cell.getRadius()
+                radius_value = radius[rad] if hasattr(radius, '__len__') else radius
+                import matplotlib.cm as cm  # ajouter en haut si pas encore fait
+
+                # Define the colormap from blue to red
+                colormap = cm.get_cmap('coolwarm')
+
+                # Normalize radius between 0 and 1
+                radius_norm = (radius_value - rmin) / (rmax - rmin)
+                radius_norm = np.clip(radius_norm, 0.0, 1.0)
+                colorCell = colormap(radius_norm)
+
+                x_offset = explodeVoxel * (x - latticeDimDict["xMin"]) / dx
+                y_offset = explodeVoxel * (y - latticeDimDict["yMin"]) / dy
+                z_offset = explodeVoxel * (z - latticeDimDict["zMin"]) / dz
+
+                ax.bar3d(x + x_offset, y + y_offset, z + z_offset, dx, dy, dz,
+                         color=colorCell, alpha=0.5, shade=True, edgecolor='k')
+
+            if self.axisSet is False:
+                self._setMinMaxAxis(latticeDimDict)
+
+            ax.set_title(f'Geometry {rad}')
+            ax.set_xlim3d(self.minAxis, self.maxAxis)
+            ax.set_ylim3d(self.minAxis, self.maxAxis)
+            ax.set_zlim3d(self.minAxis, self.maxAxis)
+            ax.set_box_aspect([1, 1, 1])
+
+        plt.tight_layout()
+        plt.show()
+
     def show(self):
         self.ax.set_xlabel('X')
         self.ax.set_ylabel('Y')
@@ -434,3 +597,4 @@ class LatticeUtils:
         self.ax.set_zlim3d(self.minAxis, self.maxAxis)
         self.ax.set_box_aspect([1, 1, 1])
         plt.show()
+
