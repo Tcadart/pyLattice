@@ -1503,19 +1503,18 @@ class Lattice(object):
                 else:
                     cell.removeBeam(beam)
 
-    def getRelativeDensityConstraint(self, relativeDensityMax) -> float:
+    def getRelativeDensityConstraint(self, relativeDensityMax, geomScheme) -> float:
         """
         Get relative density of the lattice
         """
-        error = self.getRelativeDensity() - relativeDensityMax
-        # if error != 0:
-        #     if self.initialRelativeDensityConstraint is None:
-        #         self.initialRelativeDensityConstraint = error
-        # if self.initialRelativeDensityConstraint is not None:
-        #     error /= self.initialRelativeDensityConstraint
+        relativeDensity = self.getRelativeDensity(geomScheme)
+        print("Relative density: ", relativeDensity)
+        error = relativeDensity - relativeDensityMax
+        print("Relative density maximum: ", relativeDensityMax)
+        print("Relative density error: ", error)
         return error
 
-    def getRelativeDensity(self):
+    def getRelativeDensity(self, geomScheme=None) -> float:
         """
         Get mean relative density of all cells in lattice
 
@@ -1527,9 +1526,9 @@ class Lattice(object):
         cellRelDens = []
         for cell in self.cells:
             if self.krigingModelRelativeDensity is not None:
-                cellRelDens.append(cell.getRelativeDensityKriging(self.krigingModelRelativeDensity))
+                cellRelDens.append(cell.getRelativeDensityKriging(self.krigingModelRelativeDensity, geomScheme))
             else:
-                cellRelDens.append(cell.getRelativeDensity())
+                cellRelDens.append(cell.getRelativeDensityCell())
         meanRelDens = mean(cellRelDens)
         return meanRelDens
 
@@ -1554,7 +1553,7 @@ class Lattice(object):
                 for domainIdx in domainRadius:
                     radius[idxRad] = domainIdx
                     fictiveCell.changeBeamRadius([radius], self.gradRadius)
-                    relativeDensity.append(fictiveCell.getRelativeDensity())
+                    relativeDensity.append(fictiveCell.getRelativeDensityCell())
                 poly_coeffs = np.polyfit(domainRadius, relativeDensity, degree).flatten()
                 poly = np.poly1d(poly_coeffs)
                 self.relativeDensityPoly.append(poly)
@@ -1579,7 +1578,7 @@ class Lattice(object):
             grad.append(cell.getRelativeDensityGradient(self.relativeDensityPolyDeriv))
         return grad
 
-    def getRelativeDensityGradientKriging(self) -> list[float]:
+    def getRelativeDensityGradientKriging(self, geomScheme=None) -> list[float]:
         """
         Get relative density gradient of the lattice using kriging model
 
@@ -1589,9 +1588,14 @@ class Lattice(object):
             Gradient of relative density
         """
         grad = []
+        numberOfCells = len(self.cells)
+        if geomScheme is None or len(geomScheme) != 3:
+            geomScheme = [i < len(self.Radius) for i in range(3)]
+
         for cell in self.cells:
-            gradient3Geom = cell.getRelativeDensityGradientKriging(self.krigingModelRelativeDensity)
-            grad.extend(gradient3Geom[:len(self.Radius)])
+            gradient3Geom = cell.getRelativeDensityGradientKrigingCell(self.krigingModelRelativeDensity,
+                                                                       geomScheme) / numberOfCells
+            grad.extend(gradient3Geom[geomScheme])
         return grad
 
     def getRadiusContinuityDifference(self, delta: float = 0.01) -> list[float]:
@@ -2188,7 +2192,7 @@ class Lattice(object):
         r_min, r_max = 0.01, 0.1
         return r_min + (r_max - r_min) * r_norm  # Dé-normalisation
 
-    def setOptimizationParameters(self, optimizationParameters: list[float]) -> None:
+    def setOptimizationParameters(self, optimizationParameters: list[float], geomScheme: list[bool]) -> None:
         """
         Set optimization parameters for the lattice
 
@@ -2196,15 +2200,34 @@ class Lattice(object):
         -----------
         optimizationParameters: list of float
             List of optimization parameters
+        geomScheme: list of bool
+            List of N boolean values indicating the scheme of geometry to optimize
         """
-        if len(optimizationParameters) != self.getNumberParametersOptimization():
+        if len(optimizationParameters) != self.getNumberParametersOptimization(geomScheme):
             raise ValueError("Invalid number of optimization parameters.")
 
-        numberOfParametersPerCell = len(self.latticeType)
+        if geomScheme is None:
+            numberOfParametersPerCell = len(self.latticeType)
+        else:
+            numberOfParametersPerCell = sum(geomScheme)
+
         for cell in self.cells:
             startIdx = cell.index * numberOfParametersPerCell
             endIdx = (cell.index + 1) * numberOfParametersPerCell
             radius = optimizationParameters[startIdx:endIdx]
+
+            if len(radius) != len(cell.radius):
+                # Reconstruct the full radius vector based on geomScheme
+                full_radius = []
+                i = 0  # index for radius (optimization vector)
+                for keep, old in zip(geomScheme, cell.radius):
+                    if keep:
+                        full_radius.append(radius[i])
+                        i += 1
+                    else:
+                        full_radius.append(old)
+                radius = full_radius
+
             cell.changeBeamRadius(radius, self.gradRadius)
 
     def calculateObjective(self, typeObjective: str) -> float:
@@ -2236,7 +2259,7 @@ class Lattice(object):
         return objective
 
 
-    def getNumberParametersOptimization(self) -> int:
+    def getNumberParametersOptimization(self, geomScheme) -> int:
         """
         Get number of parameters for optimization
 
@@ -2247,7 +2270,10 @@ class Lattice(object):
         """
         numParameters = 0
         for cell in self.cells:
-            numParameters += len(cell.radius)
+            if geomScheme is None:
+                numParameters += len(cell.radius)
+            else:
+                numParameters += sum(geomScheme)
         return numParameters
 
     def applyReactionForceOnNodeList(self, reactionForce: list, nodeCoordinatesList: list):
@@ -2515,4 +2541,31 @@ class Lattice(object):
         else:
             gpr = joblib.load(model_path)
             self.krigingModelRelativeDensity = gpr
+
+    def deleteBeamsUnderThreshold(self, threshold: float = 0.01) -> None:
+        """
+        Delete beams with radius under a certain threshold
+
+        Parameters:
+        -----------
+        threshold: float
+            Threshold value for beam radius
+        """
+        for cell in self.cells:
+            beamsToRemove = []
+            for beam in cell.beams:
+                if beam.radius <= threshold:
+                    beamsToRemove.append(beam)
+            for beam in beamsToRemove:
+                cell.removeBeam(beam)
+
+    def deleteBeamsGeomScheme(self, geomScheme):
+        for cell in self.cells:
+            beamsToRemove = []
+            for beam in cell.beams:
+                if not geomScheme[beam.type]:
+                    beamsToRemove.append(beam)
+            for beam in beamsToRemove:
+                cell.removeBeam(beam)
+
 

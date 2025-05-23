@@ -545,10 +545,10 @@ class LatticeUtils:
         # Determine number of geometries
         dimRadius = len(cells[0].radius) if hasattr(cells[0].radius, '__len__') else 1
         fig, axs = plt.subplots(1, dimRadius, figsize=(5 * dimRadius, 5), subplot_kw={'projection': '3d'})
+        axs = [axs] if dimRadius == 1 else axs  # Ensure axs is always iterable
+        for ax in axs:
+            ax.set_axis_off()
 
-        # Handle case when dimRadius == 1 (axs is not a list)
-        if dimRadius == 1:
-            axs = [axs]
 
         for rad in range(dimRadius):
             ax = axs[rad]

@@ -38,11 +38,26 @@ class Cell(object):
         uncertaintyNode: float
             Standard deviation for adding uncertainty to node coordinates. Defaults to 0.0.
         """
-        if len(Radius) == 2:
-            self.originalTags = [1000, 1001, 1002, 1003, 1004, 1005, 1006, 1007,
-                                 100, 101, 102, 103, 104, 105, 106, 107, 108, 109, 110, 111]
-            self.originalCellGeom = [0, 0, 0, 0, 0, 0, 0, 0,
-                                     1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
+        if len(Radius) == 1:
+            if latticeType[0] == 0:
+                self.originalTags = [1000, 1001, 1002, 1003, 1004, 1005, 1006, 1007]
+                self.originalCellGeom = [0, 0, 0, 0, 0, 0, 0, 0]
+            elif latticeType[0] == 16:
+                self.originalTags = [100, 101, 102, 103, 104, 105, 106, 107, 108, 109, 110, 111]
+                self.originalCellGeom = [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
+            elif latticeType[0] == 19:
+                self.originalTags = [10, 11, 12, 13, 14, 15]
+                self.originalCellGeom = [2, 2, 2, 2, 2, 2,]
+            else:
+                raise ValueError("Lattice type not recognized")
+        elif len(Radius) == 2:
+            if latticeType[0] == 0 and latticeType[1] == 16:
+                self.originalTags = [1000, 1001, 1002, 1003, 1004, 1005, 1006, 1007,
+                                     100, 101, 102, 103, 104, 105, 106, 107, 108, 109, 110, 111]
+                self.originalCellGeom = [0, 0, 0, 0, 0, 0, 0, 0,
+                                         1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
+            else:
+                raise ValueError("Lattice type not recognized")
         else:
             self.originalTags = [1000, 1001, 1002, 1003, 1004, 1005, 1006, 1007,
                                  10, 11, 12, 13, 14, 15,
@@ -50,6 +65,7 @@ class Cell(object):
             self.originalCellGeom = [0, 0, 0, 0, 0, 0, 0, 0,
                                      2, 2, 2, 2, 2, 2,
                                      1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
+
         self.centerPoint = None
         self._beamMaterial = None
         self.cellSize = None
@@ -290,8 +306,8 @@ class Cell(object):
         for i, key in nodeInOrder.items():
             if key:
                 tag_dictNN[i] = 1
-            elif self.originalCellGeom[idx] < numberRadiusNN:
-                tag_dictNN[i] = 1
+            # elif self.originalCellGeom[idx] < numberRadiusNN:
+            #     tag_dictNN[i] = 1
             else:
                 tag_dictNN[i] = 0
             idx += 1
@@ -366,6 +382,8 @@ class Cell(object):
         if len([v for v in nodeList.values() if v is not None]) != len(reactionForce):
             print("Lenght nodeList ",len([v for v in nodeList.values() if v is not None])
                   , "Lenght reactionForce ", len(reactionForce))
+            print("nodeList", nodeList)
+            print("reactionForce", reactionForce)
             raise ValueError("Mismatch: nodeList and reactionForce must have the same length.")
 
         # for beam in self.beams:
@@ -374,9 +392,11 @@ class Cell(object):
         #         if point.indexBoundary is not None:
         #             index = list(nodeList.keys()).index(point.localTag[0])
         #             point.setReactionForce(reactionForce[index])
-        for idx, node in enumerate(nodeList):
+        idx = 0
+        for node in nodeList:
             if nodeList[node]:
                 nodeList[node].setReactionForce(reactionForce[idx])
+                idx += 1
 
     def getNumberOfBoundaryNodes(self) -> int:
         """
@@ -489,7 +509,7 @@ class Cell(object):
         """
         return self.cellSize[0] * self.cellSize[1] * self.cellSize[2]
 
-    def getRelativeDensity(self) -> float:
+    def getRelativeDensityCell(self) -> float:
         """
         Get the relative density of the cell
         """
@@ -506,7 +526,7 @@ class Cell(object):
                 volumes[beam.type] += volumeBeam
         return volumes
 
-    def getRelativeDensityKriging(self, krigingModel) -> float:
+    def getRelativeDensityKriging(self, krigingModel, geomScheme=None) -> float:
         """
         Get the relative density of the cell using kriging model
 
@@ -516,10 +536,16 @@ class Cell(object):
             Kriging model to use for prediction
         """
         radii = np.zeros(3)
-        for idx, rad in enumerate(self.radius):
-            radii[idx] = rad
+        if geomScheme is not None:
+            true_indices = [i for i, val in enumerate(geomScheme) if val]
+            for idx, val in zip(true_indices, self.radius):
+                radii[idx] = val
+        else:
+            for idx, rad in enumerate(self.radius):
+                radii[idx] = rad
         radii = np.array(radii).reshape(-1, 3)
-        return krigingModel.predict(radii)[0]
+        relativeDensity = krigingModel.predict(radii)[0]
+        return relativeDensity
 
     def getRelativeDensityGradient(self, relativeDensityPolyDeriv) -> float:
         """
@@ -540,7 +566,7 @@ class Cell(object):
             deriv += polyDeriv(self.radius[idx])
         return deriv
 
-    def getRelativeDensityGradientKriging(self, gpr):
+    def getRelativeDensityGradientKrigingCell(self, gpr,geomScheme=None) -> np.ndarray:
         """
         Retourne le gradient de la fonction volume par rapport aux rayons (dérivée partielle).
 
@@ -558,12 +584,17 @@ class Cell(object):
         """
         epsilon = 1e-3
         radii = np.zeros(3)
-        for idx, rad in enumerate(self.radius):
-            radii[idx] = rad
+        if geomScheme is not None:
+            true_indices = [i for i, val in enumerate(geomScheme) if val]
+            for idx, val in zip(true_indices, self.radius):
+                radii[idx] = val
+        else:
+            for idx, rad in enumerate(self.radius):
+                radii[idx] = rad
         radii = np.array(radii).reshape(-1, 3)
         grad = np.zeros(3)
 
-        for idx, rad in enumerate(self.radius):
+        for idx, rad in enumerate(grad):
             perturbed_radii = radii.copy()
             perturbed_radii[0][idx] += epsilon
             grad[idx] = (gpr.predict(perturbed_radii) - gpr.predict(radii)) / epsilon
@@ -658,7 +689,7 @@ class Cell(object):
         print("Coupling matrix: ", self.matB)
         print("Number of beams: ", len(self.beams))
         print("Volume of the cell: ", self.getVolumeCell())
-        print("Relative density: ", self.getRelativeDensity())
+        print("Relative density: ", self.getRelativeDensityCell())
         print("Number of nodes at boundary: ", self.getNumberNodesAtBoundary())
 
     def getTranslationRigidBody(self):
