@@ -14,16 +14,15 @@ lattice = Lattice(cell_size_X, cell_size_Y, cell_size_Z, number_cell_X, number_c
                   MethodSim, uncertaintyNodeSD, periodicity=True, randomHybrid=False,
                   meshObject=None)
 
-vizualizer.saveLatticeObject(lattice, "LatticeTest")
+# vizualizer.saveLatticeObject(lattice, "LatticeTest")
 # lattice.cutBeamsAtMeshIntersection()
 
 # print(lattice.getRelativeDensity())
 # vizualizer.saveJSONToGrasshopper(lattice, "2geomFigure", multipleParts=1)
-# vizualizer.visualizeLattice3D(lattice.cells, lattice.latticeDimensionsDict, "Radius", voxelViz=False,
-#                               explodeVoxel=0.1, plotting = False)
+vizualizer.visualizeLattice3D(lattice.cells, lattice.latticeDimensionsDict, "Radis", voxelViz=False, plotting = False)
 
 
 # vizualizer.visualizeMesh(meshObject)
 
-# vizualizer.show()
+vizualizer.show()
 # fig.show()

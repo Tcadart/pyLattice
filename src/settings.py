@@ -15,12 +15,12 @@ cell_size_X = cell_size
 cell_size_Y = cell_size
 cell_size_Z = cell_size
 number_cell = 2  #50
-number_cell_X = 1
+number_cell_X = 10
 number_cell_Y = 1
-number_cell_Z = 1
+number_cell_Z = 5
 
 Lattice_Type = [0, 16, 19]
-Lattice_Type = [1]
+Lattice_Type = [0]
 # -2 => Method random cell
 # -1 => Full random
 # 0 => BCC

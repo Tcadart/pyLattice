@@ -2,6 +2,7 @@ from Lattice.src.Utils import *
 from Lattice.src.Lattice import *
 
 nameLattice = "BeamFlexionOptimization"
+# nameLattice = "LatticeTest"
 
 lattice = Lattice.loadLatticeObject(nameLattice)
 

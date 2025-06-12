@@ -7,7 +7,7 @@ import joblib
 from colorama import Style, Fore
 from matplotlib import pyplot as plt
 
-from .Cell import *
+from src.Cell import *
 import math
 import random
 

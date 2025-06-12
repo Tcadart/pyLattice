@@ -134,7 +134,7 @@ class LatticeUtils:
                 return base_colors[:n]
             return base_colors + list(mcolors.CSS4_COLORS.values())[:n - len(base_colors)]
 
-        self.ax.set_title("Lattice generated")
+        self.ax.set_axis_off()
 
         # Generate a large color palette to avoid missing colors
         max_elements = max(len(cells), 20)  # Dynamically decide the number of colors
@@ -192,7 +192,6 @@ class LatticeUtils:
                 x_offset = explodeVoxel * (x - latticeDimDict["xMin"]) / dx
                 y_offset = explodeVoxel * (y - latticeDimDict["yMin"]) / dy
                 z_offset = explodeVoxel * (z - latticeDimDict["zMin"]) / dz
-
                 self.ax.bar3d(x + x_offset, y + y_offset, z + z_offset,
                          dx, dy, dz, color=colorCell, alpha=0.5, shade=True, edgecolor='k')
 
