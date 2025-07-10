@@ -4,25 +4,29 @@ from Mesh.Mesh import *
 # from Preset_Lattice.Helmet import *
 from src.settings import *
 
-# meshObject = mesh("bike-helmet_0_5_cutted.stl")
-# meshObject.scaleMesh(0.5)
-# # meshObject.saveMesh("bike-helmet_0_5")
+# meshObject = mesh("CutedBone2.stl")
+# meshObject.scaleMesh(4)
+# meshObject.saveMesh("CutedBone2_scaled")
 
 vizualizer = LatticeUtils()
 lattice = Lattice(cell_size_X, cell_size_Y, cell_size_Z, number_cell_X, number_cell_Y, number_cell_Z,
                   Lattice_Type, Radius, materialName, gradRadiusProperty, gradDimProperty, gradMatProperty,
-                  MethodSim, uncertaintyNodeSD, periodicity=True, randomHybrid=False,
+                  MethodSim, uncertaintyNodeSD, periodicity=False, randomHybrid=False, erasedParts=erasedParts,
                   meshObject=None)
 
 # vizualizer.saveLatticeObject(lattice, "LatticeTest")
 # lattice.cutBeamsAtMeshIntersection()
+# lattice.printStatistics()
 
 # print(lattice.getRelativeDensity())
-# vizualizer.saveJSONToGrasshopper(lattice, "2geomFigure", multipleParts=1)
-vizualizer.visualizeLattice3D(lattice.cells, lattice.latticeDimensionsDict, "Radis", voxelViz=False, plotting = False)
+# vizualizer.saveJSONToGrasshopper(lattice, "BoneLatticeCutted", multipleParts=1)
+# vizualizer.visualizeLattice3D(lattice.cells, lattice.latticeDimensionsDict, "Raduis", voxelViz=False, plotting = False)
 
+lattice.generateMeshLattice(15, beamDiscretization=2, cutMeshAtBoundary=True)
+# lattice.cutMeshLatticeAtBoundary()
 
 # vizualizer.visualizeMesh(meshObject)
+vizualizer.visualizeMesh(lattice.meshLattice)
 
 vizualizer.show()
 # fig.show()

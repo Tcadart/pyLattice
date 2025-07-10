@@ -15,6 +15,9 @@ import numpy as np
 from scipy.sparse.linalg import splu
 from scipy.linalg import pinvh
 from scipy.sparse import coo_matrix
+import trimesh
+from trimesh.creation import cylinder
+
 
 
 class Lattice(object):
@@ -142,6 +145,7 @@ class Lattice(object):
         self.parameterOptimization = []
         self.krigingModelRelativeDensity = None
         self.penalizationCoefficient = 1.5 # Fixed with previous optimization
+        self.meshLattice = None
 
         # Process
         self.generateLattice()
@@ -223,7 +227,7 @@ class Lattice(object):
                    uncertaintyNode, periodicity=periodicity)
 
     @classmethod
-    def loadLatticeObject(cls, file_name: str = "LatticeObject") -> "Lattice":
+    def loadLatticeObject(cls, file_name: str = "LatticeObject", folder: str = "Saved_Lattice") -> "Lattice":
         """
         Load a lattice object from a file.
 
@@ -231,13 +235,14 @@ class Lattice(object):
         -----------
         file_name: str
             Name of the file to load (with or without the '.pkl' extension).
+        folder: str
+            Folder where the file is located.
 
         Returns:
         --------
         Lattice
             The loaded lattice object.
         """
-        folder = "Saved_Lattice"
         if not file_name.endswith(".pkl"):
             file_name += ".pkl"
 
@@ -2568,4 +2573,36 @@ class Lattice(object):
             for beam in beamsToRemove:
                 cell.removeBeam(beam)
 
+    def generateMeshLattice(self, sectionPrecision:int = 8, beamDiscretization:int = 1, cutMeshAtBoundary:bool = False):
+        mesh_list = []
 
+        bounds_min = np.array([self.xMin, self.yMin, self.zMin])
+        bounds_max = np.array([self.xMax, self.yMax, self.zMax])
+        center = (bounds_min + bounds_max) / 2
+        size = bounds_max - bounds_min
+
+        bounding_box = trimesh.creation.box(extents=size, transform=trimesh.transformations.translation_matrix(center))
+
+        for cell in self.cells:
+            for beam in cell.beams:
+                p1 = np.array(beam.point1.getPos())
+                p2 = np.array(beam.point2.getPos())
+                height = beam.length
+
+                direction = p2 - p1
+                direction /= height
+
+                cyl = cylinder(radius=beam.radius, height=height, sections=sectionPrecision, cap_ends=True)
+
+                R = trimesh.geometry.align_vectors([0, 0, 1], direction)
+                T = trimesh.transformations.translation_matrix((p1+p2)/2)
+
+                cyl.apply_transform(R)
+                cyl.apply_transform(T)
+
+                if cutMeshAtBoundary:
+                    cyl = trimesh.boolean.intersection([cyl, bounding_box])
+                mesh_list.append(cyl)
+
+        self.meshLattice = trimesh.boolean.union(mesh_list)
+        print(f"Mesh lattice has been constructed")

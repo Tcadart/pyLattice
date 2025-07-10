@@ -34,6 +34,8 @@ class LatticeUtils:
         self.fig = plt.figure()
         self.ax = self.fig.add_subplot(111, projection='3d')
         self.initFig = True
+        self.ax.set_axis_off()
+
 
     def _prepareLatticePlotData(self, cells: list["Cell"], deformedForm: bool = False):
         """Prepare lines and node positions for lattice plotting."""
@@ -134,7 +136,6 @@ class LatticeUtils:
                 return base_colors[:n]
             return base_colors + list(mcolors.CSS4_COLORS.values())[:n - len(base_colors)]
 
-        self.ax.set_axis_off()
 
         # Generate a large color palette to avoid missing colors
         max_elements = max(len(cells), 20)  # Dynamically decide the number of colors
@@ -187,7 +188,7 @@ class LatticeUtils:
                 elif beamColor == "Radius":
                     colorCell = cell.getRGBcolorDependingOfRadius()
                 else:
-                    colorCell = "blue"  # Default color
+                    colorCell = "green"  # Default color
 
                 x_offset = explodeVoxel * (x - latticeDimDict["xMin"]) / dx
                 y_offset = explodeVoxel * (y - latticeDimDict["yMin"]) / dy
@@ -475,7 +476,14 @@ class LatticeUtils:
         print(f"Lattice saved successfully to {file_path}")
 
     def visualizeMesh(self, meshObject: "MeshObject"):
-        mesh = meshObject.mesh
+        if self.initFig is False:
+            self.initFigure()
+
+        if hasattr(meshObject, "mesh"):
+            mesh = meshObject.mesh
+        else:
+            mesh = meshObject
+
         faces = mesh.vertices[mesh.faces]
         self.ax.add_collection3d(Poly3DCollection(faces, facecolors='cyan', linewidths=0.2, edgecolors='k', alpha=0.2))
 
@@ -483,6 +491,9 @@ class LatticeUtils:
         maxAxis = max(mesh.bounds[1])
         self.minAxis = min(minAxis, self.minAxis) if self.minAxis is not None else minAxis
         self.maxAxis = max(maxAxis, self.maxAxis) if self.maxAxis is not None else maxAxis
+
+        # Ajouter un point rouge à l'origine
+        self.ax.scatter([0], [0], [0], color='red', s=50, label="Origin (0,0,0)")
 
     def plotRadiusDistribution(self, cells: list["Cell"], nbRadiusBins: int = 5):
         """
