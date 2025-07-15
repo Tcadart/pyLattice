@@ -19,7 +19,6 @@ import trimesh
 from trimesh.creation import cylinder
 
 
-
 class Lattice(object):
     """
     Generate lattice structures with a lot of different parameters
@@ -144,7 +143,7 @@ class Lattice(object):
         self.nDOFperNode = 6
         self.parameterOptimization = []
         self.krigingModelRelativeDensity = None
-        self.penalizationCoefficient = 1.5 # Fixed with previous optimization
+        self.penalizationCoefficient = 1.5  # Fixed with previous optimization
         self.meshLattice = None
 
         # Process
@@ -1548,10 +1547,10 @@ class Lattice(object):
             Degree of the polynomial function
         """
         if len(self.relativeDensityPoly) == 0:
-            fictiveCell = Cell([0,0,0], [self.cellSizeX, self.cellSizeY, self.cellSizeZ],
-                               [0,0,0], self.latticeType, self.Radius, self.gradRadius, self.gradDim, self.gradMat,
-                                self.uncertaintyNode)
-            domainRadius = np.linspace(0.01,0.1,10)
+            fictiveCell = Cell([0, 0, 0], [self.cellSizeX, self.cellSizeY, self.cellSizeZ],
+                               [0, 0, 0], self.latticeType, self.Radius, self.gradRadius, self.gradDim, self.gradMat,
+                               self.uncertaintyNode)
+            domainRadius = np.linspace(0.01, 0.1, 10)
             for idxRad in range(len(self.Radius)):
                 radius = np.zeros(len(self.Radius))
                 relativeDensity = []
@@ -1617,7 +1616,7 @@ class Lattice(object):
             radiusCell = cell.getRadius()
             for neighbours in cell.neighbourCells:
                 for rad in range(len(radiusCell)):
-                    radiusContinuityDifference.append((radiusCell[rad] - neighbours.getRadius()[rad])**2 - delta**2)
+                    radiusContinuityDifference.append((radiusCell[rad] - neighbours.getRadius()[rad]) ** 2 - delta ** 2)
         return radiusContinuityDifference
 
     def getRadiusContinuityJacobian(self) -> np.ndarray:
@@ -1739,7 +1738,7 @@ class Lattice(object):
         self.applyAllConstraintsOnNodes(surfaceNames, valueDisplacement, DOF, "Displacement")
 
     def applyAllConstraintsOnNodes(self, surfaceNames: list[str], value: list[float], DOF: list[int],
-                                   type: str= "Displacement") -> None:
+                                   type: str = "Displacement") -> None:
         """
         Apply boundary conditions to the lattice
 
@@ -1761,7 +1760,7 @@ class Lattice(object):
             raise ValueError("Invalid surface name(s).")
 
         cellLists = [set(self.getCellSurface(surface)) for surface in surfaceNames]
-        cellList = set.intersection(*cellLists) # Union of all cell indices from given surfaces
+        cellList = set.intersection(*cellLists)  # Union of all cell indices from given surfaces
 
         if self.cells[-1].index < max(cellList, default=-1):
             raise ValueError("Invalid cell index, some cells do not exist.")
@@ -1853,7 +1852,6 @@ class Lattice(object):
         """
         self.applyAllConstraintsOnNodes(surfaceName, [0.0 for _ in dofFixed], dofFixed, "Displacement")
 
-
     def fixDOFOnNode(self, nodeList: list[int], dofFixed: list[int]) -> None:
         """
         Fix degree of freedom on the surface of the lattice
@@ -1911,8 +1909,7 @@ class Lattice(object):
                     node.fixDOF([i for i in range(6)])
                     idxNode += 1
 
-
-    def getDisplacementGlobal(self, withFixed: bool = False, OnlyImposed: bool = False, printLevel = 0) \
+    def getDisplacementGlobal(self, withFixed: bool = False, OnlyImposed: bool = False, printLevel=0) \
             -> tuple[list[float], list[int]]:
         """
         Get global displacement of the lattice
@@ -1954,7 +1951,6 @@ class Lattice(object):
             print("globalDisplacementIndex: ", globalDisplacementIndex)
         return globalDisplacement, globalDisplacementIndex
 
-
     def defineNodeIndexBoundary(self) -> None:
         """
         Define boundary tag for all boundary nodes and calculate the total number of boundary nodes
@@ -1975,7 +1971,7 @@ class Lattice(object):
                             IndexCounter += 1
         self.maxIndexBoundary = IndexCounter - 1
 
-    def getGlobalReactionForce(self, appliedForceAdded:bool = False) -> dict:
+    def getGlobalReactionForce(self, appliedForceAdded: bool = False) -> dict:
         """
         Get local reaction force of the lattice and sum if identical TagIndex
 
@@ -2000,7 +1996,7 @@ class Lattice(object):
                         nodeIndexProcessed.add(node.index)
         return globalReactionForce
 
-    def getGlobalReactionForceWithoutFixedDOF(self, globalReactionForce: dict, rightHandSide:bool = False) \
+    def getGlobalReactionForceWithoutFixedDOF(self, globalReactionForce: dict, rightHandSide: bool = False) \
             -> np.ndarray:
         """
         Get global reaction force of free degree of freedom
@@ -2262,7 +2258,6 @@ class Lattice(object):
         if typeObjective == "Stiffness":
             pass
         return objective
-
 
     def getNumberParametersOptimization(self, geomScheme) -> int:
         """
@@ -2526,8 +2521,7 @@ class Lattice(object):
         self.cells.extend(new_cells)
         self.getMinMaxValues()  # Recalculate the lattice boundaries
 
-
-    def loadRelativeDensityModel(self,model_path="Lattice/Saved_Lattice/RelativeDensityKrigingModel.pkl"):
+    def loadRelativeDensityModel(self, model_path="Lattice/Saved_Lattice/RelativeDensityKrigingModel.pkl"):
         """
         Load the relative density model from a file
 
@@ -2573,7 +2567,17 @@ class Lattice(object):
             for beam in beamsToRemove:
                 cell.removeBeam(beam)
 
-    def generateMeshLattice(self, sectionPrecision:int = 8, beamDiscretization:int = 1, cutMeshAtBoundary:bool = False):
+    def generateMeshLattice(self, sectionPrecision: int = 8, cutMeshAtBoundary: bool = False):
+        """
+        Generate a mesh representation of the lattice structure.
+
+        Parameters:
+        -----------
+        sectionPrecision: int
+            Number of sections for the cylindrical mesh representation of beams.
+        cutMeshAtBoundary: bool
+            If True, cut the mesh at the bounding box of the lattice.
+        """
         mesh_list = []
 
         bounds_min = np.array([self.xMin, self.yMin, self.zMin])
@@ -2595,7 +2599,7 @@ class Lattice(object):
                 cyl = cylinder(radius=beam.radius, height=height, sections=sectionPrecision, cap_ends=True)
 
                 R = trimesh.geometry.align_vectors([0, 0, 1], direction)
-                T = trimesh.transformations.translation_matrix((p1+p2)/2)
+                T = trimesh.transformations.translation_matrix((p1 + p2) / 2)
 
                 cyl.apply_transform(R)
                 cyl.apply_transform(T)

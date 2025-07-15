@@ -495,6 +495,24 @@ class LatticeUtils:
         # Ajouter un point rouge à l'origine
         self.ax.scatter([0], [0], [0], color='red', s=50, label="Origin (0,0,0)")
 
+    def saveMeshLattice(self, outputPath: str, meshObject: "MeshObject" = None):
+        """
+        Save the mesh to a file.
+
+        Parameters
+        ----------
+        outputPath : str
+            Path where the mesh should be saved.
+        """
+        if not outputPath.endswith('.stl'):
+            outputPath += '.stl'
+        if not outputPath.startswith('Mesh/'):
+            outputPath = 'Mesh/' + outputPath
+
+        meshObject.export(outputPath)
+        print(f"Mesh Lattice saved to {outputPath}")
+
+
     def plotRadiusDistribution(self, cells: list["Cell"], nbRadiusBins: int = 5):
         """
         Plot the radius distribution of beams in the lattice.
