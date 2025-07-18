@@ -20,14 +20,15 @@ lattice = Lattice(cell_size_X, cell_size_Y, cell_size_Z, number_cell_X, number_c
 
 # print(lattice.getRelativeDensity())
 # vizualizer.saveJSONToGrasshopper(lattice, "Beam3PointFlexion", multipleParts=1)
-# vizualizer.visualizeLattice3D(lattice.cells, lattice.latticeDimensionsDict, "Raduis", voxelViz=False, plotting = False)
+vizualizer.visualizeLattice3D(lattice.cells, lattice.latticeDimensionsDict, "Raduis", voxelViz=False,
+                              plotting = False, plotNodeIndex = True)
 
-lattice.generateMeshLattice(15, cutMeshAtBoundary=True)
+# lattice.generateMeshLattice(15, cutMeshAtBoundary=True)
 # lattice.cutMeshLatticeAtBoundary()
 
 # vizualizer.visualizeMesh(meshObject)
-vizualizer.visualizeMesh(lattice.meshLattice)
-vizualizer.saveMeshLattice("testLatticeMesh", lattice.meshLattice)
+# vizualizer.visualizeMesh(lattice.meshLattice)
+# vizualizer.saveMeshLattice("testLatticeMesh", lattice.meshLattice)
 
 vizualizer.show()
 # fig.show()

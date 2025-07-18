@@ -2558,7 +2558,18 @@ class Lattice(object):
             for beam in beamsToRemove:
                 cell.removeBeam(beam)
 
-    def deleteBeamsGeomScheme(self, geomScheme):
+    def deleteBeamsGeomScheme(self, geomScheme: list[bool]) -> None:
+        """
+        Delete beams based on the geometry scheme.
+        If geomScheme[i] is False, the beam of type i will be removed.
+        Usefull for hybrid lattices geometry.
+
+        Parameters:
+        -----------
+        geomScheme: list of bool
+            List of N boolean values indicating the scheme of geometry to optimize
+            If geomScheme[i] is False, the beam of type i will be removed.
+        """
         for cell in self.cells:
             beamsToRemove = []
             for beam in cell.beams:

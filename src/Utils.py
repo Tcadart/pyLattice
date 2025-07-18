@@ -37,24 +37,24 @@ class LatticeUtils:
         self.ax.set_axis_off()
 
 
-    def _prepareLatticePlotData(self, cells: list["Cell"], deformedForm: bool = False):
+    def _prepareLatticePlotData(self, beam, deformedForm: bool = False):
         """Prepare lines and node positions for lattice plotting."""
         beamDraw = set()
         lines = []
+        index = []
         nodes = set()
 
-        for cell in cells:
-            for beam in cell.beams:
-                if beam.radius != 0.0 and beam not in beamDraw:
-                    node1 = beam.point1.getDeformedPos() if deformedForm else (
-                    beam.point1.x, beam.point1.y, beam.point1.z)
-                    node2 = beam.point2.getDeformedPos() if deformedForm else (
-                    beam.point2.x, beam.point2.y, beam.point2.z)
-                    lines.append([node1, node2])
-                    nodes.update([node1, node2])
-                    beamDraw.add(beam)
+        if beam.radius != 0.0 and beam not in beamDraw:
+            node1 = beam.point1.getDeformedPos() if deformedForm else (
+            beam.point1.x, beam.point1.y, beam.point1.z)
+            node2 = beam.point2.getDeformedPos() if deformedForm else (
+            beam.point2.x, beam.point2.y, beam.point2.z)
+            lines.append([node1, node2])
+            nodes.update([node1, node2])
+            index.append(beam.point1.index)
+            index.append(beam.point2.index)
 
-        return lines, nodes
+        return lines, nodes, index
 
     def _getBeamColor(self, beam, color_palette, beamColor,idxColor, cells,nbRadiusBins):
         # Assign colors based on the selected scheme
@@ -100,8 +100,8 @@ class LatticeUtils:
 
     def visualizeLattice3D(self, cells: list["Cell"], latticeDimDict: dict, beamColor: str = "Material",
                            voxelViz: bool = False, deformedForm: bool = False, nameSave: str = None,
-                           plotCellIndex: bool = False, explodeVoxel: float = 0.0, plotting: bool = True,
-                           nbRadiusBins: int = 5) -> None:
+                           plotCellIndex: bool = False, plotNodeIndex: bool = False, explodeVoxel: float = 0.0,
+                           plotting: bool = True, nbRadiusBins: int = 5) -> None:
 
         """
         Visualizes the lattice in 3D using matplotlib.
@@ -151,21 +151,26 @@ class LatticeUtils:
 
             for cell in cells:
                 for beam in cell.beams:
-                    if beam.radius != 0.0:
-                        if beam not in beamDraw:
-                            colorBeam, idxColor = self._getBeamColor(beam, color_palette, beamColor, idxColor, cells, nbRadiusBins)
-                            # Add line data
-                            lines, nodes = self._prepareLatticePlotData(cells, deformedForm)
-                            colors.append(colorBeam)
-                            beamDraw.add(beam)
+                    if beam.radius != 0.0 and beam not in beamDraw:
+                        colorBeam, idxColor = self._getBeamColor(beam, color_palette, beamColor, idxColor, cells,
+                                                                 nbRadiusBins)
 
-                        # Add node data
-                        for node in nodes:
+                        # Add line and node data
+                        beam_lines, beam_nodes, beam_indices = self._prepareLatticePlotData(beam, deformedForm)
+                        lines.extend(beam_lines)
+                        colors.extend([colorBeam] * len(beam_lines))  # One color per line
+
+                        for i, node in enumerate(beam_nodes):
                             if node not in nodeDraw:
                                 nodeDraw.add(node)
                                 nodeX.append(node[0])
                                 nodeY.append(node[1])
                                 nodeZ.append(node[2])
+                                if plotNodeIndex:
+                                    self.ax.text(node[0], node[1], node[2], str(beam_indices[i]), fontsize=6,
+                                                 color='gray')
+
+                        beamDraw.add(beam)
 
                 if plotCellIndex:
                     self.ax.text(cell.centerPoint[0], cell.centerPoint[1], cell.centerPoint[2], str(cell.index),
