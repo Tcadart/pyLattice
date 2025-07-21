@@ -17,6 +17,8 @@ from scipy.linalg import pinvh
 from scipy.sparse import coo_matrix
 import trimesh
 from trimesh.creation import cylinder
+from src.Timing import *
+timing = Timing()
 
 
 class Lattice(object):
@@ -367,6 +369,7 @@ class Lattice(object):
 
         return sizeLattice
 
+    @timing.timeit
     def getGradSettings(self, gradProperties: list) -> list[list[float]]:
         """
         Generate gradient settings based on the provided rule, direction, and parameters.
@@ -441,6 +444,7 @@ class Lattice(object):
                     indices[dim] += 1
         return gradientData
 
+    @timing.timeit
     def gradMaterialSetting(self, gradMatProperty: list) -> list:
         """
         Define gradient material settings.
@@ -481,6 +485,7 @@ class Lattice(object):
         # Default case: return an empty gradMat if no valid `multimat` is provided
         return []
 
+    @timing.timeit
     def isNotInErasedRegion(self, startCellPos: list[float]) -> bool:
         """
         Check if the cell is not in the erased region or inside the mesh.
@@ -526,6 +531,7 @@ class Lattice(object):
                 return True
         return False
 
+    @timing.timeit
     def generateLattice(self) -> None:
         """
         Generates lattice structure based on specified parameters.
@@ -579,6 +585,7 @@ class Lattice(object):
         if len(self.latticeType) > 1:
             self.checkHybridCollision()
 
+    @timing.timeit
     def defineBeamNodeIndex(self) -> None:
         """
         Define index at each beam and node
@@ -618,6 +625,7 @@ class Lattice(object):
                         else:
                             node.setIndex(nodeIndexed[node])
 
+    @timing.timeit
     def defineCellIndex(self) -> None:
         """
         Define index at each cell
@@ -636,6 +644,7 @@ class Lattice(object):
                     cellIndexed[cell] = nextCellIndex
                     nextCellIndex += 1
 
+    @timing.timeit
     def defineCellNeighbours(self) -> None:
         """
         Define neighbours for each cell in the lattice
@@ -715,6 +724,7 @@ class Lattice(object):
                     beamObjList.append(beam)
         return beamObjList
 
+    @timing.timeit
     def getListAngleBeam(self, beam: "Beam", pointbeams: list["Beam"]) -> tuple[list[float], list[float]]:
         """
         Calculate an angle between the considerate beam and beams contains in pointbeams
@@ -814,9 +824,10 @@ class Lattice(object):
         non_zero_radiusbeam = [radius for angle, radius in zip(anglebeam, radiusBeam) if angle >= 0.01]
         return non_zero_anglebeam, non_zero_radiusbeam
 
+    @timing.timeit
     def getConnectedBeams(self, beamList: list["Beam"], beam: "Beam") -> tuple[list["Beam"], list["Beam"]]:
         """
-        get all beams connected to the interest beam
+        Get all beams connected to the interest beam
 
         Parameters:
         -----------
@@ -867,6 +878,7 @@ class Lattice(object):
 
         return point1beams, point2beams
 
+    @timing.timeit
     def getAllAngles(self) -> None:
         """
         Calculates angles between beams in the lattice.
@@ -877,6 +889,7 @@ class Lattice(object):
             data structure => ((beam_index, Angle mininmum point 1, minRad1, Angle mininmum point 2, minRad2))
         """
 
+        @timing.timeit
         def findMinAngle(angles, radii):
             """
             Find Minimum angle between beams and radius connection to this particular beam
@@ -893,28 +906,28 @@ class Lattice(object):
             return LAngle, LRadius
 
         # Create list of beam
-        beamList = []
         for cell in self.cells:
+            beamList = []
+            cellListNeighbours = cell.getNeighbourCells()
+            cellListNeighbours.append(cell)  # Include the cell itself
+            for neighbour in cellListNeighbours:
+                for beam in neighbour.beams:
+                    if beam not in beamList:
+                        beamList.append(beam)
+            angleList = {}
             for beam in cell.beams:
-                if beam not in beamList:
-                    beamList.append(beam)
-
-        angleList = {}
-        for beam in beamList:
-            # Determine beams on nodes
-            point1beams, point2beams = self.getConnectedBeams(beamList, beam)
-            # Determine angle for all beams connected at the node
-            non_zero_anglebeam1, non_zero_radiusbeam1 = self.getListAngleBeam(beam, point1beams)
-            non_zero_anglebeam2, non_zero_radiusbeam2 = self.getListAngleBeam(beam, point2beams)
-            # Find the lowest angle
-            LAngle1, LRadius1 = findMinAngle(non_zero_anglebeam1, non_zero_radiusbeam1)
-            LAngle2, LRadius2 = findMinAngle(non_zero_anglebeam2, non_zero_radiusbeam2)
-            angleList[beam.index] = (LRadius1, round(LAngle1, 2), LRadius2, round(LAngle2, 2))
-
-        for cell in self.cells:
-            for beam in cell.beams:
+                # Determine beams on nodes
+                point1beams, point2beams = self.getConnectedBeams(beamList, beam)
+                # Determine angle for all beams connected at the node
+                non_zero_anglebeam1, non_zero_radiusbeam1 = self.getListAngleBeam(beam, point1beams)
+                non_zero_anglebeam2, non_zero_radiusbeam2 = self.getListAngleBeam(beam, point2beams)
+                # Find the lowest angle
+                LAngle1, LRadius1 = findMinAngle(non_zero_anglebeam1, non_zero_radiusbeam1)
+                LAngle2, LRadius2 = findMinAngle(non_zero_anglebeam2, non_zero_radiusbeam2)
+                angleList[beam.index] = (LRadius1, round(LAngle1, 2), LRadius2, round(LAngle2, 2))
                 beam.setAngle(angleList[beam.index])
 
+    @timing.timeit
     def getMinMaxValues(self) -> None:
         """
         Computes extremum values of coordinates in the lattice.
@@ -956,6 +969,7 @@ class Lattice(object):
             "zMax": self.zMax
         }
 
+    @timing.timeit
     def getBeamNodeMod(self) -> None:
         """
         Modifies beam and node data to model lattice structures for simulation with rigidity penalization at node
@@ -1084,6 +1098,7 @@ class Lattice(object):
                         nodeAlreadyAdded.append(node)
         return tagList
 
+    @timing.timeit
     def applyTagToAllPoint(self) -> None:
         """
         Generate tag to all nodes in lattice
@@ -1951,6 +1966,7 @@ class Lattice(object):
             print("globalDisplacementIndex: ", globalDisplacementIndex)
         return globalDisplacement, globalDisplacementIndex
 
+    @timing.timeit
     def defineNodeIndexBoundary(self) -> None:
         """
         Define boundary tag for all boundary nodes and calculate the total number of boundary nodes
@@ -2447,6 +2463,7 @@ class Lattice(object):
             new_beams = []
             beams_to_remove = []
 
+    @timing.timeit
     def applySymmetry(self, symmetry_plane: str, reference_point: tuple = (0, 0, 0)) -> None:
         """
         Apply symmetry to the lattice structure based on a reference point.
@@ -2521,6 +2538,7 @@ class Lattice(object):
         self.cells.extend(new_cells)
         self.getMinMaxValues()  # Recalculate the lattice boundaries
 
+    @timing.timeit
     def loadRelativeDensityModel(self, model_path="Lattice/Saved_Lattice/RelativeDensityKrigingModel.pkl"):
         """
         Load the relative density model from a file

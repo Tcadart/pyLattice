@@ -1,4 +1,9 @@
-matplotlib
-numpy
-scipy
-plotly
+matplotlib~=3.8.0
+numpy~=1.26.4
+scipy~=1.15.2
+plotly~=5.24.1
+
+trimesh~=4.6.3
+colorama~=0.4.6
+joblib~=1.4.2
+scikit-learn~=1.4.2
