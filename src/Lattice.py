@@ -103,6 +103,7 @@ class Lattice(object):
         self.zMin = None
         self.latticeDimensionsDict = None
         self.dictSchurComplement = None
+        self.objectifData = None
 
         self.cellSizeX = cell_size_x
         self.cellSizeY = cell_size_y
@@ -1734,7 +1735,7 @@ class Lattice(object):
         self.applyAllConstraintsOnNodes(surfaceNames, valueDisplacement, DOF, "Displacement")
 
     def applyAllConstraintsOnNodes(self, surfaceNames: list[str], value: list[float], DOF: list[int],
-                                   type: str= "Displacement") -> None:
+                                   type: str= "Displacement", surfaceNamePoint: list[str] = None) -> None:
         """
         Apply boundary conditions to the lattice
 
@@ -1749,6 +1750,38 @@ class Lattice(object):
         type: str
             Type of constraint (Displacement, Force)
 
+        """
+        if surfaceNamePoint is None:
+            pointSet = self.findPointOnLatticeSurface(surfaceNames)
+        else:
+            pointSet = self.findPointOnLatticeSurfaceComplex(surfaceNames, surfaceNamePoint)
+
+        indexBoundaryList = {point.indexBoundary for point in pointSet}
+
+        for cell in self.cells:
+            for beam in cell.beams:
+                for node in [beam.point1, beam.point2]:
+                    if node.indexBoundary in indexBoundaryList:
+                        for val, DOFi in zip(value, DOF):
+                            if type == "Displacement":
+                                node.setDisplacementValue(val, DOFi)
+                                node.fixDOF([DOFi])
+                            elif type == "Force":
+                                node.setForceValue(val, DOFi)
+
+    def findPointOnLatticeSurface(self, surfaceNames: list[str]) -> set["Point"]:
+        """
+        Find points on the surface of the lattice
+
+        Parameters:
+        -----------
+        surfaceNames: list[str]
+            List of surfaces to find points on (e.g., ["Xmin", "Xmax", "Ymin"])
+
+        Returns:
+        --------
+        pointSet: set of Point objects
+            Set of points found on the specified surfaces
         """
         valid_surfaces = {"Xmin", "Xmax", "Ymin", "Ymax", "Zmin", "Zmax"}
 
@@ -1775,21 +1808,52 @@ class Lattice(object):
         if pointSet == set():
             raise ValueError("No points found on the specified surfaces.")
 
-        indexBoundaryList = {point.indexBoundary for point in pointSet}
+        return pointSet
 
+    def findPointOnLatticeSurfaceComplex(self, surfaceNamesCell: list[str], surfaceNamePoint: list[str]) \
+            -> set["Point"]:
+        """
+        Find points on the surface of the lattice
+
+        Parameters:
+        -----------
+        surfaceNames: list[str]
+            List of surfaces to find points on (e.g., ["Xmin", "Xmax", "Ymin"])
+
+        Returns:
+        --------
+        pointSet: set of Point objects
+            Set of points found on the specified surfaces
+        """
+        valid_surfaces = {"Xmin", "Xmax", "Ymin", "Ymax", "Zmin", "Zmax", "Xmid", "Ymid", "Zmid"}
+
+        if not all(surface in valid_surfaces for surface in surfaceNamesCell):
+            raise ValueError("Invalid surface name(s).")
+
+        cellLists = [set(self.getCellSurface(surface)) for surface in surfaceNamesCell]
+        cellList = set.intersection(*cellLists)  # Union of all cell indices from given surfaces
+
+        if self.cells[-1].index < max(cellList, default=-1):
+            raise ValueError("Invalid cell index, some cells do not exist.")
+
+        pointSet = None
         for cell in self.cells:
-            for beam in cell.beams:
-                for node in [beam.point1, beam.point2]:
-                    if node.indexBoundary in indexBoundaryList:
-                        for val, DOFi in zip(value, DOF):
-                            if type == "Displacement":
-                                node.setDisplacementValue(val, DOFi)
-                                node.fixDOF([DOFi])
-                            elif type == "Force":
-                                node.setForceValue(val, DOFi)
+            if cell.index in cellList:
+                cellPointSets = [set(cell.getPointOnSurface(surface)) for surface in surfaceNamePoint]
+                if cellPointSets:
+                    if pointSet is None:
+                        pointSet = set.intersection(*cellPointSets)
+                    else:
+                        pointSet.update(set.intersection(*cellPointSets))
+        pointSet = pointSet if pointSet is not None else set()
 
-    def applyBoundaryConditionsOnNode(self, nodeList: list[int], valueDisplacement: float,
-                                      DOF: int) -> None:
+        if pointSet == set():
+            raise ValueError("No points found on the specified surfaces.")
+
+        return pointSet
+
+    def applyBoundaryConditionsOnNode(self, nodeList: list[int], valueDisplacement: list[float],
+                                      DOF: list[int]) -> None:
         """
         Apply boundary conditions to the lattice
 
@@ -1815,8 +1879,9 @@ class Lattice(object):
             for beam in cell.beams:
                 for node in [beam.point1, beam.point2]:
                     if node.index in indexBoundaryList:
-                        node.setDisplacementValue(valueDisplacement, DOF)
-                        node.fixDOF([DOF])
+                        for val, DOFi in zip(valueDisplacement, DOF):
+                            node.setDisplacementValue(val, DOFi)
+                            node.fixDOF([DOFi])
 
     def applyForceOnSurface(self, surfaceName: list[str], valueForce: list[float], DOF: list[int]) -> None:
         """
@@ -2115,6 +2180,7 @@ class Lattice(object):
         if np.any(globalSchurComplement.sum(axis=1) == 0):
             print("Attention : There are some rows with all zeros in the Schur complement matrix.")
         cond_number = np.linalg.cond(globalSchurComplement.toarray())
+        print("Condition number of the Schur complement matrix: ", cond_number)
 
         # Factorize preconditioner
         LUSchurComplement = None
@@ -2122,28 +2188,35 @@ class Lattice(object):
         if cond_number > 1e15:
             inverseSchurComplement = np.linalg.pinv(globalSchurComplement.toarray())
             # inverseSchurComplement = None
-            # print("Using pseudo-inverse of the Schur complement matrix.")
+            print("Using pseudo-inverse of the Schur complement matrix.")
         else:
             globalSchurComplement = globalSchurComplement.tocsc()
             LUSchurComplement = splu(globalSchurComplement)
-            # print("Using LU decomposition of the Schur complement matrix.")
+            print("Using LU decomposition of the Schur complement matrix.")
         return LUSchurComplement, inverseSchurComplement
 
     def getCellSurface(self, surface: str) -> list[int]:
         """
-        Get a cell list on the surface of the lattice
+        Get a cell list on the surface of the lattice.
 
         Parameters:
         -----------
         surface: str
-            Surface to get points (Xmin, Xmax, Ymin, Ymax, Zmin, Zmax)
+            Surface to get points ("Xmin", "Xmax", "Ymin", "Ymax", "Zmin", "Zmax", "Xmid", "Ymid", "Zmid")
 
         Returns:
         --------
         cellTagList: list of cell index
         """
-        if surface not in ["Xmin", "Xmax", "Ymin", "Ymax", "Zmin", "Zmax"]:
+        valid_surfaces = ["Xmin", "Xmax", "Ymin", "Ymax", "Zmin", "Zmax", "Xmid", "Ymid", "Zmid"]
+        if surface not in valid_surfaces:
             raise ValueError("Invalid surface name.")
+
+        mid_dict = {
+            "Xmid": 0.5 * (self.xMin + self.xMax),
+            "Ymid": 0.5 * (self.yMin + self.yMax),
+            "Zmid": 0.5 * (self.zMin + self.zMax)
+        }
 
         surface_dict = {
             "Xmin": ("x", self.xMin),
@@ -2151,7 +2224,10 @@ class Lattice(object):
             "Ymin": ("y", self.yMin),
             "Ymax": ("y", self.yMax),
             "Zmin": ("z", self.zMin),
-            "Zmax": ("z", self.zMax)
+            "Zmax": ("z", self.zMax),
+            "Xmid": ("x", mid_dict["Xmid"]),
+            "Ymid": ("y", mid_dict["Ymid"]),
+            "Zmid": ("z", mid_dict["Zmid"])
         }
 
         axis, valueSurface = surface_dict[surface]
@@ -2254,7 +2330,18 @@ class Lattice(object):
                 print("Reaction force: ", reaction_force_array[displacement != 0])
                 print("Displacement: ", displacement[displacement != 0])
                 print("Compliance: ", objective)
-        if typeObjective == "Stiffness":
+        elif typeObjective == "Displacement":
+            setNode = self.findPointOnLatticeSurface(surfaceNames=self.objectifData["surface"])
+            displacements = []
+            for node in setNode:
+                for dof in self.objectifData["DOF"]:
+                    if dof < 0 or dof > 5:
+                        raise ValueError("Invalid degree of freedom index.")
+                    displacements.append(node.displacementValue[dof])
+            displacements = np.array(displacements)
+            objective = sum(abs(displacements)) / len(displacements)
+
+        elif typeObjective == "Stiffness":
             pass
         return objective
 
@@ -2568,4 +2655,14 @@ class Lattice(object):
             for beam in beamsToRemove:
                 cell.removeBeam(beam)
 
+    def setObjectiveData(self, objectifData: dict) -> None:
+        """
+        Add objective data to the lattice
+
+        Parameters:
+        -----------
+        objectifData: dict
+            Dictionary containing objective data
+        """
+        self.objectifData = objectifData
 

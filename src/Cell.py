@@ -241,7 +241,8 @@ class Cell(object):
         Parameters:
         -----------
         surfaceName: str
-            Name of the surface. Choose from 'Xmin', 'Xmax', 'Ymin', 'Ymax', 'Zmin', or 'Zmax'.
+            Name of the surface. Choose from 'Xmin', 'Xmax', 'Ymin', 'Ymax', 'Zmin', 'Zmax', 'Xmid', 'Ymid', 'Zmid'.
+            If 'Xmid', 'Ymid', or 'Zmid' is specified, it returns the points at the bottom of the cell
 
         Returns:
         --------
@@ -254,19 +255,31 @@ class Cell(object):
             "Ymin": self.coordinateCell[1],
             "Ymax": self.coordinateCell[1] + self.cellSize[1],
             "Zmin": self.coordinateCell[2],
-            "Zmax": self.coordinateCell[2] + self.cellSize[2]
+            "Zmax": self.coordinateCell[2] + self.cellSize[2],
+            "Xmid": self.coordinateCell[0],
+            "Ymid": self.coordinateCell[1],
+            "Zmid": self.coordinateCell[2]
+        }
+
+        coord_index = {
+            "Xmin": "x", "Xmax": "x", "Xmid": "x",
+            "Ymin": "y", "Ymax": "y", "Ymid": "y",
+            "Zmin": "z", "Zmax": "z", "Zmid": "z"
         }
 
         if surfaceName not in surface_map:
             raise ValueError(
-                "Surface " + str(surfaceName) + " is not valid. Choose from 'Xmin', 'Xmax', 'Ymin', 'Ymax', 'Zmin', "
-                                                "or 'Zmax'.")
+                f"Surface '{surfaceName}' is not valid. Choose from 'Xmin', 'Xmax', 'Ymin', 'Ymax', 'Zmin', 'Zmax', "
+                f"'Xmid', 'Ymid', 'Zmid'.")
 
         surface_value = surface_map[surfaceName]
-        coord_index = {"Xmin": "x", "Xmax": "x", "Ymin": "y", "Ymax": "y", "Zmin": "z", "Zmax": "z"}
+        axis = coord_index[surfaceName]
 
-        return [point for beam in self.beams for point in [beam.point1, beam.point2] if
-                getattr(point, coord_index[surfaceName]) == surface_value]
+        return list({
+            point for beam in self.beams
+            for point in [beam.point1, beam.point2]
+            if getattr(point, axis) == surface_value
+        })
 
     def getRadius(self) -> list[float]:
         """
