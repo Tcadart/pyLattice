@@ -688,6 +688,17 @@ class Cell(object):
         """
         self.neighbourCells.append(neighbourCell)
 
+    def getNeighbourCells(self) -> list:
+        """
+        Get the list of neighbour cells
+
+        Returns:
+        --------
+        list
+            List of neighbour cells
+        """
+        return self.neighbourCells
+
     def printCellData(self):
         print("Cell position: ", self.posCell)
         print("Cell coordinates: ", self.coordinateCell)
