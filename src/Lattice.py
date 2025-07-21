@@ -648,30 +648,58 @@ class Lattice(object):
     @timing.timeit
     def defineCellNeighbours(self) -> None:
         """
-        Define neighbours for each cell in the lattice
+        Define neighbours for each cell in the lattice, with periodic boundaries if enabled.
         """
-        cell_dict = {}  # Dictionary to store cells by position
+        cell_dict = {tuple(cell.posCell): cell for cell in self.cells}
 
-        # Store cells in a dictionary with their position as key
-        for cell in self.cells:
-            cell_dict[tuple(cell.posCell)] = cell
-
-        # Neighbor offsets for 6-connectivity
         neighbor_offsets = [
-            (-1, 0, 0), (1, 0, 0),  # X direction neighbors
-            (0, -1, 0), (0, 1, 0),  # Y direction neighbors
-            (0, 0, -1), (0, 0, 1)  # Z direction neighbors
+            (-self.cellSizeX, 0, 0), (self.cellSizeX, 0, 0),
+            (0, -self.cellSizeY, 0), (0, self.cellSizeY, 0),
+            (0, 0, -self.cellSizeZ), (0, 0, self.cellSizeZ)
         ]
 
-        # Iterate over all cells and find their neighbors
         for cell in self.cells:
-            cell.neighbourCells = []  # Reset neighbor list
+            cell.neighbourCells = []
             for offset in neighbor_offsets:
-                neighbor_pos = (cell.posCell[0] + offset[0],
-                                cell.posCell[1] + offset[1],
-                                cell.posCell[2] + offset[2])
-                if neighbor_pos in cell_dict:  # Check if neighbor exists
+                raw_pos = (
+                    cell.posCell[0] + offset[0],
+                    cell.posCell[1] + offset[1],
+                    cell.posCell[2] + offset[2]
+                )
+
+                if self.periodicity:
+                    # périodicité X
+                    if raw_pos[0] < self.xMin:
+                        neighbor_x = self.xMax + offset[0]
+                    elif raw_pos[0] >= self.xMax:
+                        neighbor_x = self.xMin
+                    else:
+                        neighbor_x = raw_pos[0]
+                    # périodicité Y
+                    if raw_pos[1] < self.yMin:
+                        neighbor_y = self.yMax + offset[1]
+                    elif raw_pos[1] >= self.yMax:
+                        neighbor_y = self.yMin
+                    else:
+                        neighbor_y = raw_pos[1]
+                    # périodicité Z
+                    if raw_pos[2] < self.zMin:
+                        neighbor_z = self.zMax + offset[2]
+                    elif raw_pos[2] >= self.zMax:
+                        neighbor_z = self.zMin
+                    else:
+                        neighbor_z = raw_pos[2]
+
+                    neighbor_pos = (neighbor_x, neighbor_y, neighbor_z)
+                else:
+                    if not (self.xMin <= raw_pos[0] <= self.xMax and
+                            self.yMin <= raw_pos[1] <= self.yMax and
+                            self.zMin <= raw_pos[2] <= self.zMax):
+                        continue
+                    neighbor_pos = raw_pos
+                if neighbor_pos in cell_dict:
                     cell.addCellNeighbour(cell_dict[neighbor_pos])
+
 
     def getNodeData(self) -> None:
         """
@@ -911,6 +939,7 @@ class Lattice(object):
             beamList = []
             cellListNeighbours = cell.getNeighbourCells()
             cellListNeighbours.append(cell)  # Include the cell itself
+            # print(f"Cell {cell.index} neighbours: {[neighbour.index for neighbour in cellListNeighbours]}")
             for neighbour in cellListNeighbours:
                 for beam in neighbour.beams:
                     if beam not in beamList:
@@ -918,10 +947,14 @@ class Lattice(object):
             angleList = {}
             for beam in cell.beams:
                 # Determine beams on nodes
+                # print(beam)
                 point1beams, point2beams = self.getConnectedBeams(beamList, beam)
+                # print(f"Beam {beam.index} connected to {len(point1beams)} beams at point1 and {len(point2beams)} beams at point2")
                 # Determine angle for all beams connected at the node
                 non_zero_anglebeam1, non_zero_radiusbeam1 = self.getListAngleBeam(beam, point1beams)
                 non_zero_anglebeam2, non_zero_radiusbeam2 = self.getListAngleBeam(beam, point2beams)
+                # print(f"Beam {beam.index} angles at point1: {non_zero_anglebeam1}, radii: {non_zero_radiusbeam1}")
+                # print(f"Beam {beam.index} angles at point2: {non_zero_anglebeam2}, radii: {non_zero_radiusbeam2}")
                 # Find the lowest angle
                 LAngle1, LRadius1 = findMinAngle(non_zero_anglebeam1, non_zero_radiusbeam1)
                 LAngle2, LRadius2 = findMinAngle(non_zero_anglebeam2, non_zero_radiusbeam2)
