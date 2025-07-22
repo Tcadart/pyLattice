@@ -241,3 +241,15 @@ class Beam(object):
         if len(locations) > 0:
             return tuple(locations[0])  # Retourne la première intersection trouvée
         return None
+
+    def is_identical_to(self, other: "Beam") -> bool:
+        """
+        Check if this beam is identical to another beam.
+        """
+        lengthtest = math.isclose(self.getLength(), other.getLength(), rel_tol=1e-5)
+        if not lengthtest:
+            print(self)
+            print(other)
+        return (
+            lengthtest
+        )

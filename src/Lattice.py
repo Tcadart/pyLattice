@@ -18,6 +18,7 @@ from scipy.sparse import coo_matrix
 import trimesh
 from trimesh.creation import cylinder
 from src.Timing import *
+
 timing = Timing()
 
 
@@ -157,13 +158,14 @@ class Lattice(object):
         self.defineBeamNodeIndex()
         self.defineCellIndex()
         self.defineCellNeighbours()
+        self.setPointLocalTag()
 
         self.applyTagToAllPoint()
 
         # Case of penalization at beam near nodes
         if self.simMethod == 1:
             self.getAllAngles()
-            self.getBeamNodeMod()
+            self.setBeamNodeMod()
 
         # Get some data about lattice structures
         # self.getNodeData()
@@ -700,7 +702,6 @@ class Lattice(object):
                 if neighbor_pos in cell_dict:
                     cell.addCellNeighbour(cell_dict[neighbor_pos])
 
-
     def getNodeData(self) -> None:
         """
         Retrieves node data for the lattice.
@@ -856,54 +857,77 @@ class Lattice(object):
     @timing.timeit
     def getConnectedBeams(self, beamList: list["Beam"], beam: "Beam") -> tuple[list["Beam"], list["Beam"]]:
         """
-        Get all beams connected to the interest beam
+        Get all beams connected to the interest beam.
 
         Parameters:
         -----------
-        beam: Beam object
+        beam: Beam
             Beam of interest
 
         Returns:
-        ---------
-        point1beams: list of Beam Object
-            list of beam connected to point1 of beam of interest
-        point2beams: list of Beam Object
-            list of beam connected to point2 of beam of interest
+        --------
+        point1beams: list[Beam]
+            Beams connected to point1
+        point2beams: list[Beam]
+            Beams connected to point2
         """
         point1beams = []
         point2beams = []
+
         for beamidx in beamList:
             if beam.point1 == beamidx.point1 or beam.point1 == beamidx.point2:
-                point1beams.append(beamidx)
+                if beamidx not in point1beams:
+                    point1beams.append(beamidx)
             if beam.point2 == beamidx.point1 or beam.point2 == beamidx.point2:
-                point2beams.append(beamidx)
+                if beamidx not in point2beams:
+                    point2beams.append(beamidx)
+
             # Gestion de la périodicité
-            if self.periodicity:
+            if self.periodicity and (beam.point1.tag is not [] or beam.point2.tag is not []):
                 def check_periodic_connection(point, beam_idx, connected_beams, tag_range):
-                    """
-                    Vérifie les connexions périodiques pour un point donné.
-                    """
-                    if point.tag and point.tag[0] in tag_range:  # Coin ou arête spécifique
-                        if any(tag in tag_range for tag in beam_idx.point1.tag):
-                            connected_beams.append(beam_idx)
-                        if any(tag in tag_range for tag in beam_idx.point2.tag):
-                            connected_beams.append(beam_idx)
+                    periodic = False
+                    if point.tag and point.tag[0] in tag_range:
+                        if any(tag in tag_range for tag in beam_idx.point1.tag) or \
+                                any(tag in tag_range for tag in beam_idx.point2.tag):
+                            if any(tag in range(1000, 1008) for tag in point.localTag) and (
+                                    any(tag in range(1000, 1008) for tag in beam_idx.point1.localTag) or
+                                    any(tag in range(1000, 1008) for tag in beam_idx.point2.localTag)
+                            ):
+                                periodic = True
+                            edge_tags_list = [[102, 104, 106, 107], [100, 108, 105, 111], [101, 109, 103, 110]]
+                            for tags in edge_tags_list:
+                                if any(tag in tags for tag in point.localTag) and (
+                                        any(tag in tags for tag in beam_idx.point1.localTag) or
+                                        any(tag in tags for tag in beam_idx.point2.localTag)
+                                ):
+                                    periodic = True
+                                    break
+                            face_tags = [[10, 15], [11, 14], [12, 13]]
+                            for tags in face_tags:
+                                if any(tag in tags for tag in point.localTag) and (
+                                        any(tag in tags for tag in beam_idx.point1.localTag) or
+                                        any(tag in tags for tag in beam_idx.point2.localTag)
+                                ):
+                                    periodic = True
+                                    break
+                    if beam_idx not in connected_beams and periodic:
+                        connected_beams.append(beam_idx)
 
-                # Vérification pour les coins
-                corner_tags = range(1000, 1008)
-                check_periodic_connection(beam.point1, beamidx, point1beams, corner_tags)
-                check_periodic_connection(beam.point2, beamidx, point2beams, corner_tags)
+                # Coins
+                check_periodic_connection(beam.point1, beamidx, point1beams, range(1000, 1008))
+                check_periodic_connection(beam.point2, beamidx, point2beams, range(1000, 1008))
 
-                # Vérification pour les arêtes
+                # Arêtes
                 edge_tags_list = [[102, 104, 106, 107], [100, 108, 105, 111], [101, 109, 103, 110]]
-                for edge_tags in edge_tags_list:
-                    check_periodic_connection(beam.point1, beamidx, point1beams, edge_tags)
-                    check_periodic_connection(beam.point2, beamidx, point2beams, edge_tags)
+                for tags in edge_tags_list:
+                    check_periodic_connection(beam.point1, beamidx, point1beams, tags)
+                    check_periodic_connection(beam.point2, beamidx, point2beams, tags)
 
+                # Faces
                 face_tags = [[10, 15], [11, 14], [12, 13]]
-                for face_tag in face_tags:
-                    check_periodic_connection(beam.point1, beamidx, point1beams, face_tag)
-                    check_periodic_connection(beam.point2, beamidx, point2beams, face_tag)
+                for tags in face_tags:
+                    check_periodic_connection(beam.point1, beamidx, point1beams, tags)
+                    check_periodic_connection(beam.point2, beamidx, point2beams, tags)
 
         return point1beams, point2beams
 
@@ -939,7 +963,6 @@ class Lattice(object):
             beamList = []
             cellListNeighbours = cell.getNeighbourCells()
             cellListNeighbours.append(cell)  # Include the cell itself
-            # print(f"Cell {cell.index} neighbours: {[neighbour.index for neighbour in cellListNeighbours]}")
             for neighbour in cellListNeighbours:
                 for beam in neighbour.beams:
                     if beam not in beamList:
@@ -947,14 +970,10 @@ class Lattice(object):
             angleList = {}
             for beam in cell.beams:
                 # Determine beams on nodes
-                # print(beam)
                 point1beams, point2beams = self.getConnectedBeams(beamList, beam)
-                # print(f"Beam {beam.index} connected to {len(point1beams)} beams at point1 and {len(point2beams)} beams at point2")
                 # Determine angle for all beams connected at the node
                 non_zero_anglebeam1, non_zero_radiusbeam1 = self.getListAngleBeam(beam, point1beams)
                 non_zero_anglebeam2, non_zero_radiusbeam2 = self.getListAngleBeam(beam, point2beams)
-                # print(f"Beam {beam.index} angles at point1: {non_zero_anglebeam1}, radii: {non_zero_radiusbeam1}")
-                # print(f"Beam {beam.index} angles at point2: {non_zero_anglebeam2}, radii: {non_zero_radiusbeam2}")
                 # Find the lowest angle
                 LAngle1, LRadius1 = findMinAngle(non_zero_anglebeam1, non_zero_radiusbeam1)
                 LAngle2, LRadius2 = findMinAngle(non_zero_anglebeam2, non_zero_radiusbeam2)
@@ -1004,7 +1023,7 @@ class Lattice(object):
         }
 
     @timing.timeit
-    def getBeamNodeMod(self) -> None:
+    def setBeamNodeMod(self) -> None:
         """
         Modifies beam and node data to model lattice structures for simulation with rigidity penalization at node
         """
@@ -1787,7 +1806,7 @@ class Lattice(object):
         self.applyAllConstraintsOnNodes(surfaceNames, valueDisplacement, DOF, "Displacement")
 
     def applyAllConstraintsOnNodes(self, surfaceNames: list[str], value: list[float], DOF: list[int],
-                                   type: str= "Displacement", surfaceNamePoint: list[str] = None) -> None:
+                                   type: str = "Displacement", surfaceNamePoint: list[str] = None) -> None:
         """
         Apply boundary conditions to the lattice
 
@@ -2084,6 +2103,16 @@ class Lattice(object):
                             node.setIndexBoundary(IndexCounter)
                             IndexCounter += 1
         self.maxIndexBoundary = IndexCounter - 1
+
+    def setPointLocalTag(self) -> None:
+        """
+        Set local tag for all points in the lattice based on their position within the cell boundary box.
+        """
+        for cell in self.cells:
+            for beam in cell.beams:
+                for node in [beam.point1, beam.point2]:
+                    localTag = node.tagPoint(cell.getCellBoundaryBox())
+                    node.setLocalTag(localTag)
 
     def getGlobalReactionForce(self, appliedForceAdded: bool = False) -> dict:
         """
@@ -2726,6 +2755,8 @@ class Lattice(object):
             Dictionary containing objective data
         """
         self.objectifData = objectifData
+
+    @timing.timeit
     def generateMeshLattice(self, sectionPrecision: int = 8, cutMeshAtBoundary: bool = False):
         """
         Generate a mesh representation of the lattice structure.
@@ -2769,3 +2800,41 @@ class Lattice(object):
 
         self.meshLattice = trimesh.boolean.union(mesh_list)
         print(f"Mesh lattice has been constructed")
+
+    def are_cells_identical(self) -> bool:
+        """
+        Check if all cells in the list are identical based on their attributes and beams.
+        Print the result.
+        Possible upgrade could be to use a more sophisticated comparison method (Only beam length is checked for now).
+        """
+        if len(self.cells) < 2:
+            print(Fore.GREEN + "Only one or no cell: considered identical." + Style.RESET_ALL)
+            return True
+
+        reference = self.cells[0]
+        attrs_to_check = [
+            "latticeType",
+            "radius",
+            "cellSize",
+            "gradRadius",
+            "gradDim",
+        ]
+
+        for i, cell in enumerate(self.cells[1:], start=1):
+            for attr in attrs_to_check:
+                if not np.array_equal(getattr(reference, attr), getattr(cell, attr)):
+                    print(
+                        Fore.RED + f"Difference found in attribute '{attr}' between cell 0 and cell {i}" + Style.RESET_ALL)
+                    return False
+
+            if len(reference.beams) != len(cell.beams):
+                print(Fore.RED + f"Different number of beams between cell 0 and cell {i}" + Style.RESET_ALL)
+                return False
+
+            for j, (b1, b2) in enumerate(zip(reference.beams, cell.beams)):
+                if not b1.is_identical_to(b2):
+                    print(Fore.RED + f"Difference found in beam {j} between cell 0 and cell {i}" + Style.RESET_ALL)
+                    return False
+
+        print(Fore.GREEN + "All cells are identical." + Style.RESET_ALL)
+        return True

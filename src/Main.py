@@ -15,13 +15,15 @@ lattice = Lattice(cell_size_X, cell_size_Y, cell_size_Z, number_cell_X, number_c
                   MethodSim, uncertaintyNodeSD, periodicity=True, randomHybrid=False, erasedParts=erasedParts,
                   meshObject=None)
 
+lattice.are_cells_identical()
+
 # vizualizer.saveLatticeObject(lattice, "Beam3PointFlexion")
 # lattice.cutBeamsAtMeshIntersection()
 # lattice.printStatistics()
 
 # print(lattice.getRelativeDensity())
 # vizualizer.saveJSONToGrasshopper(lattice, "Beam3PointFlexion", multipleParts=1)
-vizualizer.visualizeLattice3D(lattice.cells, lattice.latticeDimensionsDict, "Raduis", voxelViz=False,
+vizualizer.visualizeLattice3D(lattice.cells, lattice.latticeDimensionsDict, "Radius", voxelViz=False,
                               plotting = False, plotNodeIndex = False)
 
 # lattice.generateMeshLattice(15, cutMeshAtBoundary=True)
@@ -35,4 +37,4 @@ vizualizer.show()
 # fig.show()
 
 # Timing
-timing.summary()
+# timing.summary()

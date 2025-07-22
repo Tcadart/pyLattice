@@ -679,14 +679,15 @@ class Cell(object):
 
     def addCellNeighbour(self, neighbourCell: "Cell") -> None:
         """
-        Add a neighbour cell to the current cell
+        Add a neighbour cell to the current cell if it's not already present.
 
         Parameters:
         -----------
         neighbourCell: Cell
             Neighbour cell to add
         """
-        self.neighbourCells.append(neighbourCell)
+        if neighbourCell not in self.neighbourCells:
+            self.neighbourCells.append(neighbourCell)
 
     def getNeighbourCells(self) -> list:
         """
