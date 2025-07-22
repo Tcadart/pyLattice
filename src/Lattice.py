@@ -7,7 +7,7 @@ import joblib
 from colorama import Style, Fore
 from matplotlib import pyplot as plt
 
-from src.Cell import *
+from .Cell import *
 import math
 import random
 
@@ -17,7 +17,7 @@ from scipy.linalg import pinvh
 from scipy.sparse import coo_matrix
 import trimesh
 from trimesh.creation import cylinder
-from src.Timing import *
+from .Timing import *
 timing = Timing()
 
 

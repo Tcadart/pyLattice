@@ -326,7 +326,6 @@ class Cell(object):
             idx += 1
         return tag_dictNN
 
-
     def setDisplacementAtBoundaryNodes(self, displacementArray: list, displacementIndex: list, printLevel = 0) -> None:
         """
         Set displacement at nodes.
