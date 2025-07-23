@@ -1,6 +1,9 @@
 import trimesh
 
 class mesh:
+    """
+    A class to handle mesh operations such as loading, saving, scaling, and checking if a point is inside the mesh.
+    """
     def __init__(self, meshPath: str = None):
         """
         Initialize a mesh object.

@@ -1,8 +1,16 @@
-from typing import List, Tuple
+"""
+# Beam.py
+"""
+
+from typing import List, Tuple, Optional, cast
 import math
 
 import numpy as np
 import trimesh
+
+from Mesh import Mesh
+from .Point import Point
+from .Utils import functionPenalizationLzone
 
 
 class Beam(object):
@@ -26,13 +34,13 @@ class Beam(object):
         self.radius: float = Radius
         self.material: int = Material
         self.type: int = Type
-        self.index: int = None
-        self.angle1: Tuple[float, float] = None
-        self.angle2: Tuple[float, float] = None
+        self.index: Optional[int] = None
+        self.angle1: Optional[Tuple[float, float]] = None  # Tuple of (radius, angle) for the first endpoint
+        self.angle2: Optional[Tuple[float, float]] = None  # Tuple of (radius, angle) for the second endpoint
         self.length: float = self.getLength()
-        self.modBeam = False
-        self.penalizationCoefficient = 1.5  # Fixed with previous optimization
-        self.initialRadius = None
+        self.modBeam: bool = False
+        self.penalizationCoefficient: float = 1.5  # Fixed with previous optimization
+        self.initialRadius: Optional[float] = None
 
     def __repr__(self) -> str:
         return f"Beam({self.point1}, {self.point2}, Radius:{self.radius}, Type:{self.type}, Index:{self.index})"
@@ -42,6 +50,16 @@ class Beam(object):
 
     def __hash__(self) -> int:
         return hash((self.point1, self.point2))
+
+    @property
+    def data(self) -> List[int]:
+        """
+        Property to retrieve beam data for exporting.
+
+        Returns:
+            List[int]: [beam_index, point1_index, point2_index, beam_type].
+        """
+        return [self.index, self.point1.index, self.point2.index, self.type]
 
     def getLength(self) -> float:
         """
@@ -55,23 +73,18 @@ class Beam(object):
         length = round(math.sqrt((x2 - x1) ** 2 + (y2 - y1) ** 2 + (z2 - z1) ** 2), 4)
         return length
 
-    def getVolume(self) -> float:
+    def getVolume(self, sectionType: str = "circular") -> float:
         """
-        Calculate the volume of the beam.
+        Calculate the volume of the beam in case of a circular section.
 
+        Args:
+            sectionType (str): Type of the beam section. Currently only "circular" is supported.
         Returns:
             float: Volume of the beam.
         """
+        if sectionType.lower() == "circular":
+            raise ValueError("Currently only circular section type is supported.")
         return math.pi * (self.radius ** 2) * self.length
-
-    def changeBeamType(self, newType: int) -> None:
-        """
-        Change the type of the beam.
-
-        Args:
-            newType (int): New type to assign to the beam.
-        """
-        self.type = newType
 
     def getPointOnBeamFromDistance(self, distance: float, pointIndex: int) -> List[float]:
         """
@@ -142,24 +155,6 @@ class Beam(object):
         else:
             return False
 
-    def setIndex(self, index: int) -> None:
-        """
-        Assign an index to the beam.
-
-        Args:
-            index (int): Index to assign.
-        """
-        self.index = index
-
-    def getData(self) -> List[int]:
-        """
-        Retrieve beam data for exporting.
-
-        Returns:
-            List[int]: [beam_index, point1_index, point2_index, beam_type].
-        """
-        return [self.index, self.point1.index, self.point2.index, self.type]
-
     def setAngle(self, AngleData: Tuple[float, float, float, float]) -> None:
         """
         Assign angle data to the beam.
@@ -167,6 +162,8 @@ class Beam(object):
         Args:
             AngleData (Tuple[float, float, float, float]): Angle data as (radius1, angle1, radius2, angle2).
         """
+        if len(AngleData) != 4:
+            raise ValueError("AngleData must contain exactly 4 values: (radius1, angle1, radius2, angle2).")
         self.angle1 = AngleData[0:2]
         self.angle2 = AngleData[2:4]
 
@@ -177,33 +174,9 @@ class Beam(object):
         Returns:
             Tuple[float, float]: Length modifications for point1 and point2.
         """
-        L1 = self.functionPenalizationLzone(self.angle1)
-        L2 = self.functionPenalizationLzone(self.angle2)
+        L1 = functionPenalizationLzone(self.angle1)
+        L2 = functionPenalizationLzone(self.angle2)
         return L1, L2
-
-    def functionPenalizationLzone(self, radiusAngleData: Tuple[float, float]) -> float:
-        """
-        Calculate the penalization length based on radius and angle data.
-
-        Args:
-            radiusAngleData (Tuple[float, float]): (radius, angle).
-
-        Returns:
-            float: Length of the penalization zone.
-        """
-        radius, angle = radiusAngleData
-        if angle > 170:
-            return 0.0000001
-        return radius / math.tan(math.radians(angle) / 2)
-
-    def setRadius(self, radius: float) -> None:
-        """
-        Set the radius of the beam.
-
-        Args:
-            radius (float): New radius to assign.
-        """
-        self.radius = radius
 
     def setBeamMod(self):
         """
@@ -217,29 +190,32 @@ class Beam(object):
         """
         Find the intersection point of the beam with a mesh.
         Returns the first intersection point if it exists, None otherwise.
+
+        Parameters:
+        -----
+            meshObject (Mesh): The mesh object to check for intersection.
+        Returns:
+            Tuple[float, float, float] | None: The intersection point (x, y, z) or None if no intersection.
         """
         ray_origin = np.array([self.point1.x, self.point1.y, self.point1.z])
         ray_direction = np.array([self.point2.x - self.point1.x,
                                   self.point2.y - self.point1.y,
                                   self.point2.z - self.point1.z])
 
-        # Normalisation du vecteur directionnel
         norm = np.linalg.norm(ray_direction)
         if norm == 0:
-            return None  # Évite les erreurs en cas de direction nulle
-        ray_direction /= norm  # Normalisation
+            return None
+        ray_direction /= norm  # Norm
 
-        # Création de l'intersecteur de rayons
         intersector = trimesh.ray.ray_pyembree.RayMeshIntersector(meshObject.mesh)
 
-        # Recherche des intersections
         locations, _, _ = intersector.intersects_location(
             ray_origins=[ray_origin],
             ray_directions=[ray_direction]
         )
 
         if len(locations) > 0:
-            return tuple(locations[0])  # Retourne la première intersection trouvée
+            return cast(Tuple[float, float, float], tuple(locations[0]))
         return None
 
     def is_identical_to(self, other: "Beam") -> bool:
@@ -247,9 +223,16 @@ class Beam(object):
         Check if this beam is identical to another beam.
         """
         lengthtest = math.isclose(self.getLength(), other.getLength(), rel_tol=1e-5)
-        if not lengthtest:
-            print(self)
-            print(other)
+        radiustest = math.isclose(self.radius, other.radius, rel_tol=1e-5)
+        point1test = self.point1.is_identical_to(other.point1)
+        point2test = self.point2.is_identical_to(other.point2)
+        materialtest = self.material == other.material
+        typetest = self.type == other.type
         return (
-            lengthtest
+                lengthtest
+                and radiustest
+                and point1test
+                and point2test
+                and materialtest
+                and typetest
         )

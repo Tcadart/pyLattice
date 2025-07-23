@@ -1,5 +1,9 @@
+"""
+Point.py
+"""
+
 import random
-from typing import List, Tuple
+from typing import List, Tuple, Optional
 
 
 class Point:
@@ -15,7 +19,7 @@ class Point:
             x (float): X-coordinate of the point.
             y (float): Y-coordinate of the point.
             z (float): Z-coordinate of the point.
-            nodeUncertaintySD (float, optional): Standard deviation for adding uncertainty to node coordinates. Defaults to 0.0.
+            nodeUncertaintySD (float, optional): Standard deviation for adding uncertainty to node coordinates.
         """
         # Validate input types and values
         if not isinstance(x, (int, float)) or not isinstance(y, (int, float)) or not isinstance(z, (int, float)):
@@ -26,19 +30,19 @@ class Point:
             raise ValueError("Node uncertainty standard deviation cannot be negative.")
 
         # Initialize coordinates with added uncertainty
-        self.x = float(x) + random.gauss(0, nodeUncertaintySD)
-        self.y = float(y) + random.gauss(0, nodeUncertaintySD)
-        self.z = float(z) + random.gauss(0, nodeUncertaintySD)
-        self.index = None # Global index of the point
-        self.tag = None # Global boundary tag
-        self.localTag = [] # Cell local boundary tag
-        self.indexBoundary = None # Global index for boundary cell
-        self.displacementValue= [0.0] * 6  # Displacement vector of 6 DOF (Degrees of Freedom).
-        self.reactionForceValue = [0.0] * 6  # Reaction force vector of 6 DOF.
-        self.appliedForce = [0.0] * 6  # Applied force vector of 6 DOF.
-        self.fixedDOF = [0] * 6  # Fixed DOF vector (0: free, 1: fixed).
-        self.globalFreeDOFIndex = [None] * 6  # Global free DOF index.
-        self.nodeMod = False
+        self.x: float = float(x) + random.gauss(0, nodeUncertaintySD)
+        self.y: float = float(y) + random.gauss(0, nodeUncertaintySD)
+        self.z: float = float(z) + random.gauss(0, nodeUncertaintySD)
+        self.index: Optional[int] = None  # Global index of the point
+        self.tag: Optional[int] = None  # Global boundary tag
+        self.localTag: List[int] = []  # Cell local boundary tag
+        self.indexBoundary: Optional[int] = None  # Global index for boundary cell
+        self.displacementValue: List[float] = [0.0] * 6  # Displacement vector of 6 DOF (Degrees of Freedom).
+        self.reactionForceValue: List[float] = [0.0] * 6  # Reaction force vector of 6 DOF.
+        self.appliedForce: List[float] = [0.0] * 6  # Applied force vector of 6 DOF.
+        self.fixedDOF: List[int] = [0] * 6  # Fixed DOF vector (0: free, 1: fixed).
+        self.globalFreeDOFIndex: List[Optional[float]] = [None] * 6  # Global free DOF index.
+        self.nodeMod: bool = False
 
     def __eq__(self, other: object) -> bool:
         return isinstance(other, Point) and self.x == other.x and self.y == other.y and self.z == other.z
@@ -80,7 +84,6 @@ class Point:
             List[float]: [index, x, y, z] of the point.
         """
         return [self.index, self.x, self.y, self.z]
-
 
     def tagPoint(self, boundaryBoxDomain) -> List[int]:
         """
@@ -166,7 +169,7 @@ class Point:
             tag.append(1007)  # Corner 7
         return tag
 
-    def setAppliedForce(self, appliedForce: List[float], DOF:list[int]) -> None:
+    def setAppliedForce(self, appliedForce: List[float], DOF: list[int]) -> None:
         """
         Assign applied force to the point.
 
@@ -181,7 +184,6 @@ class Point:
             raise ValueError("Length of DOF and appliedForce must be equal.")
         for i in range(len(DOF)):
             self.appliedForce[DOF[i]] = appliedForce[i]
-
 
     def initializeReactionForce(self) -> None:
         """
@@ -252,14 +254,14 @@ class Point:
             raise ValueError("Local tag must be a list.")
         self.localTag = localTag
 
-    def setNodeMod(self, nodeMod: bool) -> None:
+    def is_identical_to(self, other: 'Point') -> bool:
         """
-        Assign node modification status.
+        Check if this point is identical to another point.
 
-        Parameters
-        ----------
-        nodeMod : bool
-            Node modification status.
+        Args:
+            other (Point): The other point to compare with.
+
+        Returns:
+            bool: True if the points are identical, False otherwise.
         """
-        self.nodeMod = nodeMod
-
+        return self.x == other.x and self.y == other.y and self.z == other.z

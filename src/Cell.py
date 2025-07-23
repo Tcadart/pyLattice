@@ -1,6 +1,10 @@
-import numpy as np
+"""
+Cell.py
+"""
 
-from .Point import *
+import numpy as np
+from colorama import Fore, Style
+
 from .Beam import *
 from .Geometry_Lattice import Lattice_geometry
 
@@ -38,20 +42,78 @@ class Cell(object):
         uncertaintyNode: float
             Standard deviation for adding uncertainty to node coordinates. Defaults to 0.0.
         """
-        if len(Radius) == 1:
-            if latticeType[0] == 0:
+        self.originalCellGeom = None
+        self.originalTags = None
+        self.centerPoint = None
+        self._beamMaterial = None
+        self.cellSize = None
+        self.posCell: list[int] = posCell
+        self.coordinateCell: list[float] = startCellPos
+        self.beams: Optional[list] = []
+        self.index: Optional[int] = None
+        self.latticeType: list[int] = latticeType
+        self.radius: list[float] = Radius
+        self.matB: Optional = None  # B matrix (Coupling matrix)
+        self.uncertaintyNode: float = uncertaintyNode
+        self.gradRadius: list = gradRadius
+        self.gradMat: list = gradMat
+        self.gradDim: list = gradDim
+        self.neighbourCells: Optional = []
+
+        self.defineOriginalTags()
+        self.generateCellProperties(initialCellSize)
+
+    def __repr__(self) -> str:
+        return f"Cell(Coordinates:{self.coordinateCell}, Size: {self.cellSize}, Index:{self.index})"
+
+    def generateCellProperties(self, initialCellSize):
+        """
+        Generate a cell object with beams and nodes based on the lattice type and radius.
+
+        Parameters:
+        -----------
+        initialCellSize: list
+            Initial size of the cell without modification
+        """
+        idxCell = 0
+        for idx, rad in enumerate(self.radius):
+            if rad > 0.0:
+                if idxCell == 0:
+                    self.getBeamMaterial(self.gradMat)
+                    beamRadius = self.getBeamRadius(self.gradRadius, rad)
+                    self.getCellSize(initialCellSize, self.gradDim)
+                    self.generateBeamsInCell(self.latticeType[idx], self.coordinateCell, beamRadius, idx)
+                    self.getCellCenter(self.coordinateCell)
+                else:
+                    hybridRadius = self.getBeamRadius(self.gradRadius, rad)
+                    self.generateBeamsInCell(self.latticeType[idx], self.coordinateCell, hybridRadius, idx)
+                idxCell += 1
+
+    def defineOriginalTags(self) -> None:
+        """
+        Define original tags and cell geometry based on the lattice type and radius.
+
+        Parameters:
+        -----------
+        latticeType: list[int]
+            List of lattice types
+        Radius: list[float]
+            List of beam radii
+        """
+        if len(self.radius) == 1:
+            if self.latticeType[0] == 0:
                 self.originalTags = [1000, 1001, 1002, 1003, 1004, 1005, 1006, 1007]
                 self.originalCellGeom = [0, 0, 0, 0, 0, 0, 0, 0]
-            elif latticeType[0] == 16:
+            elif self.latticeType[0] == 16:
                 self.originalTags = [100, 101, 102, 103, 104, 105, 106, 107, 108, 109, 110, 111]
                 self.originalCellGeom = [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
-            elif latticeType[0] == 19:
+            elif self.latticeType[0] == 19:
                 self.originalTags = [10, 11, 12, 13, 14, 15]
-                self.originalCellGeom = [2, 2, 2, 2, 2, 2,]
+                self.originalCellGeom = [2, 2, 2, 2, 2, 2, ]
             else:
                 raise ValueError("Lattice type not recognized")
-        elif len(Radius) == 2:
-            if latticeType[0] == 0 and latticeType[1] == 16:
+        elif len(self.radius) == 2:
+            if self.latticeType[0] == 0 and self.latticeType[1] == 16:
                 self.originalTags = [1000, 1001, 1002, 1003, 1004, 1005, 1006, 1007,
                                      100, 101, 102, 103, 104, 105, 106, 107, 108, 109, 110, 111]
                 self.originalCellGeom = [0, 0, 0, 0, 0, 0, 0, 0,
@@ -65,40 +127,6 @@ class Cell(object):
             self.originalCellGeom = [0, 0, 0, 0, 0, 0, 0, 0,
                                      2, 2, 2, 2, 2, 2,
                                      1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
-
-        self.centerPoint = None
-        self._beamMaterial = None
-        self.cellSize = None
-        self.posCell = posCell
-        self.coordinateCell = startCellPos
-        self.beams = []
-        self.index = None
-        self.latticeType = latticeType
-        self.radius = Radius
-        self.matB = None  # B matrix (Coupling matrix)
-        self.uncertaintyNode = uncertaintyNode
-        self.gradRadius = gradRadius
-        self.gradMat = gradMat
-        self.gradDim = gradDim
-        self.neighbourCells = []
-
-        idxCell = 0
-        for idx, rad in enumerate(self.radius):
-            if rad > 0.0:
-                if idxCell == 0:
-                    self.getBeamMaterial(gradMat)
-                    beamRadius = self.getBeamRadius(gradRadius, rad)
-                    self.getCellSize(initialCellSize, gradDim)
-                    self.generateBeamsInCell(self.latticeType[idx], startCellPos, beamRadius, idx)
-                    self.getCellCenter(startCellPos)
-                else:
-                    hybridRadius = self.getBeamRadius(gradRadius, rad)
-                    self.generateBeamsInCell(self.latticeType[idx], startCellPos, hybridRadius, idx)
-                idxCell += 1
-
-    def __repr__(self) -> str:
-        return f"Cell(Coordinates:{self.coordinateCell}, Size: {self.cellSize}, Index:{self.index})"
-
 
     def generateBeamsInCell(self, latticeType: int, startCellPos: list, beamRadius: float, beamType: int = 0) -> None:
         """
@@ -193,7 +221,7 @@ class Cell(object):
 
     def getAllPoints(self) -> list:
         """
-        Determine list of points in cell
+        Determine a list of points in cell
         """
         pointList = []
         for beam in self.beams:
@@ -227,12 +255,6 @@ class Cell(object):
                 self.beams.append(beam)
         else:
             raise ValueError("Invalid beam type")
-
-    def setIndex(self, index: int) -> None:
-        """
-        Set cell index
-        """
-        self.index = index
 
     def getPointOnSurface(self, surfaceName: str) -> list:
         """
@@ -281,12 +303,6 @@ class Cell(object):
             if getattr(point, axis) == surface_value
         })
 
-    def getRadius(self) -> list[float]:
-        """
-        Get the radius of the beam
-        """
-        return self.radius
-
     def getNodeOrderToSimulate(self) -> dict:
         """
         Get the order of nodes to simulate in the cell
@@ -326,7 +342,7 @@ class Cell(object):
             idx += 1
         return tag_dictNN
 
-    def setDisplacementAtBoundaryNodes(self, displacementArray: list, displacementIndex: list, printLevel = 0) -> None:
+    def setDisplacementAtBoundaryNodes(self, displacementArray: list, displacementIndex: list, printLevel=0) -> None:
         """
         Set displacement at nodes.
 
@@ -370,7 +386,7 @@ class Cell(object):
         nodeListNN = self.getNodesOrderNN(nodeList, numberRadiusNN)
 
         displacementList = []
-        nullDisplacement = [0.0,0.0,0.0,0.0,0.0,0.0]
+        nullDisplacement = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
         for key, node in nodeList.items():
             if node:
                 displacement = node.displacementValue
@@ -392,7 +408,7 @@ class Cell(object):
         """
         # Vérification que la longueur des listes correspond
         if len([v for v in nodeList.values() if v is not None]) != len(reactionForce):
-            print("Lenght nodeList ",len([v for v in nodeList.values() if v is not None])
+            print("Lenght nodeList ", len([v for v in nodeList.values() if v is not None])
                   , "Lenght reactionForce ", len(reactionForce))
             print("nodeList", nodeList)
             print("reactionForce", reactionForce)
@@ -400,7 +416,6 @@ class Cell(object):
 
         # for beam in self.beams:
         #     for point in [beam.point1, beam.point2]:
-        #         print(point, point.indexBoundary)
         #         if point.indexBoundary is not None:
         #             index = list(nodeList.keys()).index(point.localTag[0])
         #             point.setReactionForce(reactionForce[index])
@@ -470,8 +485,8 @@ class Cell(object):
             for point in [beam.point1, beam.point2]:
                 if point.indexBoundary is not None:
                     pointEnergy = point.calculatePointEnergy()
-                    # if pointEnergy < 0:
-                    #     print("Negative energy", pointEnergy)
+                    if pointEnergy < 0:
+                        raise ValueError("Negative energy detected at point with index " + str(point.indexBoundary))
                     internalEnergy += pointEnergy
         return internalEnergy
 
@@ -488,7 +503,7 @@ class Cell(object):
 
     def changeBeamRadius(self, newRadius: list, gradRadius: list = None) -> None:
         """
-        ATTENTION /!\ : BEAM MOD IS NOT WORKING
+        ATTENTION: BEAM MOD IS NOT WORKING
         Change beam radius in the cell
 
         Parameters:
@@ -501,6 +516,7 @@ class Cell(object):
             Gradient of the radius
         penalizationCoeff: float
         """
+        print(Fore.RED + "WARNING: Beam modification is not implemented yet. " + Style.RESET_ALL)
         assert len(newRadius) == len(self.radius), ("Length of new radius vector and already cell radius vector needs "
                                                     "to be equal ")
         beamRadius = []
@@ -509,9 +525,9 @@ class Cell(object):
 
         for beam in self.beams:
             if beam.modBeam:
-                beam.setRadius(beamRadius[beam.type] * beam.penalizationCoefficient)
+                beam.radius = beamRadius[beam.type] * beam.penalizationCoefficient
             else:
-                beam.setRadius(beamRadius[beam.type])
+                beam.radius = beamRadius[beam.type]
 
         self.radius = newRadius
 
@@ -530,7 +546,10 @@ class Cell(object):
             volumeBeams += beam.getVolume()
         return volumeBeams / self.getVolumeCell()
 
-    def getVolumeGeomSeparated(self) -> list:
+    def getVolumeGeomSeparated(self) -> np.ndarray:
+        """
+        Get the volume of the cell separated by geometry type
+        """
         volumes = np.zeros(len(self.radius))
         for beam in self.beams:
             if not beam.modBeam:
@@ -578,7 +597,7 @@ class Cell(object):
             deriv += polyDeriv(self.radius[idx])
         return deriv
 
-    def getRelativeDensityGradientKrigingCell(self, gpr,geomScheme=None) -> np.ndarray:
+    def getRelativeDensityGradientKrigingCell(self, gpr, geomScheme=None) -> np.ndarray:
         """
         Retourne le gradient de la fonction volume par rapport aux rayons (dérivée partielle).
 
@@ -648,6 +667,9 @@ class Cell(object):
         return [xMin, xMax, yMin, yMax, zMin, zMax]
 
     def getRGBcolorDependingOfRadius(self):
+        """
+        Get the RGB color of the cell depending on the radius.
+        """
         return tuple(r / 0.1 for r in self.radius)
 
     def getCellCornerCoordinates(self) -> list:
@@ -659,10 +681,9 @@ class Cell(object):
         list of tuples
             List of (x, y, z) coordinates of the corner points.
         """
-        x0, y0, z0 = self.coordinateCell  # Position de départ de la cellule
-        dx, dy, dz = self.cellSize  # Dimensions de la cellule
+        x0, y0, z0 = self.coordinateCell
+        dx, dy, dz = self.cellSize
 
-        # Liste des 8 coins de la cellule
         corners = [
             (x0, y0, z0),
             (x0 + dx, y0, z0),
@@ -688,18 +709,10 @@ class Cell(object):
         if neighbourCell not in self.neighbourCells:
             self.neighbourCells.append(neighbourCell)
 
-    def getNeighbourCells(self) -> list:
-        """
-        Get the list of neighbour cells
-
-        Returns:
-        --------
-        list
-            List of neighbour cells
-        """
-        return self.neighbourCells
-
     def printCellData(self):
+        """
+        Print the data of the cell for debugging purposes.
+        """
         print("Cell position: ", self.posCell)
         print("Cell coordinates: ", self.coordinateCell)
         print("Cell size: ", self.cellSize)

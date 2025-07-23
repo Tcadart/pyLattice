@@ -1,4 +1,14 @@
-import json
+"""
+Lattice.py
+
+Generate lattice structures with various parameters and properties.
+
+This module provides the Lattice class, which allows for the creation and manipulation of lattice structures,
+including the definition of cell dimensions, material properties, and gradient settings. It also supports simulation methods and uncertainty handling.
+
+Created in 2023 by Cadart Thomas, University of technology Belfort Montbéliard.
+"""
+
 import os
 import pickle
 from statistics import mean
@@ -7,17 +17,19 @@ import joblib
 from colorama import Style, Fore
 from matplotlib import pyplot as plt
 
+from Mesh.Mesh import mesh
 from .Cell import *
 import math
 import random
 
 import numpy as np
 from scipy.sparse.linalg import splu
-from scipy.linalg import pinvh
 from scipy.sparse import coo_matrix
 import trimesh
 from trimesh.creation import cylinder
 from .Timing import *
+from .Utils import _validate_inputs
+from .gradientProperties import getGradSettings, gradMaterialSetting
 
 timing = Timing()
 
@@ -33,7 +45,8 @@ class Lattice(object):
                  gradRadiusProperty: list, gradDimProperty: list, gradMatProperty: list,
                  simMethod: int = 0, uncertaintyNode: float = 0.0,
                  periodicity: int = 0, erasedParts: list = None, randomHybrid: bool = False,
-                 meshObject: "meshObject" = None, printing: bool = False, symmetryData: dict = None):
+                 meshObject: "mesh" = None, printing: bool = False, symmetryData: dict = None,
+                 simulationProperties: bool = False) -> None:
         """
         Constructor general for the Lattice class.
 
@@ -52,10 +65,7 @@ class Lattice(object):
         Lattice_Type: list of integer
             Geometry type the cell
                 (-2 => Method random cell, -1 => Full random)
-                (0 => BCC, 1 => Octet, 2 => OctetExt, 3 => OctetInt, 4 => BCCZ, 5 => Cubic, 6 => OctahedronZ,
-                7 => OctahedronZcross, 8 => Kelvin, 9 => Cubic formulation 2 (centered), 10 => Cubic V3, 11 => Cubic V4,
-                12 => New lattice (non connu) GPT generated, 13 => Diamond, 14 => Auxetic, 15 => Hichem, 16 => Hybrid1,
-                17 => Hybrid2)
+                (>= 0 => Type of cell in the Geometry_lattice.py file)
         Radius: list of float
             Initial radius geometry
         materialName: string
@@ -93,11 +103,13 @@ class Lattice(object):
             Print information about the lattice structure
         symmetryData: dictionary {"symPlane": string, "symPoint": tuple}
             Data to apply symmetry on the lattice structure
+        simulationProperties: boolean
+            If True, the lattice will generate properties necessary for simulation and optimization
         """
-        self._validate_inputs(cell_size_x, cell_size_y, cell_size_z, num_cells_x, num_cells_y, num_cells_z,
-                              Lattice_Type, Radius, materialName, gradRadiusProperty, gradDimProperty, gradMatProperty,
-                              simMethod, uncertaintyNode, periodicity, erasedParts,
-                              randomHybrid)
+        _validate_inputs(cell_size_x, cell_size_y, cell_size_z, num_cells_x, num_cells_y, num_cells_z,
+                         Lattice_Type, Radius, materialName, gradRadiusProperty, gradDimProperty, gradMatProperty,
+                         simMethod, uncertaintyNode, periodicity, erasedParts,
+                         randomHybrid)
 
         self.name = None
         self.yMin = None
@@ -119,21 +131,19 @@ class Lattice(object):
         self.latticeType = Lattice_Type
         self.Radius = Radius
         self.materialName = materialName
-        self.gradRadius = self.getGradSettings(gradRadiusProperty)
-        self.gradDim = self.getGradSettings(gradDimProperty)
-        self.gradMat = self.gradMaterialSetting(gradMatProperty)
+        self.gradRadius = getGradSettings(self.numCellsX, self.numCellsY, self.numCellsZ, gradRadiusProperty)
+        self.gradDim = getGradSettings(self.numCellsX, self.numCellsY, self.numCellsZ, gradDimProperty)
+        self.gradMat = gradMaterialSetting(self.numCellsX, self.numCellsY, self.numCellsZ, gradMatProperty)
         self.simMethod = simMethod
         self.sizeX, self.sizeY, self.sizeZ = self.getSizeLattice()
         self.uncertaintyNode = uncertaintyNode
-        self.periodicity = periodicity  # Not finish to implemented
+        self.periodicity = periodicity
         self.erasedParts = erasedParts
         self.randomHybrid = randomHybrid
         self.meshObject = meshObject
         self.printing = printing
 
         self.cells = []
-        self._nodes = []
-        self._beams = []
 
         # Simulation necessary
         self.freeDOF = None  # Free DOF gradient conjugate gradient method
@@ -144,22 +154,23 @@ class Lattice(object):
         self.initialContinuityConstraint = None
         self.relativeDensityPoly = []
         self.relativeDensityPolyDeriv = []
-        self.nDOFperNode = 6
+        self.nDOFperNode: int = 6  # Number of DOF per node (3 translation + 3 rotation)
         self.parameterOptimization = []
         self.krigingModelRelativeDensity = None
-        self.penalizationCoefficient = 1.5  # Fixed with previous optimization
+        self.penalizationCoefficient: float = 1.5  # Fixed with previous optimization
         self.meshLattice = None
 
-        # Process
+        # Generate global structure
         self.generateLattice()
         if symmetryData is not None:
             self.applySymmetry(symmetryData["symPlane"], symmetryData["symPoint"])
+
+        # Generate important data for the lattice structure
         self.getMinMaxValues()
         self.defineBeamNodeIndex()
         self.defineCellIndex()
         self.defineCellNeighbours()
         self.setPointLocalTag()
-
         self.applyTagToAllPoint()
 
         # Case of penalization at beam near nodes
@@ -167,19 +178,15 @@ class Lattice(object):
             self.getAllAngles()
             self.setBeamNodeMod()
 
-        # Get some data about lattice structures
-        # self.getNodeData()
-        # self.getBeamData()
-        # print("Data retrieved")
-
         # Simulation FenicsX necessaries
-        # Define global indexation
-        self.defineNodeIndexBoundary()
+        if simulationProperties:
+            # Define global indexation
+            self.defineNodeIndexBoundary()
+            # Optimization necessary
+            self.loadRelativeDensityModel()
+
         if self.printing:
             self.printStatistics()
-
-        # Optimization necessary
-        self.loadRelativeDensityModel()
 
     @classmethod
     def simpleLattice(cls, cell_size_x: float, cell_size_y: float, cell_size_z: float,
@@ -261,36 +268,6 @@ class Lattice(object):
         print(f"Lattice loaded successfully from {file_path}")
         return lattice
 
-    def saveLatticeObject(self, file_name: str = "LatticeObject") -> None:
-        """
-        Save the lattice object to a file.
-
-        Parameters:
-        -----------
-        file_name: str
-            Name of the file to save (with or without the '.pkl' extension).
-        """
-        folder = "Saved_Lattice"
-        os.makedirs(folder, exist_ok=True)
-
-        if not file_name.endswith(".pkl"):
-            file_name += ".pkl"
-
-        file_path = os.path.join(folder, file_name)
-
-        with open(file_path, "wb") as file:
-            pickle.dump(self, file)
-
-        print(f"Lattice saved successfully to {file_path}")
-
-    @property
-    def nodes(self):
-        return self._nodes
-
-    @property
-    def beams(self):
-        return self._beams
-
     def __repr__(self) -> str:
         string = f"Lattice name: {self.name}\n"
         string += f"Dimensions: {self.sizeX} x {self.sizeY} x {self.sizeZ}\n"
@@ -302,237 +279,6 @@ class Lattice(object):
         else:
             string += f"Radius: {self.Radius}\n"
         return string
-
-    def _validate_inputs(self, cell_size_x, cell_size_y, cell_size_z,
-                         num_cells_x, num_cells_y, num_cells_z,
-                         Lattice_Type, Radius, materialName, gradRadiusProperty, gradDimProperty, gradMatProperty,
-                         simMethod, uncertaintyNode, periodicity, erasedParts,
-                         randomHybrid):
-
-        # Check cell sizes
-        assert isinstance(cell_size_x, (int, float)) and cell_size_x > 0, "cell_size_x must be a positive number"
-        assert isinstance(cell_size_y, (int, float)) and cell_size_y > 0, "cell_size_y must be a positive number"
-        assert isinstance(cell_size_z, (int, float)) and cell_size_z > 0, "cell_size_z must be a positive number"
-
-        # Check number of cells
-        assert isinstance(num_cells_x, int) and num_cells_x > 0, "num_cells_x must be a positive integer"
-        assert isinstance(num_cells_y, int) and num_cells_y > 0, "num_cells_y must be a positive integer"
-        assert isinstance(num_cells_z, int) and num_cells_z > 0, "num_cells_z must be a positive integer"
-
-        # Check lattice type
-        assert isinstance(Lattice_Type, list), "Lattice_Type must be a list"
-        assert all(isinstance(lt, int) for lt in Lattice_Type), "All elements of Lattice_Type must be integers"
-
-        # Check radius
-        assert isinstance(Radius, list), "Radius must be a list"
-        assert all(isinstance(r, float) for r in Radius), "All radius values must be floats"
-        assert len(Radius) == len(Lattice_Type), "The number of radius must be equal to the number of lattice types"
-
-        # Check material name
-        assert isinstance(materialName, str), "materialName must be a string"
-
-        # Check gradient properties
-        assert isinstance(gradRadiusProperty, list), "gradRadiusProperty must be a list"
-        assert isinstance(gradDimProperty, list), "gradDimProperty must be a list"
-        assert isinstance(gradMatProperty, list), "gradMatProperty must be a list"
-
-        # Check optional parameters
-        assert isinstance(simMethod, int), "simMethod must be an integer"
-        assert isinstance(uncertaintyNode, float), "uncertaintyNode must be a float"
-
-        assert isinstance(periodicity, int), "periodicity must be an integer"
-
-        if erasedParts is not None:
-            for erasedPart in erasedParts:
-                assert len(erasedPart) == 6 and all(
-                    isinstance(x, float) for x in erasedPart), "erasedParts must be a list of 6 floats"
-        assert isinstance(randomHybrid, bool), "randomHybrid must be a boolean"
-
-    def getSizeLattice(self) -> list[float]:
-        """
-        Computes the size of the lattice along each direction.
-
-        Return:
-        ---------
-        sizeLattice: list of float in dim 3
-            Length of the lattice in each direction
-        """
-        sizeLattice = [0.0, 0.0, 0.0]
-        for direction in range(3):
-            total_length = 0.0
-            # Get the number of cells in the current direction
-            num_cells = [self.numCellsX, self.numCellsY, self.numCellsZ][direction]
-            cell_size = [self.cellSizeX, self.cellSizeY, self.cellSizeZ][direction]
-            gradient_factors = [grad[direction] for grad in self.gradDim[:num_cells]]
-
-            # Calculate the total length by summing cell sizes multiplied by their respective gradient factors
-            for factor in gradient_factors:
-                total_length += factor * cell_size
-            sizeLattice[direction] = total_length
-
-        return sizeLattice
-
-    @timing.timeit
-    def getGradSettings(self, gradProperties: list) -> list[list[float]]:
-        """
-        Generate gradient settings based on the provided rule, direction, and parameters.
-
-        Parameters:
-        -----------
-        gradProperties: list[Rule, Direction, Parameters]
-            All types of properties for gradient definition.
-
-        Return:
-        ---------
-        gradientData: list[list[float]]
-            Generated gradient settings (list of lists).
-        """
-
-        def apply_rule(i: int, total_cells: int, param_value: float, rule: str) -> float:
-            """
-            Apply a specific gradient rule to calculate the gradient factor.
-
-            Parameters:
-            -----------
-            i : int
-                Current cell index in active direction.
-            total_cells : int
-                Total number of cells in the active direction.
-            param_value : float
-                Gradient parameter value.
-            rule : str
-                The gradient rule to apply ('constant', 'linear', etc.).
-
-            Returns:
-            --------
-            float
-                Calculated gradient factor.
-            """
-            mid = total_cells / 2
-            match rule:
-                case 'constant':
-                    return 1.0
-                case 'linear':
-                    return 1.0 + i * param_value
-                case 'parabolic':
-                    if i < mid:
-                        return 1.0 + (i / mid) * param_value
-                    else:
-                        return 1.0 + ((total_cells - i - 1) / mid) * param_value
-                case 'sinusoide':
-                    return 1.0 + param_value * math.sin((i / total_cells) * math.pi)
-                case 'exponential':
-                    return 1.0 + math.exp(i * param_value)
-                case _:
-                    raise ValueError(f"Unknown gradient rule: {rule}")
-
-        # Extract gradient properties
-        rule, direction, parameters = gradProperties
-
-        # Determine the number of cells in each direction
-        number_cells = [self.numCellsX, self.numCellsY, self.numCellsZ]
-
-        indices = [0, 0, 0]
-
-        gradientData = []
-
-        for _ in range(max(number_cells)):
-            gradientData.append([
-                apply_rule(indices[dim], number_cells[dim], parameters[dim], rule) if direction[dim] == 1 else 1.0
-                for dim in range(3)
-            ])
-
-            for dim in range(3):
-                if direction[dim] == 1 and indices[dim] < number_cells[dim] - 1:
-                    indices[dim] += 1
-        return gradientData
-
-    @timing.timeit
-    def gradMaterialSetting(self, gradMatProperty: list) -> list:
-        """
-        Define gradient material settings.
-
-        Parameters:
-        ------------
-        gradMatProperty: list[Multimat, GradMaterialDirection]
-            Set of properties for material gradient.
-
-        Returns:
-        --------
-        gradMat: list
-            3D list representing the material type in the structure.
-        """
-        multimat, direction = gradMatProperty
-
-        # Initialize gradMat based on `multimat` value
-        if multimat == -1:  # Random materials
-            return [[[random.randint(1, 3) for _ in range(self.numCellsX)] for _ in range(self.numCellsY)] for _ in
-                    range(self.numCellsZ)]
-
-        if multimat == 0:  # Single material
-            return [[[1 for _ in range(self.numCellsX)] for _ in range(self.numCellsY)] for _ in range(self.numCellsZ)]
-
-        if multimat == 1:  # Graded materials
-            # Generate gradient based on the direction
-            return [
-                [
-                    [
-                        X if direction == 1 else Y if direction == 2 else Z
-                        for X in range(self.numCellsX)
-                    ]
-                    for Y in range(self.numCellsY)
-                ]
-                for Z in range(self.numCellsZ)
-            ]
-
-        # Default case: return an empty gradMat if no valid `multimat` is provided
-        return []
-
-    @timing.timeit
-    def isNotInErasedRegion(self, startCellPos: list[float]) -> bool:
-        """
-        Check if the cell is not in the erased region or inside the mesh.
-
-        Parameters:
-        -----------
-        startCellPos: list of float
-            (xStart, yStart, zStart) position of the cell to check.
-
-        Returns:
-        --------
-        bool:
-            True if the cell should be removed.
-        """
-        # Vérifier si le point est dans `erasedParts`
-        if self.erasedParts is not None:
-            for delPart in self.erasedParts:
-                inside_erased = all(
-                    delPart[direction] <= startCellPos[direction] <= delPart[direction] + delPart[direction + 3]
-                    for direction in range(3)
-                )
-
-                if inside_erased:
-                    return True  # La cellule est supprimée si elle est dans `erasedParts`
-
-        return False  # cell removed
-
-    def isPointInMesh(self, point):
-        """
-        Check if the point is inside the mesh.
-        """
-        if self.meshObject is not None:
-            return self.meshObject.is_inside_mesh(point)
-
-    def isCellInMesh(self, cell) -> bool:
-        """
-        Check if the cell is in the erased region.
-        """
-        cellBoundaryPoint = cell.getCellCornerCoordinates()
-        for point in cellBoundaryPoint:
-            self.isPointInMesh(point)
-            if self.isPointInMesh(point):
-                return True
-        return False
 
     @timing.timeit
     def generateLattice(self) -> None:
@@ -588,6 +334,74 @@ class Lattice(object):
         if len(self.latticeType) > 1:
             self.checkHybridCollision()
 
+    def getSizeLattice(self) -> list[float]:
+        """
+        Computes the size of the lattice along each direction.
+
+        Return:
+        ---------
+        sizeLattice: list of float in dim 3
+            Length of the lattice in each direction
+        """
+        sizeLattice = [0.0, 0.0, 0.0]
+        for direction in range(3):
+            total_length = 0.0
+            num_cells = [self.numCellsX, self.numCellsY, self.numCellsZ][direction]
+            cell_size = [self.cellSizeX, self.cellSizeY, self.cellSizeZ][direction]
+            gradient_factors = [grad[direction] for grad in self.gradDim[:num_cells]]
+
+            for factor in gradient_factors:
+                total_length += factor * cell_size
+            sizeLattice[direction] = total_length
+
+        return sizeLattice
+
+    @timing.timeit
+    def isNotInErasedRegion(self, startCellPos: list[float]) -> bool:
+        """
+        Check if the cell is not in the erased region or inside the mesh.
+
+        Parameters:
+        -----------
+        startCellPos: list of float
+            (xStart, yStart, zStart) position of the cell to check.
+
+        Returns:
+        --------
+        bool:
+            True if the cell should be removed.
+        """
+        # Vérifier si le point est dans `erasedParts`
+        if self.erasedParts is not None:
+            for delPart in self.erasedParts:
+                inside_erased = all(
+                    delPart[direction] <= startCellPos[direction] <= delPart[direction] + delPart[direction + 3]
+                    for direction in range(3)
+                )
+
+                if inside_erased:
+                    return True  # La cellule est supprimée si elle est dans `erasedParts`
+
+        return False  # cell removed
+
+    def isPointInMesh(self, point):
+        """
+        Check if the point is inside the mesh.
+        """
+        if self.meshObject is not None:
+            return self.meshObject.is_inside_mesh(point)
+
+    def isCellInMesh(self, cell) -> bool:
+        """
+        Check if the cell is in the erased region.
+        """
+        cellBoundaryPoint = cell.getCellCornerCoordinates()
+        for point in cellBoundaryPoint:
+            self.isPointInMesh(point)
+            if self.isPointInMesh(point):
+                return True
+        return False
+
     @timing.timeit
     def defineBeamNodeIndex(self) -> None:
         """
@@ -626,7 +440,7 @@ class Lattice(object):
                             nodeIndexed[node] = nextNodeIndex
                             nextNodeIndex += 1
                         else:
-                            node.index = nodeIndexed[node])
+                            node.index = nodeIndexed[node]
 
     @timing.timeit
     def defineCellIndex(self) -> None:
@@ -701,58 +515,6 @@ class Lattice(object):
                     neighbor_pos = raw_pos
                 if neighbor_pos in cell_dict:
                     cell.addCellNeighbour(cell_dict[neighbor_pos])
-
-    def getNodeData(self) -> None:
-        """
-        Retrieves node data for the lattice.
-        data structure: each line represents a node with data [indexNode, X, Y, Z]
-        """
-        self._nodes = []
-        for cell in self.cells:
-            for beam in cell.beams:
-                for node in [beam.point1, beam.point2]:
-                    if node not in self._nodes:
-                        self._nodes.append(node.getData())
-
-    def getNodeObject(self) -> list:
-        """
-        Retrieves node object for the lattice.
-
-        Returns:
-        --------
-        nodeObjList: list
-            List of node objects in the lattice.
-        """
-        nodeObjList = []
-        for cell in self.cells:
-            for beam in cell.beams:
-                for node in [beam.point1, beam.point2]:
-                    if node not in nodeObjList:
-                        nodeObjList.append(node)
-        return nodeObjList
-
-    def getBeamData(self) -> None:
-        """
-        Retrieves beam data for the lattice.
-        data structure: each line represents a beam with data [indexBeam, indexNode1, indexNode2, type]
-        """
-        self._beams = []
-        for cell in self.cells:
-            for beam in cell.beams:
-                if beam not in self._beams:
-                    self._beams.append(beam.getData())
-
-    def getBeamObject(self) -> list:
-        """
-        Retrieves beam object for the lattice.
-        """
-        beamObjList = []
-        self._beams = []
-        for cell in self.cells:
-            for beam in cell.beams:
-                if beam not in beamObjList:
-                    beamObjList.append(beam)
-        return beamObjList
 
     @timing.timeit
     def getListAngleBeam(self, beam: "Beam", pointbeams: list["Beam"]) -> tuple[list[float], list[float]]:
@@ -854,7 +616,6 @@ class Lattice(object):
         non_zero_radiusbeam = [radius for angle, radius in zip(anglebeam, radiusBeam) if angle >= 0.01]
         return non_zero_anglebeam, non_zero_radiusbeam
 
-
     @timing.timeit
     def getConnectedBeams(self, beamList: list["Beam"], beam: "Beam") -> tuple[list["Beam"], list["Beam"]]:
         """
@@ -877,6 +638,9 @@ class Lattice(object):
                       *[(tags, 'face') for tags in face_tags]]
 
         def is_periodic_connected(p, b_idx, tags_range):
+            """
+            Check if the point p is periodic connected to the beam index b_idx
+            """
             if not p.tag:
                 return False
             p_tag_set = set(p.tag)
@@ -928,23 +692,23 @@ class Lattice(object):
         @timing.timeit
         def findMinAngle(angles, radii):
             """
-            Find Minimum angle between beams and radius connection to this particular beam
+            Find the Minimum angle between beams and radius connection to this particular beam
             """
             LValuesMax = 0
             LRadius = None
             LAngle = None
             for radius, angle in zip(radii, angles):
-                L = self.functionPenalizationLzone(radius, angle)
+                L = functionPenalizationLzone((radius, angle))
                 if L > LValuesMax:
                     LValuesMax = L
                     LRadius = radius
                     LAngle = angle
             return LAngle, LRadius
 
-        # Create list of beam
+        # Create the list of beam objects for each cell with neighbors cells
         for cell in self.cells:
             beamList = []
-            cellListNeighbours = cell.getNeighbourCells()
+            cellListNeighbours = cell.neighbourCells
             cellListNeighbours.append(cell)  # Include the cell itself
             for neighbour in cellListNeighbours:
                 for beam in neighbour.beams:
@@ -954,7 +718,7 @@ class Lattice(object):
             for beam in cell.beams:
                 # Determine beams on nodes
                 point1beams, point2beams = self.getConnectedBeams(beamList, beam)
-                # Determine angle for all beams connected at the node
+                # Determine angles for all beams connected at the node
                 non_zero_anglebeam1, non_zero_radiusbeam1 = self.getListAngleBeam(beam, point1beams)
                 non_zero_anglebeam2, non_zero_radiusbeam2 = self.getListAngleBeam(beam, point2beams)
                 # Find the lowest angle
@@ -1018,10 +782,10 @@ class Lattice(object):
                 lengthMod = beam.getLengthMod()
                 pointExt1 = beam.getPointOnBeamFromDistance(lengthMod[0], 1)
                 pointExt1Obj = Point(pointExt1[0], pointExt1[1], pointExt1[2])
-                pointExt1Obj.setNodeMod(True)
+                pointExt1Obj.nodeMod = True
                 pointExt2 = beam.getPointOnBeamFromDistance(lengthMod[1], 2)
                 pointExt2Obj = Point(pointExt2[0], pointExt2[1], pointExt2[2])
-                pointExt2Obj.setNodeMod(True)
+                pointExt2Obj.nodeMod = True
 
                 b1 = Beam(beam.point1, pointExt1Obj, beam.radius, beam.material,
                           beam.type)
@@ -1043,28 +807,6 @@ class Lattice(object):
 
         # Update index
         self.defineBeamNodeIndex()
-
-    def functionPenalizationLzone(self, radius: float, angle: float) -> float:
-        """
-        Definition of the penalization function
-
-        Parameters:
-        ------------
-        radius: float
-            radius data
-        angle: float
-            angle data
-
-        Returns:
-        ---------
-        L: float
-            Length of the penalization zone
-        """
-        if angle > 170:
-            L = 0.0000001
-        else:
-            L = radius / math.tan(math.radians(angle) / 2)
-        return L
 
     def removeCell(self, index: int) -> None:
         """
@@ -1089,7 +831,7 @@ class Lattice(object):
         minLength: float
             Length of the smallest beam in the lattice
         """
-        minLength = 100000
+        minLength = float('inf')
         for cell in self.cells:
             for beam in cell.beams:
                 if minLength > beam.getLength() > 0.0001 and (beam.type == 0 or beam.type == 2):
@@ -1185,7 +927,7 @@ class Lattice(object):
         for cell in self.cells:
             for beam in cell.beams:
                 if self.isNodeOnBoundary(beam.point1) or self.isNodeOnBoundary(beam.point2):
-                    beam.changeBeamType(2)
+                    beam.type = 2
                     boundaryBeams.append(beam)
         return boundaryBeams
 
@@ -1325,7 +1067,7 @@ class Lattice(object):
                     beamType.append([beam.type])
         return beamType
 
-    def getAllBeamLength(self) -> list[float]:
+    def getAllBeamLength(self) -> list[list[float]]:
         """
         Retrieves beam length data for the lattice.
 
@@ -1664,10 +1406,10 @@ class Lattice(object):
         """
         radiusContinuityDifference = []
         for cell in self.cells:
-            radiusCell = cell.getRadius()
+            radiusCell = cell.radius
             for neighbours in cell.neighbourCells:
                 for rad in range(len(radiusCell)):
-                    radiusContinuityDifference.append((radiusCell[rad] - neighbours.getRadius()[rad]) ** 2 - delta ** 2)
+                    radiusContinuityDifference.append((radiusCell[rad] - neighbours.radius[rad]) ** 2 - delta ** 2)
         return radiusContinuityDifference
 
     def getRadiusContinuityJacobian(self) -> np.ndarray:
@@ -1685,9 +1427,9 @@ class Lattice(object):
         constraint_index = 0
 
         for cell in self.cells:
-            radiusCell = cell.getRadius()
+            radiusCell = cell.radius
             for neighbour in cell.neighbourCells:
-                radiusNeighbour = neighbour.getRadius()
+                radiusNeighbour = neighbour.radius
                 for rad in range(len(radiusCell)):
                     i = cell.index * len(radiusCell) + rad
                     j = neighbour.index * len(radiusCell) + rad
@@ -2080,10 +1822,10 @@ class Lattice(object):
                     node.setLocalTag(localTag)
                     if localTag:
                         if node in nodeAlreadyIndexed:
-                            node.setIndexBoundary(nodeAlreadyIndexed[node])
+                            node.indexBoundary = nodeAlreadyIndexed[node]
                         else:
                             nodeAlreadyIndexed[node] = IndexCounter
-                            node.setIndexBoundary(IndexCounter)
+                            node.indexBoundary = IndexCounter
                             IndexCounter += 1
         self.maxIndexBoundary = IndexCounter - 1
 
@@ -2160,7 +1902,7 @@ class Lattice(object):
                         processed_nodes.add(node.indexBoundary)
         return np.concatenate(globalReactionForceWithoutFixedDOF)
 
-    def getFreeDOF(self):
+    def setFreeDOF(self):
         """
         Get total number of degrees of freedom in the lattice
         """
