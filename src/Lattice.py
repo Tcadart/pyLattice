@@ -854,6 +854,7 @@ class Lattice(object):
         non_zero_radiusbeam = [radius for angle, radius in zip(anglebeam, radiusBeam) if angle >= 0.01]
         return non_zero_anglebeam, non_zero_radiusbeam
 
+
     @timing.timeit
     def getConnectedBeams(self, beamList: list["Beam"], beam: "Beam") -> tuple[list["Beam"], list["Beam"]]:
         """
@@ -861,75 +862,57 @@ class Lattice(object):
 
         Parameters:
         -----------
+        beamList: list of Beam objects
+            List of all beams in the lattice.
         beam: Beam
-            Beam of interest
-
-        Returns:
-        --------
-        point1beams: list[Beam]
-            Beams connected to point1
-        point2beams: list[Beam]
-            Beams connected to point2
+            Beam of interest.
         """
-        point1beams = []
-        point2beams = []
+        point1beams = set()
+        point2beams = set()
+
+        edge_tags_list = [[102, 104, 106, 107], [100, 108, 105, 111], [101, 109, 103, 110]]
+        face_tags = [[10, 15], [11, 14], [12, 13]]
+
+        tag_checks = [(range(1000, 1008), 'corner'), *[(tags, 'edge') for tags in edge_tags_list],
+                      *[(tags, 'face') for tags in face_tags]]
+
+        def is_periodic_connected(p, b_idx, tags_range):
+            if not p.tag:
+                return False
+            p_tag_set = set(p.tag)
+            if not p_tag_set.intersection(tags_range):
+                return False
+
+            bp1_tag = set(b_idx.point1.tag or [])
+            bp2_tag = set(b_idx.point2.tag or [])
+            if not (bp1_tag.union(bp2_tag)).intersection(tags_range):
+                return False
+
+            p_local = set(p.localTag)
+            bp1_local = set(b_idx.point1.localTag or [])
+            bp2_local = set(b_idx.point2.localTag or [])
+
+            if tags_range == range(1000, 1008):
+                return bool(p_local.intersection(tags_range) and (bp1_local.union(bp2_local)).intersection(tags_range))
+            else:
+                return bool(p_local.intersection(tags_range) and (bp1_local.union(bp2_local)).intersection(tags_range))
 
         for beamidx in beamList:
-            if beam.point1 == beamidx.point1 or beam.point1 == beamidx.point2:
-                if beamidx not in point1beams:
-                    point1beams.append(beamidx)
-            if beam.point2 == beamidx.point1 or beam.point2 == beamidx.point2:
-                if beamidx not in point2beams:
-                    point2beams.append(beamidx)
+            if beam.point1 in [beamidx.point1, beamidx.point2]:
+                point1beams.add(beamidx)
+            if beam.point2 in [beamidx.point1, beamidx.point2]:
+                point2beams.add(beamidx)
 
-            # Gestion de la périodicité
-            if self.periodicity and (beam.point1.tag is not [] or beam.point2.tag is not []):
-                def check_periodic_connection(point, beam_idx, connected_beams, tag_range):
-                    periodic = False
-                    if point.tag and point.tag[0] in tag_range:
-                        if any(tag in tag_range for tag in beam_idx.point1.tag) or \
-                                any(tag in tag_range for tag in beam_idx.point2.tag):
-                            if any(tag in range(1000, 1008) for tag in point.localTag) and (
-                                    any(tag in range(1000, 1008) for tag in beam_idx.point1.localTag) or
-                                    any(tag in range(1000, 1008) for tag in beam_idx.point2.localTag)
-                            ):
-                                periodic = True
-                            edge_tags_list = [[102, 104, 106, 107], [100, 108, 105, 111], [101, 109, 103, 110]]
-                            for tags in edge_tags_list:
-                                if any(tag in tags for tag in point.localTag) and (
-                                        any(tag in tags for tag in beam_idx.point1.localTag) or
-                                        any(tag in tags for tag in beam_idx.point2.localTag)
-                                ):
-                                    periodic = True
-                                    break
-                            face_tags = [[10, 15], [11, 14], [12, 13]]
-                            for tags in face_tags:
-                                if any(tag in tags for tag in point.localTag) and (
-                                        any(tag in tags for tag in beam_idx.point1.localTag) or
-                                        any(tag in tags for tag in beam_idx.point2.localTag)
-                                ):
-                                    periodic = True
-                                    break
-                    if beam_idx not in connected_beams and periodic:
-                        connected_beams.append(beam_idx)
+            if not self.periodicity:
+                continue
 
-                # Coins
-                check_periodic_connection(beam.point1, beamidx, point1beams, range(1000, 1008))
-                check_periodic_connection(beam.point2, beamidx, point2beams, range(1000, 1008))
+            for tags_range, _ in tag_checks:
+                if is_periodic_connected(beam.point1, beamidx, tags_range):
+                    point1beams.add(beamidx)
+                if is_periodic_connected(beam.point2, beamidx, tags_range):
+                    point2beams.add(beamidx)
 
-                # Arêtes
-                edge_tags_list = [[102, 104, 106, 107], [100, 108, 105, 111], [101, 109, 103, 110]]
-                for tags in edge_tags_list:
-                    check_periodic_connection(beam.point1, beamidx, point1beams, tags)
-                    check_periodic_connection(beam.point2, beamidx, point2beams, tags)
-
-                # Faces
-                face_tags = [[10, 15], [11, 14], [12, 13]]
-                for tags in face_tags:
-                    check_periodic_connection(beam.point1, beamidx, point1beams, tags)
-                    check_periodic_connection(beam.point2, beamidx, point2beams, tags)
-
-        return point1beams, point2beams
+        return list(point1beams), list(point2beams)
 
     @timing.timeit
     def getAllAngles(self) -> None:
