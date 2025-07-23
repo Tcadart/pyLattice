@@ -8,7 +8,6 @@ import math
 import numpy as np
 import trimesh
 
-from Mesh import Mesh
 from .Point import Point
 from .Utils import functionPenalizationLzone
 

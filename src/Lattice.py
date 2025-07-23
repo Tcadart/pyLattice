@@ -17,7 +17,6 @@ import joblib
 from colorama import Style, Fore
 from matplotlib import pyplot as plt
 
-from Mesh.Mesh import mesh
 from .Cell import *
 import math
 import random

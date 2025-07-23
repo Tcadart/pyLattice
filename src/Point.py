@@ -200,8 +200,6 @@ class Point:
         """
         if len(reactionForce) != 6:
             raise ValueError("Reaction force must have exactly 6 values.")
-        if not isinstance(reactionForce, list):
-            raise ValueError("Reaction force must be a list.")
         for i in range(len(self.reactionForceValue)):
             self.reactionForceValue[i] += reactionForce[i]
 
