@@ -348,7 +348,7 @@ class Cell(object):
                     indexActual = 0
                     for i in range(6):
                         if point.fixedDOF[i] == 0:  # Filter out the fixed DOF
-                            point.setDisplacementValue(displacementArray[index + indexActual], i)
+                            point.displacementValue[i] = displacementArray[index + indexActual]
                             indexActual += 1
 
     def getDisplacementAtNodes(self, nodeList: dict, numberRadiusNN: int) -> list:
@@ -373,7 +373,7 @@ class Cell(object):
         nullDisplacement = [0.0,0.0,0.0,0.0,0.0,0.0]
         for key, node in nodeList.items():
             if node:
-                displacement = node.getDisplacementValue()
+                displacement = node.displacementValue
                 displacementList.append(displacement)
             elif nodeListNN[key] == 1:
                 displacementList.append(nullDisplacement)
@@ -483,7 +483,7 @@ class Cell(object):
         for beam in self.beams:
             for point in [beam.point1, beam.point2]:
                 if point.indexBoundary is not None:
-                    allBoundaryDisplacementData.append(point.getDisplacementValue())
+                    allBoundaryDisplacementData.append(point.displacementValue)
         return allBoundaryDisplacementData
 
     def changeBeamRadius(self, newRadius: list, gradRadius: list = None) -> None:
@@ -724,7 +724,7 @@ class Cell(object):
         for beam in self.beams:
             for point in [beam.point1, beam.point2]:
                 if point.indexBoundary is not None:
-                    translation += point.getDisplacementValue()[:3]
+                    translation += point.displacementValue[:3]
         return translation / self.getNumberNodesAtBoundary()
 
     def getRotationRigidBody(self):

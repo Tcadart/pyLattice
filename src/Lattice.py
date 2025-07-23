@@ -613,20 +613,20 @@ class Lattice(object):
             for beam in cell.beams:
                 if beam.index is None:
                     if beam not in beamIndexed:
-                        beam.setIndex(nextBeamIndex)
+                        beam.index = nextBeamIndex
                         beamIndexed[beam] = nextBeamIndex
                         nextBeamIndex += 1
                     else:
-                        beam.setIndex(beamIndexed[beam])
+                        beam.index = beamIndexed[beam]
 
                 for node in [beam.point1, beam.point2]:
                     if node.index is None:
                         if node not in nodeIndexed:
-                            node.setIndex(nextNodeIndex)
+                            node.index = nextNodeIndex
                             nodeIndexed[node] = nextNodeIndex
                             nextNodeIndex += 1
                         else:
-                            node.setIndex(nodeIndexed[node])
+                            node.index = nodeIndexed[node])
 
     @timing.timeit
     def defineCellIndex(self) -> None:
@@ -643,7 +643,7 @@ class Lattice(object):
         for cell in self.cells:
             if cell.index is None:
                 if cell not in cellIndexed:
-                    cell.setIndex(nextCellIndex)
+                    cell.index = nextCellIndex
                     cellIndexed[cell] = nextCellIndex
                     nextCellIndex += 1
 
@@ -1143,7 +1143,7 @@ class Lattice(object):
             for beam in cell.beams:
                 for node in [beam.point1, beam.point2]:
                     tag = node.tagPoint(self.getLatticeBoundaryBox())
-                    node.setTag(tag)
+                    node.tag = tag
 
     def getLatticeBoundaryBox(self) -> list[float]:
         """
@@ -1818,10 +1818,10 @@ class Lattice(object):
                     if node.indexBoundary in indexBoundaryList:
                         for val, DOFi in zip(value, DOF):
                             if type == "Displacement":
-                                node.setDisplacementValue(val, DOFi)
+                                node.displacementValue[DOFi] = val
                                 node.fixDOF([DOFi])
                             elif type == "Force":
-                                node.setForceValue(val, DOFi)
+                                node.appliedForce[DOFi] = val
 
     def findPointOnLatticeSurface(self, surfaceNames: list[str]) -> set["Point"]:
         """
@@ -1934,7 +1934,7 @@ class Lattice(object):
                 for node in [beam.point1, beam.point2]:
                     if node.index in indexBoundaryList:
                         for val, DOFi in zip(valueDisplacement, DOF):
-                            node.setDisplacementValue(val, DOFi)
+                            node.displacementValue[DOFi] = val
                             node.fixDOF([DOFi])
 
     def applyForceOnSurface(self, surfaceName: list[str], valueForce: list[float], DOF: list[int]) -> None:
@@ -2001,9 +2001,9 @@ class Lattice(object):
                     if node.indexBoundary is not None:
                         for dof in range(6):
                             if dof < 3:
-                                node.setDisplacementValue(random.uniform(-0.1, 0.1), dof)
+                                node.displacementValue[dof] = random.uniform(-0.1, 0.1)
                             else:
-                                node.setDisplacementValue(random.uniform(-0.01, 0.01), dof)
+                                node.displacementValue[dof] = random.uniform(-0.01, 0.01)
                             node.fixDOF([dof])
 
     def setDisplacementWithVector(self, displacementMatrix: list[float]) -> None:
@@ -2020,7 +2020,7 @@ class Lattice(object):
             idxNode = 0
             for idx, node in enumerate(nodeInOrder.values()):
                 if node is not None:
-                    node.setDisplacementVector(displacementMatrix[idxNode])
+                    node.displacementValue = displacementMatrix[idxNode]
                     node.fixDOF([i for i in range(6)])
                     idxNode += 1
 
@@ -2113,7 +2113,7 @@ class Lattice(object):
                 for node in [beam.point1, beam.point2]:
                     if node.indexBoundary is not None and node.index not in nodeIndexProcessed:
                         globalReactionForce[node.indexBoundary] = [
-                            x + y for x, y in zip(globalReactionForce[node.indexBoundary], node.getReactionForce())
+                            x + y for x, y in zip(globalReactionForce[node.indexBoundary], node.reactionForceValue)
                         ]
                         if appliedForceAdded:
                             for i in range(6):
@@ -2466,7 +2466,7 @@ class Lattice(object):
                     match = np.all(nodeCoordinatesArray == nodeCoord, axis=1)
                     if np.any(match):
                         index = np.where(match)[0][0]
-                        node.setDisplacementVector(displacement[index])
+                        node.displacementValue = displacement[index]
                         node.fixDOF([i for i in range(6)])
 
     def expandSchurToFullBasis(self, SchurReduced, nodeInOrder):

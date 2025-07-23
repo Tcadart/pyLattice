@@ -17,6 +17,15 @@ class Point:
             z (float): Z-coordinate of the point.
             nodeUncertaintySD (float, optional): Standard deviation for adding uncertainty to node coordinates. Defaults to 0.0.
         """
+        # Validate input types and values
+        if not isinstance(x, (int, float)) or not isinstance(y, (int, float)) or not isinstance(z, (int, float)):
+            raise ValueError("Coordinates must be numeric (int or float).")
+        if not isinstance(nodeUncertaintySD, (int, float)):
+            raise ValueError("Node uncertainty standard deviation must be numeric (int or float).")
+        if nodeUncertaintySD < 0:
+            raise ValueError("Node uncertainty standard deviation cannot be negative.")
+
+        # Initialize coordinates with added uncertainty
         self.x = float(x) + random.gauss(0, nodeUncertaintySD)
         self.y = float(y) + random.gauss(0, nodeUncertaintySD)
         self.z = float(z) + random.gauss(0, nodeUncertaintySD)
@@ -62,15 +71,6 @@ class Point:
             Tuple[float, float, float]: (x, y, z) coordinates of the point.
         """
         return self.x, self.y, self.z
-
-    def setIndex(self, index: int) -> None:
-        """
-        Set the index of the point.
-
-        Args:
-            index (int): Index to assign.
-        """
-        self.index = index
 
     def getData(self) -> List[float]:
         """
@@ -166,44 +166,6 @@ class Point:
             tag.append(1007)  # Corner 7
         return tag
 
-    def setTag(self, tag: List[int]) -> None:
-        """
-        Assign tags to the point.
-
-        Args:
-            tag (List[int]): Tags to assign.
-        """
-        self.tag = tag
-
-    def setDisplacementValue(self, displacementValue: float, DOF: int) -> None:
-        """
-        Assign displacement value to a specific degree of freedom.
-
-        Args:
-            displacementValue (float): Displacement value.
-            DOF (int): Degree of freedom (0 to 5).
-        """
-        self.displacementValue[DOF] = displacementValue
-
-    def setDisplacementVector(self, displacementVector: List[float]) -> None:
-        """
-        Assign displacement values to the point.
-
-        Args:
-            displacementVector (List[float]): Displacement values for all DOF.
-        """
-        self.displacementValue = displacementVector
-
-    def setForceValue(self, forceValue: float, DOF: int) -> None:
-        """
-        Assign force value to a specific degree of freedom.
-
-        Args:
-            forceValue (float): Force value.
-            DOF (int): Degree of freedom (0 to 5).
-        """
-        self.appliedForce[DOF] = forceValue
-
     def setAppliedForce(self, appliedForce: List[float], DOF:list[int]) -> None:
         """
         Assign applied force to the point.
@@ -220,23 +182,6 @@ class Point:
         for i in range(len(DOF)):
             self.appliedForce[DOF[i]] = appliedForce[i]
 
-    def getAppliedForce(self) -> List[float]:
-        """
-        Retrieve the applied force values.
-
-        Returns:
-            List[float]: Applied force values for all DOF.
-        """
-        return self.appliedForce
-
-    def getDisplacementValue(self) -> List[float]:
-        """
-        Retrieve the displacement values of the point.
-
-        Returns:
-            List[float]: Displacement values for all DOF.
-        """
-        return self.displacementValue
 
     def initializeReactionForce(self) -> None:
         """
@@ -251,35 +196,12 @@ class Point:
         Args:
             reactionForce (List[float]): Reaction force values for each DOF.
         """
+        if len(reactionForce) != 6:
+            raise ValueError("Reaction force must have exactly 6 values.")
+        if not isinstance(reactionForce, list):
+            raise ValueError("Reaction force must be a list.")
         for i in range(len(self.reactionForceValue)):
             self.reactionForceValue[i] += reactionForce[i]
-
-    def getReactionForce(self) -> List[float]:
-        """
-        Retrieve the reaction force values.
-
-        Returns:
-            List[float]: Reaction force values for all DOF.
-        """
-        return self.reactionForceValue
-
-    def setIndexBoundary(self, index: int) -> None:
-        """
-        Assign a boundary index to the point.
-
-        Args:
-            index (int): Boundary index to assign.
-        """
-        self.indexBoundary = index
-
-    def getIndexBoundary(self) -> int:
-        """
-        Retrieve the boundary index of the point.
-
-        Returns:
-            int: Boundary index.
-        """
-        return self.indexBoundary
 
     def getDeformedPos(self) -> Tuple[float, float, float]:
         """
