@@ -271,13 +271,14 @@ class Cell(object):
         list
            List of points on the specified surface.
         """
+        boundaryBox = self.getCellBoundaryBox()
         surface_map = {
-            "Xmin": self.coordinateCell[0],
-            "Xmax": self.coordinateCell[0] + self.cellSize[0],
-            "Ymin": self.coordinateCell[1],
-            "Ymax": self.coordinateCell[1] + self.cellSize[1],
-            "Zmin": self.coordinateCell[2],
-            "Zmax": self.coordinateCell[2] + self.cellSize[2],
+            "Xmin": boundaryBox[0],
+            "Xmax": boundaryBox[1],
+            "Ymin": boundaryBox[2],
+            "Ymax": boundaryBox[3],
+            "Zmin": boundaryBox[4],
+            "Zmax": boundaryBox[5],
             "Xmid": self.coordinateCell[0],
             "Ymid": self.coordinateCell[1],
             "Zmid": self.coordinateCell[2]

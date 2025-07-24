@@ -1,7 +1,7 @@
 """
 Visualization and saving of lattice structures from lattice objects.
 
-Created in 2025-01-16 by Cadart Thomas, University of technology Belfort Montbéliard.
+Created in 2025-01-16 by Cadart Thomas, University of technology Belfort-Montbéliard.
 """
 
 import matplotlib.pyplot as plt
@@ -11,6 +11,7 @@ import matplotlib.colors as mcolors
 from .Cell import Cell
 from .Utils import *
 import matplotlib
+from .Utils import _getBeamColor, _prepareLatticePlotData
 
 matplotlib.use('TkAgg')  # Or 'Qt5Agg' if you prefer Qt backend
 
@@ -97,11 +98,11 @@ class LatticePlotting:
             for cell in cells:
                 for beam in cell.beams:
                     if beam.radius != 0.0 and beam not in beamDraw:
-                        colorBeam, idxColor = self._getBeamColor(beam, color_palette, beamColor, idxColor, cells,
+                        colorBeam, idxColor = _getBeamColor(beam, color_palette, beamColor, idxColor, cells,
                                                                  nbRadiusBins)
 
                         # Add line and node data
-                        beam_lines, beam_nodes, beam_indices = self._prepareLatticePlotData(beam, deformedForm)
+                        beam_lines, beam_nodes, beam_indices = _prepareLatticePlotData(beam, deformedForm)
                         lines.extend(beam_lines)
                         colors.extend([colorBeam] * len(beam_lines))  # One color per line
 

@@ -118,6 +118,7 @@ class Lattice(object):
         self.latticeDimensionsDict = None
         self.dictSchurComplement = None
         self.objectifData = None
+        self.occupancy_matrix = None
 
         self.cellSizeX = cell_size_x
         self.cellSizeY = cell_size_y
@@ -470,9 +471,15 @@ class Lattice(object):
             (0, -self.cellSizeY, 0), (0, self.cellSizeY, 0),
             (0, 0, -self.cellSizeZ), (0, 0, self.cellSizeZ)
         ]
+        localBoundaryBox = False
+        if self.occupancy_matrix is None and self.periodicity and self.erasedParts is not None:
+            self.getCellOccupancyMatrix()
+            localBoundaryBox = True
 
         for cell in self.cells:
             cell.neighbourCells = []
+            boundaryBox = self.getRelativeBoundaryBox(cell) if localBoundaryBox else self.getLatticeBoundaryBox()
+
             for offset in neighbor_offsets:
                 raw_pos = (
                     cell.posCell[0] + offset[0],
@@ -481,33 +488,33 @@ class Lattice(object):
                 )
 
                 if self.periodicity:
-                    # périodicité X
-                    if raw_pos[0] < self.xMin:
-                        neighbor_x = self.xMax + offset[0]
-                    elif raw_pos[0] >= self.xMax:
-                        neighbor_x = self.xMin
+                    # periodicity X
+                    if raw_pos[0] < boundaryBox[0]:
+                        neighbor_x = boundaryBox[1] + offset[0]
+                    elif raw_pos[0] >= boundaryBox[1]:
+                        neighbor_x = boundaryBox[0]
                     else:
                         neighbor_x = raw_pos[0]
-                    # périodicité Y
-                    if raw_pos[1] < self.yMin:
-                        neighbor_y = self.yMax + offset[1]
-                    elif raw_pos[1] >= self.yMax:
-                        neighbor_y = self.yMin
+                    # periodicity Y
+                    if raw_pos[1] < boundaryBox[2]:
+                        neighbor_y = boundaryBox[3] + offset[1]
+                    elif raw_pos[1] >= boundaryBox[3]:
+                        neighbor_y = boundaryBox[2]
                     else:
                         neighbor_y = raw_pos[1]
-                    # périodicité Z
-                    if raw_pos[2] < self.zMin:
-                        neighbor_z = self.zMax + offset[2]
-                    elif raw_pos[2] >= self.zMax:
-                        neighbor_z = self.zMin
+                    # periodicity Z
+                    if raw_pos[2] < boundaryBox[4]:
+                        neighbor_z = boundaryBox[5] + offset[2]
+                    elif raw_pos[2] >= boundaryBox[5]:
+                        neighbor_z = boundaryBox[4]
                     else:
                         neighbor_z = raw_pos[2]
 
                     neighbor_pos = (neighbor_x, neighbor_y, neighbor_z)
                 else:
-                    if not (self.xMin <= raw_pos[0] <= self.xMax and
-                            self.yMin <= raw_pos[1] <= self.yMax and
-                            self.zMin <= raw_pos[2] <= self.zMax):
+                    if not (boundaryBox[0] <= raw_pos[0] <= boundaryBox[1] and
+                            boundaryBox[2] <= raw_pos[1] <= boundaryBox[3] and
+                            boundaryBox[4] <= raw_pos[2] <= boundaryBox[5]):
                         continue
                     neighbor_pos = raw_pos
                 if neighbor_pos in cell_dict:
@@ -876,13 +883,97 @@ class Lattice(object):
     @timing.timeit
     def applyTagToAllPoint(self) -> None:
         """
-        Generate tag to all nodes in lattice
+        Assign a tag to all nodes in the lattice structure.
+        Tags are assigned relative to either the global bounding box
+        or a local (cell-relative) bounding box if erased parts are used.
         """
+        use_local_box = self.erasedParts is not None
+
+        if self.occupancy_matrix is None and use_local_box:
+            self.getCellOccupancyMatrix()
+
+        global_box = None if use_local_box else self.getLatticeBoundaryBox()
+
         for cell in self.cells:
+            local_box = self.getRelativeBoundaryBox(cell) if use_local_box else None
             for beam in cell.beams:
                 for node in [beam.point1, beam.point2]:
-                    tag = node.tagPoint(self.getLatticeBoundaryBox())
+                    tag = node.tagPoint(local_box if use_local_box else global_box)
                     node.tag = tag
+
+    def getCellOccupancyMatrix(self):
+        """
+        Generate a 3D boolean matrix indicating presence of a cell at each (i, j, k) position.
+
+        Returns:
+        --------
+        occupancy_matrix: np.ndarray of shape (numCellsX, numCellsY, numCellsZ)
+            True if a cell is present at the corresponding position, False otherwise.
+        """
+        self.occupancy_matrix = np.empty((self.numCellsX, self.numCellsY, self.numCellsZ), dtype=object)
+        for cell in self.cells:
+            i, j, k = cell.posCell
+            self.occupancy_matrix[i, j, k] = cell
+
+    def getCellsAt(self, axis: str, index: int) -> list:
+        """
+        Get all cells at a specific index along a specified axis.
+
+        Parameters:
+        -----------
+        axis: str
+            Axis to query ('x', 'y', or 'z').
+        index: int
+            Index along the specified axis.
+        """
+        if axis == 'x':
+            return [c for c in self.occupancy_matrix[index, :, :].flatten() if c is not None]
+        elif axis == 'y':
+            return [c for c in self.occupancy_matrix[:, index, :].flatten() if c is not None]
+        elif axis == 'z':
+            return [c for c in self.occupancy_matrix[:, :, index].flatten() if c is not None]
+        else:
+            raise ValueError("Axis must be 'x', 'y', or 'z'")
+
+    def getRelativeBoundaryBox(self, cell) -> list[float]:
+        """
+        Get the relative boundary box of a cell in the lattice.
+        It corresponds to the minimum and maximum dimension of the lattice for each axis with cell continuity.
+        Useful for structures with erased parts or periodic boundaries.
+
+        Parameters:
+        -----------
+        cell: Cell object
+            The cell for which the boundary box is computed.
+        """
+        x, y, z = cell.posCell
+        bbox = []
+
+        for axis, index in zip(
+                ['x', 'y', 'z'],
+                [x, y, z],
+        ):
+            arrayCell = self.getCellsAt(axis, index)
+            min_val, max_val = np.inf, -np.inf
+
+            for cellIn in arrayCell:
+                cellInBoundaryBox = cellIn.getCellBoundaryBox()
+                if axis == 'x':
+                    bounds = cellInBoundaryBox[0:2]
+                elif axis == 'y':
+                    bounds = cellInBoundaryBox[2:4]
+                elif axis == 'z':
+                    bounds = cellInBoundaryBox[4:6]
+
+                if bounds[0] < min_val:
+                    min_val = bounds[0]
+                if bounds[1] > max_val:
+                    max_val = bounds[1]
+
+            bbox.append(min_val)
+            bbox.append(max_val)
+
+        return bbox
 
     def getLatticeBoundaryBox(self) -> list[float]:
         """
@@ -2253,8 +2344,8 @@ class Lattice(object):
         Print statistics about the lattice
         """
         print("Number of cells: ", len(self.cells))
-        # print("Number of beams: ", self.getNumberOfBeams())
-        # print("Number of nodes: ", self.getNumberOfNodes())
+        print("Number of beams: ", self.getNumberOfBeams())
+        print("Number of nodes: ", self.getNumberOfNodes())
         print("Relative density: ", self.getRelativeDensity())
         radMax, radMin = self.getRadiusMinMax()
         print("Radius max: ", radMax)

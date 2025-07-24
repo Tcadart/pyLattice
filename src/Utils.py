@@ -71,7 +71,7 @@ def functionPenalizationLzone(radiusAngleData: Tuple[float, float]) -> float:
     if radiusAngleData is None or len(radiusAngleData) != 2:
         raise ValueError("radiusAngleData must be a tuple of (radius, angle).")
     radius, angle = radiusAngleData
-    # Case beam quasi-aligned
+    # Case beam quasi-aligned, avoid division by zero
     if angle > 170:
         return 0.0000001
     return radius / math.tan(math.radians(angle) / 2)

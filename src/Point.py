@@ -85,7 +85,7 @@ class Point:
         """
         return [self.index, self.x, self.y, self.z]
 
-    def tagPoint(self, boundaryBoxDomain) -> List[int]:
+    def tagPoint(self, boundaryBoxDomain: list[float]) -> List[int]:
         """
         Generate standardized tags for the point based on its position.
 
