@@ -9,23 +9,21 @@ including the definition of cell dimensions, material properties, and gradient s
 Created in 2023 by Cadart Thomas, University of technology Belfort Montbéliard.
 """
 
+import math
 import os
 import pickle
+import random
 from statistics import mean
 
 import joblib
-from colorama import Style, Fore
-from matplotlib import pyplot as plt
+import numpy as np
+import open3d as o3d
+import trimesh
+from scipy.sparse import coo_matrix
+from scipy.sparse.linalg import splu
+from trimesh.creation import cylinder
 
 from .Cell import *
-import math
-import random
-
-import numpy as np
-from scipy.sparse.linalg import splu
-from scipy.sparse import coo_matrix
-import trimesh
-from trimesh.creation import cylinder
 from .Timing import *
 from .Utils import _validate_inputs
 from .gradientProperties import getGradSettings, gradMaterialSetting
@@ -2481,7 +2479,8 @@ class Lattice(object):
         self.objectifData = objectifData
 
     @timing.timeit
-    def generateMeshLattice(self, sectionPrecision: int = 8, cutMeshAtBoundary: bool = False):
+    def generateMeshLattice(self, sectionPrecision: int = 8, cutMeshAtBoundary: bool = False, remeshLattice: bool =
+                            False) -> None:
         """
         Generate a mesh representation of the lattice structure.
 
@@ -2492,6 +2491,9 @@ class Lattice(object):
         cutMeshAtBoundary: bool
             If True, cut the mesh at the bounding box of the lattice.
         """
+        if self.simMethod == 1:
+            raise ValueError("Mesh generation is not available for the current simulation method.")
+
         mesh_list = []
 
         bounds_min = np.array([self.xMin, self.yMin, self.zMin])
@@ -2524,6 +2526,40 @@ class Lattice(object):
 
         self.meshLattice = trimesh.boolean.union(mesh_list)
         print(f"Mesh lattice has been constructed")
+
+        self.meshCleaning()
+
+        if remeshLattice:
+            self.remeshLattice()
+
+    @timing.timeit
+    def meshCleaning(self):
+        """
+        Clean the mesh lattice by removing degenerate faces, duplicate faces, unreferenced vertices,
+        """
+        self.meshLattice.remove_unreferenced_vertices()
+        self.meshLattice.merge_vertices()
+        self.meshLattice.fill_holes()
+
+    @timing.timeit
+    def remeshLattice(self):
+        """
+        Remesh the lattice to simplify the mesh and smooth it.
+        """
+        # Convert Trimesh to Open3D mesh
+        o3d_mesh = o3d.geometry.TriangleMesh(
+            vertices=o3d.utility.Vector3dVector(self.meshLattice.vertices),
+            triangles=o3d.utility.Vector3iVector(self.meshLattice.faces)
+        )
+
+        # Remeshing (simplify)
+        initial_tri_count = len(o3d_mesh.triangles)
+        target_triangles = int(initial_tri_count * 0.8)
+        o3d_mesh = o3d_mesh.simplify_quadric_decimation(target_number_of_triangles=target_triangles)
+
+        vertices = np.asarray(o3d_mesh.vertices)
+        faces = np.asarray(o3d_mesh.triangles)
+        self.meshLattice = trimesh.Trimesh(vertices=vertices, faces=faces, process=False)
 
     def are_cells_identical(self) -> bool:
         """

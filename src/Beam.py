@@ -81,7 +81,7 @@ class Beam(object):
         Returns:
             float: Volume of the beam.
         """
-        if sectionType.lower() == "circular":
+        if sectionType.lower() != "circular":
             raise ValueError("Currently only circular section type is supported.")
         return math.pi * (self.radius ** 2) * self.length
 

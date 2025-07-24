@@ -9,19 +9,6 @@ from src.Point import Point
 from src.Beam import Beam
 
 
-# radius = 0.05
-# material = 1
-# type = 0
-#
-# point1 = Point(0, 0, 0)
-# point2 = Point(1, 0, 0)
-# beam1 = Beam(point1, point2, radius, material, type)
-#
-# point3 = Point(1, 0, 0)
-# point4 = Point(2, 0, 0)
-# beam2 = Beam(point3, point4, radius, material, type)
-
-
 def test_beam_length():
     point1 = Point(0, 0, 0)
     point2 = Point(1, 0, 0)

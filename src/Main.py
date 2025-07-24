@@ -2,7 +2,6 @@ from src.Lattice import *
 from src.Utils import *
 from src.LatticePlotting import *
 from Mesh.Mesh import *
-# from Preset_Lattice.Helmet import *
 from src.settings import *
 
 
@@ -27,14 +26,14 @@ lattice = Lattice(cell_size_X, cell_size_Y, cell_size_Z, number_cell_X, number_c
 # vizualizer.visualizeLattice3D(lattice.cells, lattice.latticeDimensionsDict, "Radius", voxelViz=False,
 #                               plotting = False, plotNodeIndex = False)
 
-# lattice.generateMeshLattice(15, cutMeshAtBoundary=True)
+lattice.generateMeshLattice(15, cutMeshAtBoundary=True, remeshLattice=False)
 # lattice.cutMeshLatticeAtBoundary()
 
 # vizualizer.visualizeMesh(meshObject)
-# vizualizer.visualizeMesh(lattice.meshLattice)
+vizualizer.visualizeMesh(lattice.meshLattice)
 # vizualizer.saveMeshLattice("testLatticeMesh", lattice.meshLattice)
 
-# vizualizer.show()
+vizualizer.show()
 # fig.show()
 
 # Timing

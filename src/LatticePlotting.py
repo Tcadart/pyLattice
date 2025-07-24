@@ -209,7 +209,7 @@ class LatticePlotting:
             mesh = meshObject
 
         faces = mesh.vertices[mesh.faces]
-        self.ax.add_collection3d(Poly3DCollection(faces, facecolors='cyan', linewidths=0.2, edgecolors='k', alpha=0.2))
+        self.ax.add_collection3d(Poly3DCollection(faces, facecolors='cyan', linewidths=0.1, edgecolors='k'))
 
         minAxis = min(mesh.bounds[0])
         maxAxis = max(mesh.bounds[1])

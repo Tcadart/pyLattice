@@ -109,9 +109,9 @@ class Cell(object):
                 self.originalCellGeom = [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
             elif self.latticeType[0] == 19:
                 self.originalTags = [10, 11, 12, 13, 14, 15]
-                self.originalCellGeom = [2, 2, 2, 2, 2, 2, ]
+                self.originalCellGeom = [2, 2, 2, 2, 2, 2]
             else:
-                raise ValueError("Lattice type not recognized")
+                pass
         elif len(self.radius) == 2:
             if self.latticeType[0] == 0 and self.latticeType[1] == 16:
                 self.originalTags = [1000, 1001, 1002, 1003, 1004, 1005, 1006, 1007,
