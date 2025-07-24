@@ -35,5 +35,6 @@ __pycache__
 *.json
 *.pkl
 *.stlbak
+*.msh
 
 

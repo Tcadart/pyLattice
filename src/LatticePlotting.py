@@ -197,7 +197,7 @@ class LatticePlotting:
 
         plt.show()
 
-    def visualizeMesh(self, meshObject: trimesh.Trimesh):
+    def visualizeMesh(self, meshObject):
         """
         Visualize a mesh object in 3D.
         """

@@ -6,6 +6,7 @@ from src.settings import *
 
 
 # meshObject = mesh("CutedBone2.stl")
+# meshObject = mesh("Lattice.stl")
 # meshObject.scaleMesh(4)
 # meshObject.saveMesh("CutedBone2_scaled")
 
@@ -23,13 +24,16 @@ lattice = Lattice(cell_size_X, cell_size_Y, cell_size_Z, number_cell_X, number_c
 
 # print(lattice.getRelativeDensity())
 # vizualizer.saveJSONToGrasshopper(lattice, "Beam3PointFlexion", multipleParts=1)
-vizualizer.visualizeLattice3D(lattice.cells, lattice.latticeDimensionsDict, "Radius", voxelViz=False,
-                              plotting = False, plotNodeIndex = False)
+# vizualizer.visualizeLattice3D(lattice.cells, lattice.latticeDimensionsDict, "Radius", voxelViz=False,
+#                               plotting = False, plotNodeIndex = False)
 
 # lattice.generateMeshLattice(15, cutMeshAtBoundary=True, remeshLattice=False)
 # lattice.cutMeshLatticeAtBoundary()
+lattice.generateMeshLatticeGmsh(cutMeshAtBoundary=True, saveMesh=False, saveSTL=True)
 
-# vizualizer.visualizeMesh(meshObject)
+meshObject = mesh("Lattice.stl")
+
+vizualizer.visualizeMesh(meshObject)
 # vizualizer.visualizeMesh(lattice.meshLattice)
 # vizualizer.saveMeshLattice("testLatticeMesh", lattice.meshLattice)
 

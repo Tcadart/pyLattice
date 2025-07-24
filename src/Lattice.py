@@ -17,11 +17,8 @@ from statistics import mean
 
 import joblib
 import numpy as np
-import open3d as o3d
-import trimesh
-from scipy.sparse import coo_matrix
 from scipy.sparse.linalg import splu
-from trimesh.creation import cylinder
+import gmsh
 
 from .Cell import *
 from .Timing import *
@@ -135,7 +132,7 @@ class Lattice(object):
         self.simMethod = simMethod
         self.sizeX, self.sizeY, self.sizeZ = self.getSizeLattice()
         self.uncertaintyNode = uncertaintyNode
-        self.periodicity = periodicity
+        self.periodicity = periodicity  # Warning not working for graded structures
         self.erasedParts = erasedParts
         self.randomHybrid = randomHybrid
         self.meshObject = meshObject
@@ -2570,87 +2567,75 @@ class Lattice(object):
         self.objectifData = objectifData
 
     @timing.timeit
-    def generateMeshLattice(self, sectionPrecision: int = 8, cutMeshAtBoundary: bool = False, remeshLattice: bool =
-                            False) -> None:
+    def generateMeshLatticeGmsh(self, cutMeshAtBoundary: bool = False, meshSize: float = 0.05, runGmshApp: bool =
+                                False, saveMesh: bool = True, nameMesh: str = "Lattice", saveSTL: bool = False) \
+            -> None:
         """
-        Generate a mesh representation of the lattice structure.
+        Generate a mesh representation of the lattice structure using GMSH.
 
         Parameters:
         -----------
-        sectionPrecision: int
-            Number of sections for the cylindrical mesh representation of beams.
         cutMeshAtBoundary: bool
             If True, cut the mesh at the bounding box of the lattice.
+        meshSize: float
+            Size of the mesh elements.
+        runGmshApp: bool
+            If True, run the GMSH application to visualize the mesh.
+        saveMesh: bool
+            If True, save the mesh to a file.
+        nameMesh: str
+            Name of the mesh file to save.
         """
         if self.simMethod == 1:
             raise ValueError("Mesh generation is not available for the current simulation method.")
 
-        mesh_list = []
+        gmsh.initialize()
+        gmsh.model.add("LatticeMesh")
+        dim = 3  # Dimension of the mesh
 
-        bounds_min = np.array([self.xMin, self.yMin, self.zMin])
-        bounds_max = np.array([self.xMax, self.yMax, self.zMax])
-        center = (bounds_min + bounds_max) / 2
-        size = bounds_max - bounds_min
-
-        bounding_box = trimesh.creation.box(extents=size, transform=trimesh.transformations.translation_matrix(center))
-
+        all_tags = []
         for cell in self.cells:
             for beam in cell.beams:
                 p1 = np.array(beam.point1.getPos())
                 p2 = np.array(beam.point2.getPos())
-                height = beam.length
-
                 direction = p2 - p1
-                direction /= height
+                beamMesh = gmsh.model.occ.addCylinder(*p1, *direction, beam.radius, tag=beam.index)
+                all_tags.append(beamMesh)
 
-                cyl = cylinder(radius=beam.radius, height=height, sections=sectionPrecision, cap_ends=True)
+        # Merge all beams into a single entity
+        beam_entities = [(dim, tag) for tag in all_tags]
+        lattice = gmsh.model.occ.fragment(beam_entities, [])
 
-                R = trimesh.geometry.align_vectors([0, 0, 1], direction)
-                T = trimesh.transformations.translation_matrix((p1 + p2) / 2)
+        if cutMeshAtBoundary:
+            # Bounding box definition
+            x0, y0, z0 = self.xMin, self.yMin, self.zMin
+            dx, dy, dz = self.xMax - x0, self.yMax - y0, self.zMax - z0
+            box = gmsh.model.occ.addBox(x0, y0, z0, dx, dy, dz)
+            gmsh.model.occ.intersect(lattice[0], [(dim, box)], removeObject=True)
 
-                cyl.apply_transform(R)
-                cyl.apply_transform(T)
+        gmsh.model.occ.synchronize()
 
-                if cutMeshAtBoundary:
-                    cyl = trimesh.boolean.intersection([cyl, bounding_box])
-                mesh_list.append(cyl)
+        # Define mesh size
+        points = gmsh.model.getEntities(dim=0)
+        gmsh.model.mesh.setSize(points, meshSize)
+        gmsh.model.occ.synchronize()
 
-        self.meshLattice = trimesh.boolean.union(mesh_list)
-        print(f"Mesh lattice has been constructed")
+        gmsh.model.mesh.generate(dim)
 
-        self.meshCleaning()
+        if runGmshApp:
+            gmsh.fltk.run()
 
-        if remeshLattice:
-            self.remeshLattice()
+        saving_path = "Mesh/"
+        if saveMesh:
+            gmsh.write(saving_path + nameMesh + ".msh")
+            print("Mesh saved as ", nameMesh + ".msh")
 
-    @timing.timeit
-    def meshCleaning(self):
-        """
-        Clean the mesh lattice by removing degenerate faces, duplicate faces, unreferenced vertices,
-        """
-        self.meshLattice.remove_unreferenced_vertices()
-        self.meshLattice.merge_vertices()
-        self.meshLattice.fill_holes()
+        if saveSTL:
+            gmsh.write(saving_path + nameMesh + ".stl")
+            print("Mesh saved as ", nameMesh + ".stl")
 
-    @timing.timeit
-    def remeshLattice(self):
-        """
-        Remesh the lattice to simplify the mesh and smooth it.
-        """
-        # Convert Trimesh to Open3D mesh
-        o3d_mesh = o3d.geometry.TriangleMesh(
-            vertices=o3d.utility.Vector3dVector(self.meshLattice.vertices),
-            triangles=o3d.utility.Vector3iVector(self.meshLattice.faces)
-        )
+        gmsh.finalize()
 
-        # Remeshing (simplify)
-        initial_tri_count = len(o3d_mesh.triangles)
-        target_triangles = int(initial_tri_count * 0.8)
-        o3d_mesh = o3d_mesh.simplify_quadric_decimation(target_number_of_triangles=target_triangles)
-
-        vertices = np.asarray(o3d_mesh.vertices)
-        faces = np.asarray(o3d_mesh.triangles)
-        self.meshLattice = trimesh.Trimesh(vertices=vertices, faces=faces, process=False)
 
     def are_cells_identical(self) -> bool:
         """

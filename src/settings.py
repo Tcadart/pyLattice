@@ -16,9 +16,9 @@ cell_size_X = cell_size
 cell_size_Y = cell_size
 cell_size_Z = cell_size
 number_cell = 2
-number_cell_X = 6
-number_cell_Y = 1
-number_cell_Z = 6
+number_cell_X = 3
+number_cell_Y = 5
+number_cell_Z = 1
 
 # Lattice_Type = [0, 16, 19]
 Lattice_Type = [0]
@@ -61,7 +61,7 @@ Multimat = 0
 # 1 -> multimat par couche
 GradMaterialDirection = 3  # 1:X / 2:Y / 3:Z
 
-MethodSim = 1
+MethodSim = 0
 # 0 No modification
 # 1 Node Modification
 
