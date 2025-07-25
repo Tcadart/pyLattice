@@ -5,8 +5,8 @@ Cell.py
 import numpy as np
 from colorama import Fore, Style
 
-from .Beam import *
-from .Geometry_Lattice import Lattice_geometry
+from Beam import *
+from Geometry_Lattice import Lattice_geometry
 
 from scipy.sparse import coo_matrix
 

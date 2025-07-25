@@ -1,7 +1,7 @@
-from src.Lattice import *
-from src.Utils import *
-from src.LatticePlotting import *
-from Mesh.Mesh import *
+from Lattice import *
+from Utils import *
+from LatticePlotting import *
+from Mesh import *
 from preset_lattice.settings import *
 
 
@@ -13,7 +13,7 @@ from preset_lattice.settings import *
 vizualizer = LatticePlotting()
 lattice = Lattice(cell_size_X, cell_size_Y, cell_size_Z, number_cell_X, number_cell_Y, number_cell_Z, Lattice_Type,
                   Radius, materialName, gradRadiusProperty, gradDimProperty, gradMatProperty, MethodSim,
-                  uncertaintyNodeSD, enable_periodicity=True, eraser_blocks=erasedParts, meshObject=None)
+                  uncertaintyNodeSD, eraser_blocks=erasedParts, meshObject=None)
 
 # lattice.are_cells_identical()
 

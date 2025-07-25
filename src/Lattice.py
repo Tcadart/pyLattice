@@ -22,10 +22,10 @@ import numpy as np
 from scipy.sparse.linalg import splu
 import gmsh
 
-from .Cell import *
-from .Timing import *
-from .Utils import _validate_inputs
-from .gradientProperties import getGradSettings, gradMaterialSetting, grad_settings_constant
+from Cell import *
+from Timing import *
+from Utils import _validate_inputs
+from gradientProperties import getGradSettings, gradMaterialSetting, grad_settings_constant
 
 timing = Timing()
 

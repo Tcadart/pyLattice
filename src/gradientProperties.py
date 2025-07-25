@@ -1,7 +1,7 @@
 import math
 import random
 
-from .Timing import *
+from Timing import *
 
 timing = Timing()
 

@@ -8,8 +8,8 @@ import math
 import numpy as np
 import trimesh
 
-from .Point import Point
-from .Utils import functionPenalizationLzone
+from Point import Point
+from Utils import functionPenalizationLzone
 
 
 class Beam(object):
