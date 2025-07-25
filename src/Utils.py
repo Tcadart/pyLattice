@@ -16,7 +16,7 @@ import trimesh
 def _validate_inputs(cell_size_x, cell_size_y, cell_size_z,
                      num_cells_x, num_cells_y, num_cells_z,
                      Lattice_Type, Radius, materialName, gradRadiusProperty, gradDimProperty, gradMatProperty,
-                     simMethod, uncertaintyNode, periodicity, erasedParts):
+                     uncertaintyNode, periodicity, erasedParts):
     # Check cell sizes
     assert isinstance(cell_size_x, (int, float)) and cell_size_x > 0, "cell_size_x must be a positive number"
     assert isinstance(cell_size_y, (int, float)) and cell_size_y > 0, "cell_size_y must be a positive number"
@@ -52,7 +52,6 @@ def _validate_inputs(cell_size_x, cell_size_y, cell_size_z,
         assert isinstance(gradMatProperty[1], int), "gradMatProperty[1] must be an integer"
 
     # Check optional parameters
-    assert isinstance(simMethod, int), "simMethod must be an integer"
     assert isinstance(uncertaintyNode, float), "uncertaintyNode must be a float"
 
     assert isinstance(periodicity, int), "periodicity must be an integer"

@@ -138,7 +138,7 @@ class LatticePlotting:
                 if beam_color_type == "Material":
                     colorCell = color_palette[cell.beams[0].material % len(color_palette)]
                 elif beam_color_type == "Type":
-                    colorCell = color_palette[cell.geom_type % len(color_palette)]
+                    colorCell = color_palette[cell.geom_types % len(color_palette)]
                 elif beam_color_type == "radii":
                     colorCell = cell.getRGBcolorDependingOfRadius()
                 else:

@@ -39,9 +39,8 @@ class Lattice(object):
                  num_cells_x: int, num_cells_y: int, num_cells_z: int,
                  geom_types: list[int], radii: list[float], material_name: str = "",
                  grad_radius_property: list = None, grad_dim_property: list = None, grad_mat_property: list = None,
-                 sim_method: int = 0, uncertainty_node: float = 0.0,
-                 enable_periodicity: bool = False, eraser_blocks: list = None,
-                 meshObject: "mesh" = None, printing: bool = False, symmetryData: dict = None,
+                 uncertainty_node: float = 0.0, enable_periodicity: bool = False, eraser_blocks: list = None,
+                 meshObject: "mesh" = None, printing: bool = False, symmetry_lattice: dict = None,
                  enable_simulation_properties: bool = False) -> None:
         """
         Constructor general for the Lattice class.
@@ -74,15 +73,12 @@ class Lattice(object):
         gradDimProperty: array of data as [GradRadRule,GradRadDirection,GradRadParameters]
             Cell dimension gradient on the lattice structure
                 GradRule => constant, linear, parabolic, sinusoide, exponential
-                GradDirection => [bool,bool,bool] set integer to 1 to active gradient in direction [X,Y,Z] 0 inactive
+                GradDirection => [bool,bool,bool] set integer to True to active gradient in direction [X,Y,Z] False inactive
                 GradParameters => [float, float, float] variable in the gradient rule for each direction [X,Y,Z]
         gradMatProperty: array of data as [Multimat,GradMaterialDirection]
             Material gradient on the lattice structure
                 Multimat => Type of multimaterial (0: inactive / 1: multimat by layer / -1: Full random)
 
-
-        simMethod: integer (0: off / 1: on)
-            Method of simulation with modification at node
         uncertaintyNode: integer (0: off / 1: on)
             Control if adding uncertainties on node position
         hybridLatticeData: array of 3 integer [RadiusOfGeometry1,RadiusOfGeometry2,RadiusOfGeometry3]
@@ -95,14 +91,15 @@ class Lattice(object):
             Mesh object to check if the lattice structure is inside the mesh
         printing: boolean
             Print information about the lattice structure
-        symmetryData: dictionary {"symPlane": string, "symPoint": tuple}
+        symmetry_lattice: dictionary {"sym_plane": string, "sym_point": tuple}
             Data to apply symmetry on the lattice structure
         simulationProperties: boolean
             If True, the lattice will generate properties necessary for simulation and optimization
+            And joint beam penalization method will be applied
         """
         _validate_inputs(cell_size_x, cell_size_y, cell_size_z, num_cells_x, num_cells_y, num_cells_z,
                          geom_types, radii, material_name, grad_radius_property, grad_dim_property, grad_mat_property,
-                         sim_method, uncertainty_node, enable_periodicity, eraser_blocks)
+                            uncertainty_node, enable_periodicity, eraser_blocks)
 
         self.name = None
         self.yMin = None
@@ -137,7 +134,7 @@ class Lattice(object):
             self.gradMat = gradMaterialSetting(self.num_cells_x, self.num_cells_y, self.num_cells_z, grad_mat_property)
         else:
             self.gradMat = grad_settings_constant(self.num_cells_x, self.num_cells_y, self.num_cells_z, material_gradient=True)
-        self.simMethod = sim_method
+        self.enable_simulation_properties = enable_simulation_properties
         self.sizeX, self.sizeY, self.sizeZ = self.getSizeLattice()
         self.uncertaintyNode = uncertainty_node
         self.periodicity = enable_periodicity  # Warning not working for graded structures
@@ -164,8 +161,8 @@ class Lattice(object):
 
         # Generate global structure
         self.generateLattice()
-        if symmetryData is not None:
-            self.applySymmetry(symmetryData["symPlane"], symmetryData["symPoint"])
+        if symmetry_lattice is not None:
+            self.applySymmetry(symmetry_lattice["sym_plane"], symmetry_lattice["sym_point"])
 
         # Generate important data for the lattice structure
         self.getMinMaxValues()
@@ -175,13 +172,11 @@ class Lattice(object):
         self.setPointLocalTag()
         self.applyTagToAllPoint()
 
-        # Case of penalization at beam near nodes
-        if self.simMethod == 1:
+        # Simulation necessaries
+        if self.enable_simulation_properties == 1:
             self.getAllAngles()
             self.setBeamNodeMod()
 
-        # Simulation necessaries
-        if enable_simulation_properties:
             assert self.material_name is not None, "Material name must be defined for simulation properties."
             # Define global indexation
             self.defineNodeIndexBoundary()
@@ -289,22 +284,103 @@ class Lattice(object):
         with open(file_path, 'r') as file:
             data = json.load(file)
 
+        # Geometry
         geometry = data.get("geometry", {})
         cell_size = geometry.get("cell_size", {})
         number_of_cells = geometry.get("number_of_cells", {})
 
-        cell_size_x = cell_size.get("x", None)
-        cell_size_y = cell_size.get("y", None)
-        cell_size_z = cell_size.get("z", None)
+        cell_size_x = cell_size.get("x")
+        cell_size_y = cell_size.get("y")
+        cell_size_z = cell_size.get("z")
+        num_cells_x = number_of_cells.get("x")
+        num_cells_y = number_of_cells.get("y")
+        num_cells_z = number_of_cells.get("z")
+        radii = geometry.get("radii")
+        geom_types = geometry.get("geom_types")
 
-        num_cells_x = number_of_cells.get("x", None)
-        num_cells_y = number_of_cells.get("y", None)
-        num_cells_z = number_of_cells.get("z", None)
+        if None in [cell_size_x, cell_size_y, cell_size_z, num_cells_x, num_cells_y, num_cells_z, radii, geom_types]:
+            raise ValueError("Missing geometry parameters in JSON file.")
 
-        radii = geometry.get("radii", [])
-        geom_types = geometry.get("geom_types", [])
-        return cls(cell_size_x, cell_size_y, cell_size_z, num_cells_x, num_cells_y, num_cells_z, geom_types,
-                   radii)
+        # Gradient
+        gradient = data.get("gradient", {})
+        radius_grad = gradient.get("radius", {})
+        dim_grad = gradient.get("cell_dimension", {})
+        mat_grad = gradient.get("material", {})
+
+        grad_radius_property = [
+            radius_grad.get("rule", "constant"),
+            [radius_grad.get("direction_x", False),
+             radius_grad.get("direction_y", False),
+             radius_grad.get("direction_z", False)],
+            [radius_grad.get("parameter_x", 0.0),
+             radius_grad.get("parameter_y", 0.0),
+             radius_grad.get("parameter_z", 0.0)]
+        ]
+
+        grad_dim_property = [
+            dim_grad.get("rule", "constant"),
+            [dim_grad.get("direction_x", False),
+             dim_grad.get("direction_y", False),
+             dim_grad.get("direction_z", False)],
+            [dim_grad.get("parameter_x", 0.0),
+             dim_grad.get("parameter_y", 0.0),
+             dim_grad.get("parameter_z", 0.0)]
+        ]
+
+        grad_mat_property = [
+            mat_grad.get("type", 0),
+            mat_grad.get("direction", 0)
+        ]
+
+        # Supplementary
+        supplementary = data.get("suplementary", {})
+        uncertainty_node = supplementary.get("node_uncertainty", 0.0)
+
+        # Erased blocks
+        erased_blocks_json = supplementary.get("erased_blocks", {})
+        erased_blocks = []
+        for block in erased_blocks_json.values():
+            start = block.get("start_point", {})
+            dim = block.get("dimensions_block", {})
+            erased_blocks.append([
+                start.get("x", 0.0), start.get("y", 0.0), start.get("z", 0.0),
+                dim.get("x", 0.0), dim.get("y", 0.0), dim.get("z", 0.0)
+            ])
+
+        if len(erased_blocks) == 0:
+            erased_blocks = None
+
+        # Symmetry
+        symmetries = supplementary.get("symmetries", {})
+        symmetry_lattice = None
+        if symmetries:
+            sym_plane = symmetries.get("plane", None)
+            sym_point = symmetries.get("reference_point", {})
+            symmetry_lattice = {
+                "sym_plane": sym_plane,
+                "sym_point": (sym_point.get("x", 0.0),
+                             sym_point.get("y", 0.0),
+                             sym_point.get("z", 0.0))
+            }
+
+        # Simulation activation
+        sim_params = data.get("simulation_parameters", {})
+        enable_simulation_properties = bool(sim_params.get("enable", False))
+        material_name = sim_params.get("material", "VeroClear")
+        periodicity = sim_params.get("periodicity", False)
+
+        return cls(cell_size_x, cell_size_y, cell_size_z,
+                   num_cells_x, num_cells_y, num_cells_z,
+                   geom_types, radii,
+                   material_name=material_name,
+                   grad_radius_property=grad_radius_property,
+                   grad_dim_property=grad_dim_property,
+                   grad_mat_property=grad_mat_property,
+                   uncertainty_node=uncertainty_node,
+                   enable_periodicity=periodicity,
+                   eraser_blocks=erased_blocks,
+                   symmetry_lattice=symmetry_lattice,
+                   enable_simulation_properties=enable_simulation_properties)
 
     def __repr__(self) -> str:
         string = f"Lattice name: {self.name}\n"
@@ -1112,7 +1188,7 @@ class Lattice(object):
             self.name = "Hybrid"
         else:
             self.name = nameList[self.geom_types]
-        if self.simMethod == 1:
+        if self.enable_simulation_properties == 1:
             self.name += "Mod"
         return self.name
 
@@ -2470,7 +2546,7 @@ class Lattice(object):
         reference_point : tuple (x_ref, y_ref, z_ref), optional
             The reference point for the symmetry. Defaults to (0,0,0).
         """
-
+        symmetry_plane = symmetry_plane.upper()
         if symmetry_plane not in ["XY", "XZ", "YZ", "X", "Y", "Z"]:
             raise ValueError("Invalid symmetry plane. Choose from 'XY', 'XZ', 'YZ', 'X', 'Y', or 'Z'.")
 
@@ -2620,7 +2696,7 @@ class Lattice(object):
         nameMesh: str
             Name of the mesh file to save.
         """
-        if self.simMethod == 1:
+        if self.enable_simulation_properties == 1:
             raise ValueError("Mesh generation is not available for the current simulation method.")
 
         gmsh.initialize()
