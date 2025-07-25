@@ -16,7 +16,7 @@ class Cell(object):
     Define Cell data for lattice structure
     """
 
-    def __init__(self, posCell: list, initialCellSize: list, startCellPos: list, latticeType: list[int],
+    def __init__(self, posCell: list, initialCellSize: list, startCellPos: list, geom_type: list[int],
                  Radius: list[float], gradRadius: list, gradDim: list, gradMat: list, uncertaintyNode: float = 0.0):
         """
         Initialize a Cell with its dimensions and position
@@ -29,9 +29,9 @@ class Cell(object):
             Initial size of the cell
         startCellPos: list
             Position of the start of the cell
-        latticeType: int
+        geom_types: int
             Type of lattice geometry
-        Radius: float
+        radii: float
             Base radius of the beam
         gradRadius: list
             Gradient of the radius
@@ -51,7 +51,7 @@ class Cell(object):
         self.coordinateCell: list[float] = startCellPos
         self.beams: Optional[list] = []
         self.index: Optional[int] = None
-        self.latticeType: list[int] = latticeType
+        self.geom_type: list[int] = geom_type
         self.radius: list[float] = Radius
         self.matB: Optional = None  # B matrix (Coupling matrix)
         self.uncertaintyNode: float = uncertaintyNode
@@ -82,11 +82,11 @@ class Cell(object):
                     self.getBeamMaterial(self.gradMat)
                     beamRadius = self.getBeamRadius(self.gradRadius, rad)
                     self.getCellSize(initialCellSize, self.gradDim)
-                    self.generateBeamsInCell(self.latticeType[idx], self.coordinateCell, beamRadius, idx)
+                    self.generateBeamsInCell(self.geom_type[idx], self.coordinateCell, beamRadius, idx)
                     self.getCellCenter(self.coordinateCell)
                 else:
                     hybridRadius = self.getBeamRadius(self.gradRadius, rad)
-                    self.generateBeamsInCell(self.latticeType[idx], self.coordinateCell, hybridRadius, idx)
+                    self.generateBeamsInCell(self.geom_type[idx], self.coordinateCell, hybridRadius, idx)
                 idxCell += 1
 
     def defineOriginalTags(self) -> None:
@@ -95,25 +95,25 @@ class Cell(object):
 
         Parameters:
         -----------
-        latticeType: list[int]
+        geom_types: list[int]
             List of lattice types
-        Radius: list[float]
+        radii: list[float]
             List of beam radii
         """
         if len(self.radius) == 1:
-            if self.latticeType[0] == 0:
+            if self.geom_type[0] == 0:
                 self.originalTags = [1000, 1001, 1002, 1003, 1004, 1005, 1006, 1007]
                 self.originalCellGeom = [0, 0, 0, 0, 0, 0, 0, 0]
-            elif self.latticeType[0] == 16:
+            elif self.geom_type[0] == 16:
                 self.originalTags = [100, 101, 102, 103, 104, 105, 106, 107, 108, 109, 110, 111]
                 self.originalCellGeom = [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
-            elif self.latticeType[0] == 19:
+            elif self.geom_type[0] == 19:
                 self.originalTags = [10, 11, 12, 13, 14, 15]
                 self.originalCellGeom = [2, 2, 2, 2, 2, 2]
             else:
                 pass
         elif len(self.radius) == 2:
-            if self.latticeType[0] == 0 and self.latticeType[1] == 16:
+            if self.geom_type[0] == 0 and self.geom_type[1] == 16:
                 self.originalTags = [1000, 1001, 1002, 1003, 1004, 1005, 1006, 1007,
                                      100, 101, 102, 103, 104, 105, 106, 107, 108, 109, 110, 111]
                 self.originalCellGeom = [0, 0, 0, 0, 0, 0, 0, 0,
@@ -134,7 +134,7 @@ class Cell(object):
 
         Parameters:
         -----------
-        latticeType: int
+        geom_types: int
             Type of lattice geometry
         startCellPos: list
             Position of the start of the cell
@@ -717,7 +717,7 @@ class Cell(object):
         print("Cell position: ", self.posCell)
         print("Cell coordinates: ", self.coordinateCell)
         print("Cell size: ", self.cellSize)
-        print("Lattice type: ", self.latticeType)
+        print("Lattice type: ", self.geom_type)
         print("Beam radius: ", self.radius)
         print("Beam material: ", self._beamMaterial)
         print("Beams in cell: ", self.beams)

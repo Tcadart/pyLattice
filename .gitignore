@@ -32,7 +32,7 @@ __pycache__
 /src/Lattice.egg-info
 /Saved_Lattice/HybridCellForRelativeDensity
 /Saved_Lattice/RelativeDensity
-*.json
+/Saved_Lattice/*.json
 *.pkl
 *.stlbak
 *.msh

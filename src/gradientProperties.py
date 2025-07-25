@@ -82,6 +82,29 @@ def getGradSettings(numCellsX, numCellsY, numCellsZ, gradProperties: list) -> li
     return gradientData
 
 
+def grad_settings_constant(num_cells_x: int, num_cells_y: int, num_cells_z: int, material_gradient: bool = False) -> (
+        list)[list]:
+    """
+    Generate constant gradient settings (i.e., all values = 1.0).
+
+    Parameters:
+    -----------
+    num_cells_x : int
+    num_cells_y : int
+    num_cells_z : int
+
+    Returns:
+    --------
+    list[list[float]]:
+        A list of [1.0, 1.0, 1.0] repeated for the total number of cells.
+    """
+    if material_gradient:
+        return [[[1 for _ in range(num_cells_x)] for _ in range(num_cells_y)] for _ in range(num_cells_z)]
+    else:
+        total_cells = num_cells_x * num_cells_y * num_cells_z
+        return [[1.0, 1.0, 1.0] for _ in range(total_cells)]
+
+
 @timing.timeit
 def gradMaterialSetting(numCellsX, numCellsY, numCellsZ, gradMatProperty: list) -> list:
     """

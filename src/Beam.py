@@ -24,7 +24,7 @@ class Beam(object):
         Args:
             point1 (Point): First endpoint of the beam.
             point2 (Point): Second endpoint of the beam.
-            Radius (float): Radius of the beam.
+            Radius (float): radii of the beam.
             Material (int): Material identifier of the beam.
             Type (int): Type of the beam (0: normal, 1: modified, 2: boundary beam).
         """
@@ -42,7 +42,7 @@ class Beam(object):
         self.initialRadius: Optional[float] = None
 
     def __repr__(self) -> str:
-        return f"Beam({self.point1}, {self.point2}, Radius:{self.radius}, Type:{self.type}, Index:{self.index})"
+        return f"Beam({self.point1}, {self.point2}, radii:{self.radius}, Type:{self.type}, Index:{self.index})"
 
     def __eq__(self, other: object) -> bool:
         return isinstance(other, Beam) and self.point1 == other.point1 and self.point2 == other.point2
@@ -223,15 +223,11 @@ class Beam(object):
         """
         lengthtest = math.isclose(self.getLength(), other.getLength(), rel_tol=1e-5)
         radiustest = math.isclose(self.radius, other.radius, rel_tol=1e-5)
-        point1test = self.point1.is_identical_to(other.point1)
-        point2test = self.point2.is_identical_to(other.point2)
         materialtest = self.material == other.material
         typetest = self.type == other.type
         return (
                 lengthtest
                 and radiustest
-                and point1test
-                and point2test
                 and materialtest
                 and typetest
         )

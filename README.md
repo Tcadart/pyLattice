@@ -81,8 +81,9 @@ lattice = Lattice(
 
 ### Visualizing the Lattice
 To visualize the generated lattice structure in 3D:
+
 ```python
-lattice.visualizeLattice3D(beamColor="Material")
+lattice.visualizeLattice3D()
 ```
 
 ### Simulation Preparation

@@ -7,6 +7,5 @@ nameLattice = "BeamFlexionOptimization"
 lattice = Lattice.loadLatticeObject(nameLattice)
 
 vizualizer = LatticeUtils()
-vizualizer.visualizeLattice3D(lattice.cells, lattice.latticeDimensionsDict, "Radius", voxelViz=False,
-                              explodeVoxel=0.1, plotting = False)
+vizualizer.visualizeLattice3D(lattice.cells, lattice.latticeDimensionsDict, "radii", explode_voxel=0.1, plotting=False)
 vizualizer.show()

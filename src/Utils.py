@@ -16,8 +16,7 @@ import trimesh
 def _validate_inputs(cell_size_x, cell_size_y, cell_size_z,
                      num_cells_x, num_cells_y, num_cells_z,
                      Lattice_Type, Radius, materialName, gradRadiusProperty, gradDimProperty, gradMatProperty,
-                     simMethod, uncertaintyNode, periodicity, erasedParts,
-                     randomHybrid):
+                     simMethod, uncertaintyNode, periodicity, erasedParts):
     # Check cell sizes
     assert isinstance(cell_size_x, (int, float)) and cell_size_x > 0, "cell_size_x must be a positive number"
     assert isinstance(cell_size_y, (int, float)) and cell_size_y > 0, "cell_size_y must be a positive number"
@@ -33,17 +32,24 @@ def _validate_inputs(cell_size_x, cell_size_y, cell_size_z,
     assert all(isinstance(lt, int) for lt in Lattice_Type), "All elements of Lattice_Type must be integers"
 
     # Check radius
-    assert isinstance(Radius, list), "Radius must be a list"
+    assert isinstance(Radius, list), "radii must be a list"
     assert all(isinstance(r, float) for r in Radius), "All radius values must be floats"
     assert len(Radius) == len(Lattice_Type), "The number of radius must be equal to the number of lattice types"
 
     # Check material name
-    assert isinstance(materialName, str), "materialName must be a string"
+    assert isinstance(materialName, str), "material_name must be a string"
 
     # Check gradient properties
-    assert isinstance(gradRadiusProperty, list), "gradRadiusProperty must be a list"
-    assert isinstance(gradDimProperty, list), "gradDimProperty must be a list"
-    assert isinstance(gradMatProperty, list), "gradMatProperty must be a list"
+    if gradRadiusProperty is not None:
+        assert isinstance(gradRadiusProperty, list), "gradRadiusProperty must be a list"
+        assert len(gradRadiusProperty) == 3, "gradRadiusProperty must be a list of 3 elements"
+    if gradDimProperty is not None:
+        assert isinstance(gradDimProperty, list), "gradDimProperty must be a list"
+        assert len(gradDimProperty) == 3, "gradDimProperty must be a list of 3 elements"
+    if gradMatProperty is not None:
+        assert len(gradMatProperty) == 2, "gradMatProperty must be a list of 2 elements"
+        assert isinstance(gradMatProperty[0], int), "gradMatProperty[0] must be an integer"
+        assert isinstance(gradMatProperty[1], int), "gradMatProperty[1] must be an integer"
 
     # Check optional parameters
     assert isinstance(simMethod, int), "simMethod must be an integer"
@@ -55,7 +61,6 @@ def _validate_inputs(cell_size_x, cell_size_y, cell_size_z,
         for erasedPart in erasedParts:
             assert len(erasedPart) == 6 and all(
                 isinstance(x, float) for x in erasedPart), "erasedParts must be a list of 6 floats"
-    assert isinstance(randomHybrid, bool), "randomHybrid must be a boolean"
 
 
 def functionPenalizationLzone(radiusAngleData: Tuple[float, float]) -> float:
@@ -126,7 +131,7 @@ def _getBeamColor(beam, color_palette, beamColor, idxColor, cells, nbRadiusBins)
         colorBeam = color_palette[beam.material % len(color_palette)]
     elif beamColor == "Type":
         colorBeam = color_palette[beam.type % len(color_palette)]
-    elif beamColor == "Radius":
+    elif beamColor == "radii":
         if beam.radius not in idxColor:
             idxColor.append(beam.radius)
         colorBeam = color_palette[idxColor.index(beam.radius) % len(color_palette)]
@@ -270,7 +275,7 @@ def visualizeLattice3D_interactive(lattice, beamColor: str = "Material", voxelVi
             if beamColor == "Material":
                 colorCell = color_list[cell.beams[0].material % len(color_list)]
             elif beamColor == "Type":
-                colorCell = color_list[int(str(cell.latticeType)[0]) % len(color_list)]
+                colorCell = color_list[int(str(cell.geom_types)[0]) % len(color_list)]
             else:
                 colorCell = 'grey'
 

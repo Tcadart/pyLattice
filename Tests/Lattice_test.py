@@ -67,8 +67,6 @@ def test_apply_symmetry():
 
 def test_erased_cells():
     erased_zone = [[0.0, 0.0, 0.0, 0.0, 2.0, 2.0]]
-    lattice = Lattice(1, 1, 1, 2, 2, 2, [0], [0.05], "VeroClear",
-                      ["constant", [0, 0, 0], [0, 0, 0]],
-                      ["constant", [0, 0, 0], [0, 0, 0]],
-                      [0, 1], erasedParts=erased_zone)
+    lattice = Lattice(1, 1, 1, 2, 2, 2, [0], [0.05], "VeroClear", ["constant", [0, 0, 0], [0, 0, 0]],
+                      ["constant", [0, 0, 0], [0, 0, 0]], [0, 1], eraser_blocks=erased_zone)
     assert len(lattice.cells) == 4

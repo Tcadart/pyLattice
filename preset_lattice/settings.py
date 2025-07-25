@@ -8,7 +8,7 @@
 # *******************************************************************************************************************
 # *******************************************************************************************************************
 # Lattice properties
-# Radius = [0.03, 0.09, 0.03]
+# radii = [0.03, 0.09, 0.03]
 Radius = [0.1]
 materialName = 'VeroClear'
 cell_size = 1
@@ -16,8 +16,8 @@ cell_size_X = cell_size
 cell_size_Y = cell_size
 cell_size_Z = cell_size
 number_cell = 2
-number_cell_X = 3
-number_cell_Y = 5
+number_cell_X = 4
+number_cell_Y = 4
 number_cell_Z = 1
 
 # Lattice_Type = [0, 16, 19]

@@ -3,15 +3,15 @@ Visualization and saving of lattice structures from lattice objects.
 
 Created in 2025-01-16 by Cadart Thomas, University of technology Belfort-Montbéliard.
 """
-
-import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d.art3d import Line3DCollection, Poly3DCollection
-import matplotlib.colors as mcolors
 
-from .Cell import Cell
-from .Utils import *
+from src.Cell import Cell
+from src.Utils import *
+from src.Utils import _getBeamColor, _prepareLatticePlotData
+
 import matplotlib
-from .Utils import _getBeamColor, _prepareLatticePlotData
+import matplotlib.colors as mcolors
+import matplotlib.pyplot as plt
 
 matplotlib.use('TkAgg')  # Or 'Qt5Agg' if you prefer Qt backend
 
@@ -45,9 +45,9 @@ class LatticePlotting:
         self.maxAxis = max(limMax, self.maxAxis) if self.maxAxis is not None else limMax
         self.axisSet = True
 
-    def visualizeLattice3D(self, cells: list["Cell"], latticeDimDict: dict, beamColor: str = "Material",
-                           voxelViz: bool = False, deformedForm: bool = False, nameSave: str = None,
-                           plotCellIndex: bool = False, plotNodeIndex: bool = False, explodeVoxel: float = 0.0,
+    def visualizeLattice3D(self, lattice_object, beam_color_type: str = "Material",
+                           voxelViz: bool = False, deformedForm: bool = False, file_save_path: str = None,
+                           plotCellIndex: bool = False, plotNodeIndex: bool = False, explode_voxel: float = 0.0,
                            plotting: bool = True, nbRadiusBins: int = 5) -> None:
 
         """
@@ -63,7 +63,7 @@ class LatticePlotting:
             Color scheme for beams. Options:
             - "Material": Color by material.
             - "Type": Color by type.
-            - "Radius": Color by radius.
+            - "radii": Color by radius.
         voxelViz: bool, optional (default: False)
             If True, visualize as voxels; otherwise, use beam visualization.
         deformedForm: bool, optional (default: False)
@@ -83,6 +83,9 @@ class LatticePlotting:
                 return base_colors[:n]
             return base_colors + list(mcolors.CSS4_COLORS.values())[:n - len(base_colors)]
 
+        cells = lattice_object.cells
+        latticeDimDict = lattice_object.latticeDimensionsDict
+
         # Generate a large color palette to avoid missing colors
         max_elements = max(len(cells), 20)  # Dynamically decide the number of colors
         color_palette = generate_colors(max_elements)
@@ -98,7 +101,7 @@ class LatticePlotting:
             for cell in cells:
                 for beam in cell.beams:
                     if beam.radius != 0.0 and beam not in beamDraw:
-                        colorBeam, idxColor = _getBeamColor(beam, color_palette, beamColor, idxColor, cells,
+                        colorBeam, idxColor = _getBeamColor(beam, color_palette, beam_color_type, idxColor, cells,
                                                                  nbRadiusBins)
 
                         # Add line and node data
@@ -132,18 +135,18 @@ class LatticePlotting:
                 x, y, z = cell.coordinateCell
                 dx, dy, dz = cell.cellSize
 
-                if beamColor == "Material":
+                if beam_color_type == "Material":
                     colorCell = color_palette[cell.beams[0].material % len(color_palette)]
-                elif beamColor == "Type":
-                    colorCell = color_palette[cell.latticeType % len(color_palette)]
-                elif beamColor == "Radius":
+                elif beam_color_type == "Type":
+                    colorCell = color_palette[cell.geom_type % len(color_palette)]
+                elif beam_color_type == "radii":
                     colorCell = cell.getRGBcolorDependingOfRadius()
                 else:
                     colorCell = "green"  # Default color
 
-                x_offset = explodeVoxel * (x - latticeDimDict["xMin"]) / dx
-                y_offset = explodeVoxel * (y - latticeDimDict["yMin"]) / dy
-                z_offset = explodeVoxel * (z - latticeDimDict["zMin"]) / dz
+                x_offset = explode_voxel * (x - latticeDimDict["xMin"]) / dx
+                y_offset = explode_voxel * (y - latticeDimDict["yMin"]) / dy
+                z_offset = explode_voxel * (z - latticeDimDict["zMin"]) / dz
                 self.ax.bar3d(x + x_offset, y + y_offset, z + z_offset,
                               dx, dy, dz, color=colorCell, alpha=0.5, shade=True, edgecolor='k')
 
@@ -152,10 +155,10 @@ class LatticePlotting:
 
         # Save or show the plot
         if plotting:
-            if nameSave is not None:
-                plt.savefig(nameSave)
-            else:
-                self.show()
+            self.show()
+        if file_save_path is not None:
+            plt.savefig(file_save_path)
+
 
     def visualCellZoneBlocker(self, lattice, erasedParts: list[tuple]) -> None:
         """
@@ -262,8 +265,8 @@ class LatticePlotting:
                     width=bin_width, align='edge', color=colors[i % len(colors)], edgecolor='black',
                     label=f'Geometry {i}, Ratio Volume: {ratio_volume[i]:.2f}%')
 
-        plt.title('Radius Distribution')
-        plt.xlabel('Radius')
+        plt.title('radii Distribution')
+        plt.xlabel('radii')
         plt.ylabel('Count')
         plt.legend()
         plt.show()
