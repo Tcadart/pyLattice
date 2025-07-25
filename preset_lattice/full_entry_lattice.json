@@ -24,7 +24,7 @@
       "direction_y": true,
       "direction_z": false,
       "parameter_x": 0.0,
-      "parameter_y": 2.0,
+      "parameter_y": 1.01,
       "parameter_z": 0.0
     },
     "cell_dimension": {
@@ -42,7 +42,7 @@
     }
   },
   "simulation_parameters": {
-    "enable" : false,
+    "enable" : true,
     "material": "VeroClear",
     "periodicity": false
   },

@@ -68,13 +68,13 @@ MethodSim = 0
 uncertaintyNodeSD = 0.0
 # Value of the standard deviation for the uncertainty on the nodes
 
-# erasedParts = [(5.0, 0.0, 0.0, 20.0, 5.0, 5.0),
+# eraser_blocks = [(5.0, 0.0, 0.0, 20.0, 5.0, 5.0),
 #                (10.0, 0.0, 5.0, 10.0, 5.0, 5.0),
 #                (0.0, 0.0, 15.0, 4.0, 5.0, 5.0),
 #                (25.0, 0.0, 15.0, 5.0, 5.0, 5.0),
 #                (0.0, 0.0, 10.0, 2.0, 5.0, 5.0),
 #                (27.0, 0.0, 10.0, 2.0, 5.0, 5.0)]
-# erasedParts = [(3.0, 0.0, 3.0, 3.0, 1.0, 3.0)]
+# eraser_blocks = [(3.0, 0.0, 3.0, 3.0, 1.0, 3.0)]
 erasedParts = None
 
 # List of erased parts in the lattice

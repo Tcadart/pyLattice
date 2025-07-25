@@ -117,12 +117,12 @@ def gradMaterialSetting(numCellsX, numCellsY, numCellsZ, gradMatProperty: list) 
 
     Returns:
     --------
-    gradMat: list
+    grad_mat: list
         3D list representing the material type in the structure.
     """
     multimat, direction = gradMatProperty
 
-    # Initialize gradMat based on `multimat` value
+    # Initialize grad_mat based on `multimat` value
     if multimat == -1:  # Random materials
         return [[[random.randint(1, 3) for _ in range(numCellsX)] for _ in range(numCellsY)] for _ in
                 range(numCellsZ)]
@@ -143,5 +143,5 @@ def gradMaterialSetting(numCellsX, numCellsY, numCellsZ, gradMatProperty: list) 
             for Z in range(numCellsZ)
         ]
 
-    # Default case: return an empty gradMat if no valid `multimat` is provided
+    # Default case: return an empty grad_mat if no valid `multimat` is provided
     return []

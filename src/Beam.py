@@ -85,6 +85,73 @@ class Beam(object):
             raise ValueError("Currently only circular section type is supported.")
         return math.pi * (self.radius ** 2) * self.length
 
+    def get_angle_between_beams(self, other: 'Beam', periodicity: bool) -> float:
+        """
+        Calculates angle between 2 beams
+
+        Return:
+        --------
+        Angle: float
+            angle in degrees
+        """
+        p1, p2 = None, None
+        if periodicity:
+            # Tag for corners (1000-1007)
+            for idx1, p1_candidate in enumerate([self.point1, self.point2]):
+                if p1_candidate.tag and 1000 <= p1_candidate.tag[0] <= 1007:
+                    p1 = idx1
+                    for idx2, p2_candidate in enumerate([other.point1, other.point2]):
+                        if p2_candidate.tag and 1000 <= p2_candidate.tag[0] <= 1007:
+                            p2 = idx2  # Enregistrer l'indice pour beam2
+                            break
+
+            # Tags for edges (100-111)
+            if p1 is None and p2 is None:
+                list_tag_edge = [[102, 104, 106, 107], [100, 108, 105, 111], [101, 109, 103, 110]]
+                for tag_list in list_tag_edge:
+                    for idx1, p1_candidate in enumerate([self.point1, self.point2]):
+                        if p1_candidate.tag and p1_candidate.tag[0] in tag_list:
+                            p1 = idx1
+                            for idx2, p2_candidate in enumerate([other.point1, other.point2]):
+                                if p2_candidate.tag and p2_candidate.tag[0] in tag_list:
+                                    p2 = idx2
+                                    break
+            # Tags for faces (10-15)
+            if p1 is None and p2 is None:
+                list_face_tag = [[10, 15], [11, 14], [12, 13]]
+                for face_tag in list_face_tag:
+                    for idx1, p1_candidate in enumerate([self.point1, self.point2]):
+                        if p1_candidate.tag and p1_candidate.tag[0] in face_tag:
+                            p1 = idx1
+                            for idx2, p2_candidate in enumerate([other.point1, other.point2]):
+                                if p2_candidate.tag and p2_candidate.tag[0] in face_tag:
+                                    p2 = idx2
+                                    break
+
+        if self.point1 == other.point1 or (p1 == 0 and p2 == 0):
+            u = self.point2 - self.point1
+            v = other.point2 - other.point1
+        elif self.point1 == other.point2 or (p1 == 0 and p2 == 1):
+            u = self.point2 - self.point1
+            v = other.point1 - other.point2
+        elif self.point2 == other.point1 or (p1 == 1 and p2 == 0):
+            u = self.point1 - self.point2
+            v = other.point2 - other.point1
+        elif self.point2 == other.point2 or (p1 == 1 and p2 == 1):
+            u = self.point1 - self.point2
+            v = other.point1 - other.point2
+        else:
+            raise ValueError("Beams are not connected at any point")
+
+        dot_product = sum(a * b for a, b in zip(u, v))
+        u_norm = math.sqrt(sum(a * a for a in u))
+        v_norm = math.sqrt(sum(b * b for b in v))
+        cos_theta = dot_product / (u_norm * v_norm)
+        cos_theta = max(min(cos_theta, 1.0), -1.0)
+        angle_rad = math.acos(cos_theta)
+        angle_deg = math.degrees(angle_rad)
+        return angle_deg
+
     def getPointOnBeamFromDistance(self, distance: float, pointIndex: int) -> List[float]:
         """
         Calculate the coordinates of a point on the beam at a specific distance from an endpoint.
@@ -192,7 +259,7 @@ class Beam(object):
 
         Parameters:
         -----
-            meshObject (Mesh): The mesh object to check for intersection.
+            mesh_object (Mesh): The mesh object to check for intersection.
         Returns:
             Tuple[float, float, float] | None: The intersection point (x, y, z) or None if no intersection.
         """

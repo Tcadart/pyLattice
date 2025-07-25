@@ -40,8 +40,8 @@ class Lattice(object):
                  geom_types: list[int], radii: list[float], material_name: str = "",
                  grad_radius_property: list = None, grad_dim_property: list = None, grad_mat_property: list = None,
                  uncertainty_node: float = 0.0, enable_periodicity: bool = False, eraser_blocks: list = None,
-                 meshObject: "mesh" = None, printing: bool = False, symmetry_lattice: dict = None,
-                 enable_simulation_properties: bool = False) -> None:
+                 mesh_object: "mesh" = None, symmetry_lattice: dict = None,
+                 enable_simulation_properties: bool = False, verbose: bool = False) -> None:
         """
         Constructor general for the Lattice class.
 
@@ -68,38 +68,36 @@ class Lattice(object):
             Possible to add more material in the Material.py file
 
         Gradient properties
-        gradRadiusProperty: array of data as [GradDimRule,GradDimDirection,GradDimParameters]
+        grad_radius_property: array of data as [GradDimRule,GradDimDirection,GradDimParameters]
             radii gradient on the lattice structure
-        gradDimProperty: array of data as [GradRadRule,GradRadDirection,GradRadParameters]
+        grad_dim_property: array of data as [GradRadRule,GradRadDirection,GradRadParameters]
             Cell dimension gradient on the lattice structure
                 GradRule => constant, linear, parabolic, sinusoide, exponential
                 GradDirection => [bool,bool,bool] set integer to True to active gradient in direction [X,Y,Z] False inactive
                 GradParameters => [float, float, float] variable in the gradient rule for each direction [X,Y,Z]
-        gradMatProperty: array of data as [Multimat,GradMaterialDirection]
+        grad_mat_property: array of data as [Multimat,GradMaterialDirection]
             Material gradient on the lattice structure
                 Multimat => Type of multimaterial (0: inactive / 1: multimat by layer / -1: Full random)
 
-        uncertaintyNode: integer (0: off / 1: on)
+        uncertainty_node: float
             Control if adding uncertainties on node position
-        hybridLatticeData: array of 3 integer [RadiusOfGeometry1,RadiusOfGeometry2,RadiusOfGeometry3]
-            Data of radius of each geometry on the hybrid lattice
-        periodicity: boolean (0: off / 1: on)
-            Applying periodicity on the outer box of the lattice structure to calculate penalization method
-        erasedParts: list of float in dim 6
+        enable_periodicity: boolean
+            Applying enable_periodicity on the outer box of the lattice structure to calculate penalization method
+        eraser_blocks: list of float in dim 6
             (xStart, yStart, zStart, xDim, yDim, zDim) of the erased region
-        meshObject: meshObject
+        mesh_object: mesh
             Mesh object to check if the lattice structure is inside the mesh
-        printing: boolean
-            Print information about the lattice structure
         symmetry_lattice: dictionary {"sym_plane": string, "sym_point": tuple}
             Data to apply symmetry on the lattice structure
-        simulationProperties: boolean
+        enable_simulation_properties: boolean
             If True, the lattice will generate properties necessary for simulation and optimization
             And joint beam penalization method will be applied
+        verbose: boolean
+            If True, print statistics and information during the lattice generation process
         """
         _validate_inputs(cell_size_x, cell_size_y, cell_size_z, num_cells_x, num_cells_y, num_cells_z,
                          geom_types, radii, material_name, grad_radius_property, grad_dim_property, grad_mat_property,
-                            uncertainty_node, enable_periodicity, eraser_blocks)
+                         uncertainty_node, enable_periodicity, eraser_blocks)
 
         self.name = None
         self.yMin = None
@@ -108,9 +106,9 @@ class Lattice(object):
         self.xMin = None
         self.zMax = None
         self.zMin = None
-        self.latticeDimensionsDict = None
-        self.dictSchurComplement = None
-        self.objectifData = None
+        self.lattice_dimension_dict = None
+        self.dict_schur_complement = None
+        self.objectif_data = None
         self.occupancy_matrix = None
 
         self.cell_size_x = cell_size_x
@@ -123,52 +121,54 @@ class Lattice(object):
         self.radii = radii
         self.material_name = material_name
         if grad_radius_property is not None:
-            self.gradRadius = getGradSettings(self.num_cells_x, self.num_cells_y, self.num_cells_z, grad_radius_property)
+            self.grad_radius = getGradSettings(self.num_cells_x, self.num_cells_y, self.num_cells_z,
+                                               grad_radius_property)
         else:
-            self.gradRadius = grad_settings_constant(self.num_cells_x, self.num_cells_y, self.num_cells_z)
+            self.grad_radius = grad_settings_constant(self.num_cells_x, self.num_cells_y, self.num_cells_z)
         if grad_dim_property is not None:
-            self.gradDim = getGradSettings(self.num_cells_x, self.num_cells_y, self.num_cells_z, grad_dim_property)
+            self.grad_dim = getGradSettings(self.num_cells_x, self.num_cells_y, self.num_cells_z, grad_dim_property)
         else:
-            self.gradDim = grad_settings_constant(self.num_cells_x, self.num_cells_y, self.num_cells_z)
+            self.grad_dim = grad_settings_constant(self.num_cells_x, self.num_cells_y, self.num_cells_z)
         if grad_mat_property is not None:
-            self.gradMat = gradMaterialSetting(self.num_cells_x, self.num_cells_y, self.num_cells_z, grad_mat_property)
+            self.grad_mat = gradMaterialSetting(self.num_cells_x, self.num_cells_y, self.num_cells_z, grad_mat_property)
         else:
-            self.gradMat = grad_settings_constant(self.num_cells_x, self.num_cells_y, self.num_cells_z, material_gradient=True)
+            self.grad_mat = grad_settings_constant(self.num_cells_x, self.num_cells_y, self.num_cells_z,
+                                                   material_gradient=True)
         self.enable_simulation_properties = enable_simulation_properties
-        self.sizeX, self.sizeY, self.sizeZ = self.getSizeLattice()
-        self.uncertaintyNode = uncertainty_node
-        self.periodicity = enable_periodicity  # Warning not working for graded structures
-        self.erasedParts = eraser_blocks
-        self.meshObject = meshObject
-        self.printing = printing
+        self.size_x, self.size_y, self.size_z = self.get_size_lattice()
+        self.uncertainty_node = uncertainty_node
+        self.enable_periodicity = enable_periodicity  # Warning not working for graded structures
+        self.eraser_blocks = eraser_blocks
+        self.mesh_object = mesh_object
+        self.verbose = verbose
 
         self.cells = []
 
         # Simulation necessary
-        self.freeDOF = None  # Free DOF gradient conjugate gradient method
-        self.maxIndexBoundary = None
-        self.globalDisplacementIndex = None
-        self.initialValueObjective = None
-        self.initialRelativeDensityConstraint = None
-        self.initialContinuityConstraint = None
-        self.relativeDensityPoly = []
-        self.relativeDensityPolyDeriv = []
-        self.nDOFperNode: int = 6  # Number of DOF per node (3 translation + 3 rotation)
-        self.parameterOptimization = []
-        self.krigingModelRelativeDensity = None
-        self.penalizationCoefficient: float = 1.5  # Fixed with previous optimization
-        self.meshLattice = None
+        self.free_DOF = None  # Free DOF gradient conjugate gradient method
+        self.max_index_boundary = None
+        self.global_displacement_index = None
+        self.initial_value_objective = None
+        self.initial_relative_density_constraint = None
+        self.initial_continuity_constraint = None
+        self.relative_density_poly = []
+        self.relative_density_poly_deriv = []
+        self.n_DOF_per_node: int = 6  # Number of DOF per node (3 translation + 3 rotation)
+        self.parameter_optimization = []
+        self.kriging_model_relative_density = None
+        self.penalization_coefficient: float = 1.5  # Fixed with previous optimization
+        self.mesh_lattice = None
 
         # Generate global structure
-        self.generateLattice()
+        self.generate_lattice()
         if symmetry_lattice is not None:
             self.applySymmetry(symmetry_lattice["sym_plane"], symmetry_lattice["sym_point"])
 
         # Generate important data for the lattice structure
         self.getMinMaxValues()
-        self.defineBeamNodeIndex()
-        self.defineCellIndex()
-        self.defineCellNeighbours()
+        self.define_beam_node_index()
+        self.define_cell_index()
+        self.define_cell_neighbours()
         self.setPointLocalTag()
         self.applyTagToAllPoint()
 
@@ -183,88 +183,8 @@ class Lattice(object):
             # Optimization necessary
             self.loadRelativeDensityModel()
 
-        if self.printing:
+        if self.verbose:
             self.printStatistics()
-
-    @classmethod
-    def simpleLattice(cls, cell_size_x: float, cell_size_y: float, cell_size_z: float,
-                      num_cells_x: int, num_cells_y: int, num_cells_z: int,
-                      Lattice_Type: int, Radius: float) -> "Lattice":
-        """
-        Generate lattice structures with just simple parameters
-        """
-        Lattice_Type = [Lattice_Type]
-        Radius = [Radius]
-        nameMaterial = "VeroClear"
-        # Define Default gradient properties
-        GradDimRule = 'constant'
-        GradDimDirection = [1, 0, 0]
-        GradDimParameters = [0.0, 0.0, 0.0]
-        GradRadRule = 'constant'
-        GradRadDirection = [1, 0, 0]
-        GradRadParameters = [0.0, 0.0, 0.0]
-        Multimat = 0
-        GradMaterialDirection = 1
-        gradDimProperty = [GradDimRule, GradDimDirection, GradDimParameters]
-        gradRadiusProperty = [GradRadRule, GradRadDirection, GradRadParameters]
-        gradMatProperty = [Multimat, GradMaterialDirection]
-        return cls(cell_size_x, cell_size_y, cell_size_z, num_cells_x, num_cells_y, num_cells_z, Lattice_Type, Radius,
-                   nameMaterial, gradRadiusProperty, gradDimProperty, gradMatProperty)
-
-    @classmethod
-    def hybridgeometry(cls, cell_size_x: float, cell_size_y: float, cell_size_z: float,
-                       simMethod: int, Radius: list[float], latticeType: list[int], uncertaintyNode: int,
-                       periodicity: bool = True) -> "Lattice":
-        """
-        Generate hybrid geometry structure with just some parameters
-        """
-        nameMaterial = "VeroClear"
-        # Define Default gradient properties
-        GradDimRule = 'constant'
-        GradDimDirection = [1, 0, 0]
-        GradDimParameters = [0.0, 0.0, 0.0]
-        GradRadRule = 'constant'
-        GradRadDirection = [1, 0, 0]
-        GradRadParameters = [0.0, 0.0, 0.0]
-        Multimat = 0
-        GradMaterialDirection = 1
-        gradDimProperty = [GradDimRule, GradDimDirection, GradDimParameters]
-        gradRadiusProperty = [GradRadRule, GradRadDirection, GradRadParameters]
-        gradMatProperty = [Multimat, GradMaterialDirection]
-        return cls(cell_size_x, cell_size_y, cell_size_z, 1, 1, 1, latticeType,
-                   Radius, nameMaterial, gradRadiusProperty, gradDimProperty, gradMatProperty, simMethod,
-                   uncertaintyNode, enable_periodicity=periodicity)
-
-    @classmethod
-    def loadLatticeObject(cls, file_name: str = "LatticeObject", folder: str = "Saved_Lattice") -> "Lattice":
-        """
-        Load a lattice object from a file.
-
-        Parameters:
-        -----------
-        file_name: str
-            Name of the file to load (with or without the '.pkl' extension).
-        folder: str
-            Folder where the file is located.
-
-        Returns:
-        --------
-        Lattice
-            The loaded lattice object.
-        """
-        if not file_name.endswith(".pkl"):
-            file_name += ".pkl"
-
-        file_path = os.path.join(folder, file_name)
-
-        if not os.path.exists(file_path):
-            raise FileNotFoundError(f"The file {file_path} does not exist.")
-
-        with open(file_path, "rb") as file:
-            lattice = pickle.load(file)
-
-        print(f"Lattice loaded successfully from {file_path}")
-        return lattice
 
     @classmethod
     def from_json(cls, file_path: str) -> "Lattice":
@@ -359,15 +279,15 @@ class Lattice(object):
             symmetry_lattice = {
                 "sym_plane": sym_plane,
                 "sym_point": (sym_point.get("x", 0.0),
-                             sym_point.get("y", 0.0),
-                             sym_point.get("z", 0.0))
+                              sym_point.get("y", 0.0),
+                              sym_point.get("z", 0.0))
             }
 
         # Simulation activation
         sim_params = data.get("simulation_parameters", {})
         enable_simulation_properties = bool(sim_params.get("enable", False))
         material_name = sim_params.get("material", "VeroClear")
-        periodicity = sim_params.get("periodicity", False)
+        periodicity = sim_params.get("enable_periodicity", False)
 
         return cls(cell_size_x, cell_size_y, cell_size_z,
                    num_cells_x, num_cells_y, num_cells_z,
@@ -382,9 +302,40 @@ class Lattice(object):
                    symmetry_lattice=symmetry_lattice,
                    enable_simulation_properties=enable_simulation_properties)
 
+    @classmethod
+    def pickle_lattice(cls, file_name: str = "LatticeObject", folder: str = "Saved_Lattice") -> "Lattice":
+        """
+        Load a lattice pickle from a file.
+
+        Parameters:
+        -----------
+        file_name: str
+            Name of the file to load (with or without the '.pkl' extension).
+        folder: str
+            Folder where the file is located.
+
+        Returns:
+        --------
+        Lattice
+            The loaded lattice object.
+        """
+        if not file_name.endswith(".pkl"):
+            file_name += ".pkl"
+
+        file_path = os.path.join(folder, file_name)
+
+        if not os.path.exists(file_path):
+            raise FileNotFoundError(f"The file {file_path} does not exist.")
+
+        with open(file_path, "rb") as file:
+            lattice = pickle.load(file)
+
+        print(f"Lattice loaded successfully from {file_path}")
+        return lattice
+
     def __repr__(self) -> str:
         string = f"Lattice name: {self.name}\n"
-        string += f"Dimensions: {self.sizeX} x {self.sizeY} x {self.sizeZ}\n"
+        string += f"Dimensions: {self.size_x} x {self.size_y} x {self.size_z}\n"
         string += f"Number of cells: {self.num_cells_x} x {self.num_cells_y} x {self.num_cells_z}\n"
         string += f"Cell size: {self.cell_size_x} x {self.cell_size_y} x {self.cell_size_z}\n"
         string += f"Material: {self.material_name}\n"
@@ -392,78 +343,73 @@ class Lattice(object):
         return string
 
     @timing.timeit
-    def generateLattice(self) -> None:
+    def generate_lattice(self):
         """
-        Generates lattice structure based on specified parameters.
-
-        Return:
-        --------
-        cells: list of Cell objects
-            List of cells in the lattice
+        Generate cells in the lattice structure based on cell size, number of cells, geometry types, and radii.
+        Gradient informations and erased regions are also considered during cell generation.
         """
-        xCellStartInit = 0
-        yCellStartInit = 0
-        zCellStartInit = 0
-        xCellStart = 0
-        yCellStart = 0
-        zCellStart = 0
-        posCell = [0, 0, 0]
+        x_cell_start_init = 0
+        y_cell_start_init = 0
+        z_cell_start_init = 0
+        x_cell_start = 0
+        y_cell_start = 0
+        z_cell_start = 0
+        pos_cell = [0, 0, 0]
         for i in range(self.num_cells_x):
             if i != 0:
-                xCellStart += self.cell_size_x * self.gradDim[posCell[0]][0]
+                x_cell_start += self.cell_size_x * self.grad_dim[pos_cell[0]][0]
             else:
-                xCellStart = xCellStartInit
+                x_cell_start = x_cell_start_init
             for j in range(self.num_cells_y):
                 if j != 0:
-                    yCellStart += self.cell_size_y * self.gradDim[posCell[1]][1]
+                    y_cell_start += self.cell_size_y * self.grad_dim[pos_cell[1]][1]
                 else:
-                    yCellStart = yCellStartInit
+                    y_cell_start = y_cell_start_init
                 for k in range(self.num_cells_z):
                     if k != 0:
-                        zCellStart += self.cell_size_z * self.gradDim[posCell[2]][2]
+                        z_cell_start += self.cell_size_z * self.grad_dim[pos_cell[2]][2]
                     else:
-                        zCellStart = zCellStartInit
-                    posCell = [i, j, k]
-                    initialCellSize = [self.cell_size_x, self.cell_size_y, self.cell_size_z]
-                    startCellPos = [xCellStart, yCellStart, zCellStart]
-                    if not self.isNotInErasedRegion(startCellPos):
+                        z_cell_start = z_cell_start_init
+                    pos_cell = [i, j, k]
+                    initial_cell_size = [self.cell_size_x, self.cell_size_y, self.cell_size_z]
+                    start_cell_pos = [x_cell_start, y_cell_start, z_cell_start]
+                    if not self.is_not_in_erased_region(start_cell_pos):
                         radius = self.radii
-                        new_cell = Cell(posCell, initialCellSize, startCellPos, self.geom_types,
-                                        radius, self.gradRadius, self.gradDim, self.gradMat,
-                                        self.uncertaintyNode)
-                        if self.meshObject is not None and self.isCellInMesh(new_cell):
+                        new_cell = Cell(pos_cell, initial_cell_size, start_cell_pos, self.geom_types, radius,
+                                        self.grad_radius, self.grad_dim, self.grad_mat, self.uncertainty_node)
+                        if self.mesh_object is not None and self.is_cell_in_mesh(new_cell):
                             self.cells.append(new_cell)
-                        elif self.meshObject is None:
+                        elif self.mesh_object is None:
                             self.cells.append(new_cell)
                         else:
                             del new_cell
         if len(self.geom_types) > 1:
             self.checkHybridCollision()
 
-    def getSizeLattice(self) -> list[float]:
+    def get_size_lattice(self) -> list[float]:
         """
         Computes the size of the lattice along each direction.
 
         Return:
         ---------
-        sizeLattice: list of float in dim 3
+        size_lattice: list of float in dim 3
             Length of the lattice in each direction
         """
-        sizeLattice = [0.0, 0.0, 0.0]
+        size_lattice = [0.0, 0.0, 0.0]
         for direction in range(3):
             total_length = 0.0
             num_cells = [self.num_cells_x, self.num_cells_y, self.num_cells_z][direction]
             cell_size = [self.cell_size_x, self.cell_size_y, self.cell_size_z][direction]
-            gradient_factors = [grad[direction] for grad in self.gradDim[:num_cells]]
+            gradient_factors = [grad[direction] for grad in self.grad_dim[:num_cells]]
 
             for factor in gradient_factors:
                 total_length += factor * cell_size
-            sizeLattice[direction] = total_length
+            size_lattice[direction] = total_length
 
-        return sizeLattice
+        return size_lattice
 
     @timing.timeit
-    def isNotInErasedRegion(self, startCellPos: list[float]) -> bool:
+    def is_not_in_erased_region(self, start_cell_pos: list[float]) -> bool:
         """
         Check if the cell is not in the erased region or inside the mesh.
 
@@ -477,39 +423,38 @@ class Lattice(object):
         bool:
             True if the cell should be removed.
         """
-        # Vérifier si le point est dans `erasedParts`
-        if self.erasedParts is not None:
-            for delPart in self.erasedParts:
+        if self.eraser_blocks is not None:
+            for delPart in self.eraser_blocks:
                 inside_erased = all(
-                    delPart[direction] <= startCellPos[direction] <= delPart[direction] + delPart[direction + 3]
+                    delPart[direction] <= start_cell_pos[direction] <= delPart[direction] + delPart[direction + 3]
                     for direction in range(3)
                 )
 
                 if inside_erased:
-                    return True  # La cellule est supprimée si elle est dans `erasedParts`
+                    return True
 
         return False  # cell removed
 
-    def isPointInMesh(self, point):
+    def is_point_in_mesh(self, point):
         """
         Check if the point is inside the mesh.
         """
-        if self.meshObject is not None:
-            return self.meshObject.is_inside_mesh(point)
+        if self.mesh_object is not None:
+            return self.mesh_object.is_inside_mesh(point)
 
-    def isCellInMesh(self, cell) -> bool:
+    def is_cell_in_mesh(self, cell) -> bool:
         """
-        Check if the cell is in the erased region.
+        Check if the cell is in the mesh.
         """
         cellBoundaryPoint = cell.getCellCornerCoordinates()
         for point in cellBoundaryPoint:
-            self.isPointInMesh(point)
-            if self.isPointInMesh(point):
+            self.is_point_in_mesh(point)
+            if self.is_point_in_mesh(point):
                 return True
         return False
 
     @timing.timeit
-    def defineBeamNodeIndex(self) -> None:
+    def define_beam_node_index(self) -> None:
         """
         Define index at each beam and node
         """
@@ -549,7 +494,7 @@ class Lattice(object):
                             node.index = nodeIndexed[node]
 
     @timing.timeit
-    def defineCellIndex(self) -> None:
+    def define_cell_index(self) -> None:
         """
         Define index at each cell
         """
@@ -568,7 +513,7 @@ class Lattice(object):
                     nextCellIndex += 1
 
     @timing.timeit
-    def defineCellNeighbours(self) -> None:
+    def define_cell_neighbours(self) -> None:
         """
         Define neighbours for each cell in the lattice, with periodic boundaries if enabled.
         """
@@ -580,7 +525,7 @@ class Lattice(object):
             (0, 0, -self.cell_size_z), (0, 0, self.cell_size_z)
         ]
         localBoundaryBox = False
-        if self.occupancy_matrix is None and self.periodicity and self.erasedParts is not None:
+        if self.occupancy_matrix is None and self.enable_periodicity and self.eraser_blocks is not None:
             self.getCellOccupancyMatrix()
             localBoundaryBox = True
 
@@ -595,22 +540,22 @@ class Lattice(object):
                     cell.posCell[2] + offset[2]
                 )
 
-                if self.periodicity:
-                    # periodicity X
+                if self.enable_periodicity:
+                    # enable_periodicity X
                     if raw_pos[0] < boundaryBox[0]:
                         neighbor_x = boundaryBox[1] + offset[0]
                     elif raw_pos[0] >= boundaryBox[1]:
                         neighbor_x = boundaryBox[0]
                     else:
                         neighbor_x = raw_pos[0]
-                    # periodicity Y
+                    # enable_periodicity Y
                     if raw_pos[1] < boundaryBox[2]:
                         neighbor_y = boundaryBox[3] + offset[1]
                     elif raw_pos[1] >= boundaryBox[3]:
                         neighbor_y = boundaryBox[2]
                     else:
                         neighbor_y = raw_pos[1]
-                    # periodicity Z
+                    # enable_periodicity Z
                     if raw_pos[2] < boundaryBox[4]:
                         neighbor_z = boundaryBox[5] + offset[2]
                     elif raw_pos[2] >= boundaryBox[5]:
@@ -629,7 +574,7 @@ class Lattice(object):
                     cell.addCellNeighbour(cell_dict[neighbor_pos])
 
     @timing.timeit
-    def getListAngleBeam(self, beam: "Beam", pointbeams: list["Beam"]) -> tuple[list[float], list[float]]:
+    def get_list_angle_beam(self, beam: "Beam", pointbeams: list["Beam"]) -> tuple[list[float], list[float]]:
         """
         Calculate an angle between the considerate beam and beams contains in pointbeams
 
@@ -647,80 +592,12 @@ class Lattice(object):
 
         Special case when pointbeams is an empty return max angle to minimize penalization zone
         """
-
-        def getAngleBetweenBeams(beam1, beam2):
-            """
-            Calculates angle between 2 beams
-
-            Return:
-            --------
-            Angle: float
-                angle in degrees
-            """
-            p1, p2 = None, None
-            if self.periodicity:
-                # Vérification pour les coins (tags entre 1000 et 1007)
-                for idx1, p1_candidate in enumerate([beam1.point1, beam1.point2]):
-                    if p1_candidate.tag and 1000 <= p1_candidate.tag[0] <= 1007:
-                        p1 = idx1  # Enregistrer l'indice pour beam1
-                        for idx2, p2_candidate in enumerate([beam2.point1, beam2.point2]):
-                            if p2_candidate.tag and 1000 <= p2_candidate.tag[0] <= 1007:
-                                p2 = idx2  # Enregistrer l'indice pour beam2
-                                break  # Sortir de la boucle si une correspondance est trouvée
-
-                # Vérification pour les arêtes (tags spécifiques)
-                if p1 is None and p2 is None:  # Ne vérifie les arêtes que si aucun coin n'est trouvé
-                    list_tag_edge = [[102, 104, 106, 107], [100, 108, 105, 111], [101, 109, 103, 110]]
-                    for tag_list in list_tag_edge:
-                        for idx1, p1_candidate in enumerate([beam1.point1, beam1.point2]):
-                            if p1_candidate.tag and p1_candidate.tag[0] in tag_list:
-                                p1 = idx1  # Enregistrer l'indice pour beam1
-                                for idx2, p2_candidate in enumerate([beam2.point1, beam2.point2]):
-                                    if p2_candidate.tag and p2_candidate.tag[0] in tag_list:
-                                        p2 = idx2  # Enregistrer l'indice pour beam2
-                                        break  # Sortir de la boucle si une correspondance est trouvée
-
-                if p1 is None and p2 is None:
-                    list_face_tag = [[10, 15], [11, 14], [12, 13]]
-                    for face_tag in list_face_tag:
-                        for idx1, p1_candidate in enumerate([beam1.point1, beam1.point2]):
-                            if p1_candidate.tag and p1_candidate.tag[0] in face_tag:
-                                p1 = idx1
-                                for idx2, p2_candidate in enumerate([beam2.point1, beam2.point2]):
-                                    if p2_candidate.tag and p2_candidate.tag[0] in face_tag:
-                                        p2 = idx2
-                                        break
-
-            if beam1.point1 == beam2.point1 or (p1 == 0 and p2 == 0):
-                u = beam1.point2 - beam1.point1
-                v = beam2.point2 - beam2.point1
-            elif beam1.point1 == beam2.point2 or (p1 == 0 and p2 == 1):
-                u = beam1.point2 - beam1.point1
-                v = beam2.point1 - beam2.point2
-            elif beam1.point2 == beam2.point1 or (p1 == 1 and p2 == 0):
-                u = beam1.point1 - beam1.point2
-                v = beam2.point2 - beam2.point1
-            elif beam1.point2 == beam2.point2 or (p1 == 1 and p2 == 1):
-                u = beam1.point1 - beam1.point2
-                v = beam2.point1 - beam2.point2
-            else:
-                raise ValueError("Beams are not connected at any point")
-
-            dot_product = sum(a * b for a, b in zip(u, v))
-            u_norm = math.sqrt(sum(a * a for a in u))
-            v_norm = math.sqrt(sum(b * b for b in v))
-            cos_theta = dot_product / (u_norm * v_norm)
-            cos_theta = max(min(cos_theta, 1.0), -1.0)
-            angle_rad = math.acos(cos_theta)
-            angle_deg = math.degrees(angle_rad)
-            return angle_deg
-
         anglebeam = []
         radiusBeam = []
         if len(pointbeams) > 1:
             for beampoint in pointbeams:
                 radiusBeam.append(beampoint.radius)
-                anglebeam.append(getAngleBetweenBeams(beam, beampoint))
+                anglebeam.append(beam.get_angle_between_beams(beampoint, self.enable_periodicity))
         else:
             radiusBeam.append(beam.radius)
             anglebeam.append(179.9)
@@ -779,7 +656,7 @@ class Lattice(object):
             if beam.point2 in [beamidx.point1, beamidx.point2]:
                 point2beams.add(beamidx)
 
-            if not self.periodicity:
+            if not self.enable_periodicity:
                 continue
 
             for tags_range, _ in tag_checks:
@@ -831,8 +708,8 @@ class Lattice(object):
                 # Determine beams on nodes
                 point1beams, point2beams = self.getConnectedBeams(beamList, beam)
                 # Determine angles for all beams connected at the node
-                non_zero_anglebeam1, non_zero_radiusbeam1 = self.getListAngleBeam(beam, point1beams)
-                non_zero_anglebeam2, non_zero_radiusbeam2 = self.getListAngleBeam(beam, point2beams)
+                non_zero_anglebeam1, non_zero_radiusbeam1 = self.get_list_angle_beam(beam, point1beams)
+                non_zero_anglebeam2, non_zero_radiusbeam2 = self.get_list_angle_beam(beam, point2beams)
                 # Find the lowest angle
                 LAngle1, LRadius1 = findMinAngle(non_zero_anglebeam1, non_zero_radiusbeam1)
                 LAngle2, LRadius2 = findMinAngle(non_zero_anglebeam2, non_zero_radiusbeam2)
@@ -872,7 +749,7 @@ class Lattice(object):
         """
         Set lattice dimensions in a dictionary format
         """
-        self.latticeDimensionsDict = {
+        self.lattice_dimension_dict = {
             "xMin": self.xMin,
             "xMax": self.xMax,
             "yMin": self.yMin,
@@ -918,7 +795,7 @@ class Lattice(object):
                 cell.removeBeam(beam)
 
         # Update index
-        self.defineBeamNodeIndex()
+        self.define_beam_node_index()
 
     def removeCell(self, index: int) -> None:
         """
@@ -995,7 +872,7 @@ class Lattice(object):
         Tags are assigned relative to either the global bounding box
         or a local (cell-relative) bounding box if erased parts are used.
         """
-        use_local_box = self.erasedParts is not None
+        use_local_box = self.eraser_blocks is not None
 
         if self.occupancy_matrix is None and use_local_box:
             self.getCellOccupancyMatrix()
@@ -1294,7 +1171,7 @@ class Lattice(object):
         for cell in self.cells:
             for beam in cell.beams:
                 if beam.modBeam:
-                    beam.radius = hybridRadiusData[beam.type] * beam.penalizationCoefficient
+                    beam.radius = hybridRadiusData[beam.type] * beam.penalization_coefficient
                 else:
                     beam.radius = hybridRadiusData[beam.type]
 
@@ -1398,7 +1275,7 @@ class Lattice(object):
         radius: float
             radii of the cylinder.
         """
-        max_y = self.sizeY
+        max_y = self.size_y
         for cell in self.cells:
             for beam in cell.beams:
                 for node in [beam.point1, beam.point2]:
@@ -1518,8 +1395,8 @@ class Lattice(object):
         """
         cellRelDens = []
         for cell in self.cells:
-            if self.krigingModelRelativeDensity is not None:
-                cellRelDens.append(cell.getRelativeDensityKriging(self.krigingModelRelativeDensity, geomScheme))
+            if self.kriging_model_relative_density is not None:
+                cellRelDens.append(cell.getRelativeDensityKriging(self.kriging_model_relative_density, geomScheme))
             else:
                 cellRelDens.append(cell.getRelativeDensityCell())
         meanRelDens = mean(cellRelDens)
@@ -1535,22 +1412,22 @@ class Lattice(object):
         degree: int
             Degree of the polynomial function
         """
-        if len(self.relativeDensityPoly) == 0:
-            fictiveCell = Cell([0, 0, 0], [self.cell_size_x, self.cell_size_y, self.cell_size_z],
-                               [0, 0, 0], self.geom_types, self.radii, self.gradRadius, self.gradDim, self.gradMat,
-                               self.uncertaintyNode)
+        if len(self.relative_density_poly) == 0:
+            fictiveCell = Cell([0, 0, 0], [self.cell_size_x, self.cell_size_y, self.cell_size_z], [0, 0, 0],
+                               self.geom_types, self.radii, self.grad_radius, self.grad_dim, self.grad_mat,
+                               self.uncertainty_node)
             domainRadius = np.linspace(0.01, 0.1, 10)
             for idxRad in range(len(self.radii)):
                 radius = np.zeros(len(self.radii))
                 relativeDensity = []
                 for domainIdx in domainRadius:
                     radius[idxRad] = domainIdx
-                    fictiveCell.changeBeamRadius([radius], self.gradRadius)
+                    fictiveCell.changeBeamRadius([radius], self.grad_radius)
                     relativeDensity.append(fictiveCell.getRelativeDensityCell())
                 poly_coeffs = np.polyfit(domainRadius, relativeDensity, degree).flatten()
                 poly = np.poly1d(poly_coeffs)
-                self.relativeDensityPoly.append(poly)
-                self.relativeDensityPolyDeriv.append(poly.deriv())
+                self.relative_density_poly.append(poly)
+                self.relative_density_poly_deriv.append(poly.deriv())
 
     def getRelativeDensityGradient(self) -> list[float]:
         """
@@ -1561,14 +1438,14 @@ class Lattice(object):
         grad: list of float
             Gradient of relative density
         """
-        if len(self.relativeDensityPoly) == 0:
+        if len(self.relative_density_poly) == 0:
             self.defineRelativeDensityFunction()
-        if len(self.cells[0].radius) != len(self.relativeDensityPoly):
+        if len(self.cells[0].radius) != len(self.relative_density_poly):
             raise ValueError("Invalid radius data.")
 
         grad = []
         for cell in self.cells:
-            grad.append(cell.getRelativeDensityGradient(self.relativeDensityPolyDeriv))
+            grad.append(cell.getRelativeDensityGradient(self.relative_density_poly_deriv))
         return grad
 
     def getRelativeDensityGradientKriging(self, geomScheme=None) -> list[float]:
@@ -1586,7 +1463,7 @@ class Lattice(object):
             geomScheme = [i < len(self.radii) for i in range(3)]
 
         for cell in self.cells:
-            gradient3Geom = cell.getRelativeDensityGradientKrigingCell(self.krigingModelRelativeDensity,
+            gradient3Geom = cell.getRelativeDensityGradientKrigingCell(self.kriging_model_relative_density,
                                                                        geomScheme) / numberOfCells
             grad.extend(gradient3Geom[geomScheme])
         return grad
@@ -1702,7 +1579,7 @@ class Lattice(object):
         """
         self.getName()
         print("Lattice name: ", self.name)
-        latticeDim = self.getSizeLattice()
+        latticeDim = self.get_size_lattice()
         print("Lattice size X: ", latticeDim[0])
         print("Lattice size Y: ", latticeDim[1])
         print("Lattice size Z: ", latticeDim[2])
@@ -1976,7 +1853,7 @@ class Lattice(object):
         --------
         globalDisplacement: dict
             Dictionary of global displacement with indexBoundary as key and displacement vector as value
-        globalDisplacementIndex: list of int
+        global_displacement_index: list of int
             List of indexBoundary of the lattice
         """
         globalDisplacement = []
@@ -1998,10 +1875,10 @@ class Lattice(object):
 
                         processed_nodes.add(node.indexBoundary)
         if not OnlyImposed:
-            self.globalDisplacementIndex = globalDisplacementIndex
+            self.global_displacement_index = globalDisplacementIndex
         if printLevel > 2:
             print("globalDisplacement: ", globalDisplacement)
-            print("globalDisplacementIndex: ", globalDisplacementIndex)
+            print("global_displacement_index: ", globalDisplacementIndex)
         return globalDisplacement, globalDisplacementIndex
 
     @timing.timeit
@@ -2023,7 +1900,7 @@ class Lattice(object):
                             nodeAlreadyIndexed[node] = IndexCounter
                             node.indexBoundary = IndexCounter
                             IndexCounter += 1
-        self.maxIndexBoundary = IndexCounter - 1
+        self.max_index_boundary = IndexCounter - 1
 
     def setPointLocalTag(self) -> None:
         """
@@ -2044,7 +1921,7 @@ class Lattice(object):
         globalReactionForce: dict
             Dictionary of global reaction force with indexBoundary as key and reaction force vector as value
         """
-        globalReactionForce = {i: [0, 0, 0, 0, 0, 0] for i in range(self.maxIndexBoundary + 1)}
+        globalReactionForce = {i: [0, 0, 0, 0, 0, 0] for i in range(self.max_index_boundary + 1)}
         for cell in self.cells:
             nodeIndexProcessed = set()
             for beam in cell.beams:
@@ -2102,13 +1979,13 @@ class Lattice(object):
         """
         Get total number of degrees of freedom in the lattice
         """
-        self.freeDOF = 0
+        self.free_DOF = 0
         processed_nodes = set()
         for cell in self.cells:
             for beam in cell.beams:
                 for node in [beam.point1, beam.point2]:
                     if node.indexBoundary is not None and node.indexBoundary not in processed_nodes:
-                        self.freeDOF += node.fixedDOF.count(0)
+                        self.free_DOF += node.fixedDOF.count(0)
                         processed_nodes.add(node.indexBoundary)
 
     def setGlobalFreeDOFIndex(self) -> None:
@@ -2152,7 +2029,7 @@ class Lattice(object):
         Build coupling operator for each cell in the lattice
         """
         for cell in self.cells:
-            cell.buildCouplingOperator(self.freeDOF)
+            cell.buildCouplingOperator(self.free_DOF)
 
     def buildLUSchurComplement(self, dictSchurComplement: dict = None) -> splu:
         """
@@ -2171,7 +2048,7 @@ class Lattice(object):
             dictSchurComplement = loadSchurComplement(nameFileSchur)
 
         self.buildCouplingOperatorForEachCells()
-        globalSchurComplement = coo_matrix((self.freeDOF, self.freeDOF))
+        globalSchurComplement = coo_matrix((self.free_DOF, self.free_DOF))
         for cell in self.cells:
             schurComplementMatrix = coo_matrix(getSref_nearest(cell.radius, SchurDict=dictSchurComplement,
                                                                printing=False))
@@ -2304,7 +2181,7 @@ class Lattice(object):
                         full_radius.append(old)
                 radius = full_radius
 
-            cell.changeBeamRadius(radius, self.gradRadius)
+            cell.changeBeamRadius(radius, self.grad_radius)
 
     def calculateObjective(self, typeObjective: str) -> float:
         """
@@ -2325,16 +2202,16 @@ class Lattice(object):
             reaction_force_array = np.array(list(reactionForce.values())).flatten()
             displacement = np.array(self.getDisplacementGlobal(OnlyImposed=True)[0])
             objective = 0.5 * np.dot(reaction_force_array, displacement)
-            if self.printing > 2:
+            if self.verbose > 2:
                 np.set_printoptions(threshold=np.inf)
                 print("Reaction force: ", reaction_force_array[displacement != 0])
                 print("Displacement: ", displacement[displacement != 0])
                 print("Compliance: ", objective)
         elif typeObjective == "Displacement":
-            setNode = self.findPointOnLatticeSurface(surfaceNames=self.objectifData["surface"])
+            setNode = self.findPointOnLatticeSurface(surfaceNames=self.objectif_data["surface"])
             displacements = []
             for node in setNode:
-                for dof in self.objectifData["DOF"]:
+                for dof in self.objectif_data["DOF"]:
                     if dof < 0 or dof > 5:
                         raise ValueError("Invalid degree of freedom index.")
                     displacements.append(node.displacementValue[dof])
@@ -2485,16 +2362,16 @@ class Lattice(object):
 
         Parameters:
         -----------
-        meshObject: MeshObject
+        mesh_object: MeshObject
             Mesh object to add to the lattice
         """
-        self.meshObject = meshObject
+        self.mesh_object = meshObject
 
     def cutBeamsAtMeshIntersection(self):
         """
         Cut beams at the intersection with the mesh
         """
-        if self.meshObject is None:
+        if self.mesh_object is None:
             raise ValueError("A mesh object must be assigned to the lattice before cutting beams.")
 
         new_beams = []
@@ -2503,15 +2380,15 @@ class Lattice(object):
         for cell in self.cells:
             for beam in cell.beams:
                 if not beam.modBeam:
-                    p1_inside = self.meshObject.is_inside_mesh([beam.point1.x, beam.point1.y, beam.point1.z])
-                    p2_inside = self.meshObject.is_inside_mesh([beam.point2.x, beam.point2.y, beam.point2.z])
+                    p1_inside = self.mesh_object.is_inside_mesh([beam.point1.x, beam.point1.y, beam.point1.z])
+                    p2_inside = self.mesh_object.is_inside_mesh([beam.point2.x, beam.point2.y, beam.point2.z])
 
                     if not p1_inside and not p2_inside:
                         # The Beam is outside the mesh, remove it
                         beams_to_remove.append(beam)
                     elif not p1_inside or not p2_inside:
                         # The Beam intersects the mesh, cut it
-                        intersection_point = beam.findIntersectionWithMesh(self.meshObject)
+                        intersection_point = beam.findIntersectionWithMesh(self.mesh_object)
                         if intersection_point is not None:
                             new_point = Point(intersection_point[0], intersection_point[1], intersection_point[2])
 
@@ -2599,8 +2476,8 @@ class Lattice(object):
                     Beam(node_map[new_point1], node_map[new_point2], beam.radius, beam.material, beam.type))
 
             # Create a new mirrored cell
-            new_cell = Cell(new_pos, cell.cellSize, new_start_pos, cell.geom_types,
-                            cell.radius, cell.gradRadius, cell.gradDim, cell.gradMat, cell.uncertaintyNode)
+            new_cell = Cell(new_pos, cell.cellSize, new_start_pos, cell.geom_types, cell.radius, cell.grad_radius,
+                            cell.grad_dim, cell.grad_mat, cell.uncertainty_node)
 
             new_cell.beams = mirrored_beams
             new_cells.append(new_cell)
@@ -2627,7 +2504,7 @@ class Lattice(object):
             print(f"Model file not found: {model_path}")
         else:
             gpr = joblib.load(model_path)
-            self.krigingModelRelativeDensity = gpr
+            self.kriging_model_relative_density = gpr
 
     def deleteBeamsUnderThreshold(self, threshold: float = 0.01) -> None:
         """
@@ -2672,14 +2549,14 @@ class Lattice(object):
 
         Parameters:
         -----------
-        objectifData: dict
+        objectif_data: dict
             Dictionary containing objective data
         """
-        self.objectifData = objectifData
+        self.objectif_data = objectifData
 
     @timing.timeit
     def generateMeshLatticeGmsh(self, cutMeshAtBoundary: bool = False, meshSize: float = 0.05, runGmshApp: bool =
-                                False, saveMesh: bool = True, nameMesh: str = "Lattice", saveSTL: bool = False):
+    False, saveMesh: bool = True, nameMesh: str = "Lattice", saveSTL: bool = False):
         """
         Generate a mesh representation of the lattice structure using GMSH.
 
@@ -2762,8 +2639,8 @@ class Lattice(object):
             "geom_types",
             "radius",
             "cellSize",
-            "gradRadius",
-            "gradDim",
+            "grad_radius",
+            "grad_dim",
         ]
 
         for i, cell in enumerate(self.cells[1:], start=1):

@@ -17,10 +17,10 @@
 #     start_pos = [0.0, 0.0, 0.0]
 #     lattice_type = [0]
 #     radius = [0.05]
-#     gradRadius = [[1.0], [1.0], [1.0]]
-#     gradDim = [[1.0], [1.0], [1.0]]
-#     gradMat = [[0]]
-#     return Cell(pos, initial_size, start_pos, lattice_type, radius, gradRadius, gradDim, gradMat)
+#     grad_radius = [[1.0], [1.0], [1.0]]
+#     grad_dim = [[1.0], [1.0], [1.0]]
+#     grad_mat = [[0]]
+#     return Cell(pos, initial_size, start_pos, lattice_type, radius, grad_radius, grad_dim, grad_mat)
 #
 #
 # def test_cell_initialization(basic_cell):

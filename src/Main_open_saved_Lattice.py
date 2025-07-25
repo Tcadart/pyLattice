@@ -4,8 +4,8 @@ from src.Lattice import *
 nameLattice = "BeamFlexionOptimization"
 # nameLattice = "LatticeTest"
 
-lattice = Lattice.loadLatticeObject(nameLattice)
+lattice = Lattice.pickle_lattice(nameLattice)
 
 vizualizer = LatticeUtils()
-vizualizer.visualizeLattice3D(lattice.cells, lattice.latticeDimensionsDict, "radii", explode_voxel=0.1, plotting=False)
+vizualizer.visualizeLattice3D(lattice.cells, lattice.lattice_dimension_dict, "radii", explode_voxel=0.1, plotting=False)
 vizualizer.show()

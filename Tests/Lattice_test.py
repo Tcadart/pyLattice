@@ -22,9 +22,9 @@ def test_create_simple_lattice():
 
 def test_lattice_dimensions_and_bounds():
     lattice = Lattice.simpleLattice(1, 1, 1, 3, 1, 1, 0, 0.05)
-    assert lattice.sizeX == 3.0
-    assert lattice.sizeY == 1.0
-    assert lattice.sizeZ == 1.0
+    assert lattice.size_x == 3.0
+    assert lattice.size_y == 1.0
+    assert lattice.size_z == 1.0
     assert lattice.xMin == 0.0
     assert lattice.xMax == 3.0
 
@@ -46,8 +46,8 @@ def test_relative_density():
 def test_generate_mesh():
     lattice = Lattice.simpleLattice(1, 1, 1, 1, 1, 1, 0, 0.05)
     lattice.generateMeshLattice()
-    assert lattice.meshLattice is not None
-    assert lattice.meshLattice.faces.shape[0] > 0
+    assert lattice.mesh_lattice is not None
+    assert lattice.mesh_lattice.faces.shape[0] > 0
 
 
 def test_delete_small_beams():

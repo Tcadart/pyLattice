@@ -52,14 +52,14 @@ def _validate_inputs(cell_size_x, cell_size_y, cell_size_z,
         assert isinstance(gradMatProperty[1], int), "gradMatProperty[1] must be an integer"
 
     # Check optional parameters
-    assert isinstance(uncertaintyNode, float), "uncertaintyNode must be a float"
+    assert isinstance(uncertaintyNode, float), "uncertainty_node must be a float"
 
-    assert isinstance(periodicity, int), "periodicity must be an integer"
+    assert isinstance(periodicity, int), "enable_periodicity must be an integer"
 
     if erasedParts is not None:
         for erasedPart in erasedParts:
             assert len(erasedPart) == 6 and all(
-                isinstance(x, float) for x in erasedPart), "erasedParts must be a list of 6 floats"
+                isinstance(x, float) for x in erasedPart), "eraser_blocks must be a list of 6 floats"
 
 
 def functionPenalizationLzone(radiusAngleData: Tuple[float, float]) -> float:

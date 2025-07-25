@@ -84,7 +84,7 @@ class LatticePlotting:
             return base_colors + list(mcolors.CSS4_COLORS.values())[:n - len(base_colors)]
 
         cells = lattice_object.cells
-        latticeDimDict = lattice_object.latticeDimensionsDict
+        latticeDimDict = lattice_object.lattice_dimension_dict
 
         # Generate a large color palette to avoid missing colors
         max_elements = max(len(cells), 20)  # Dynamically decide the number of colors
@@ -166,7 +166,7 @@ class LatticePlotting:
 
         Parameters:
         -----------
-        erasedParts: list of tuple
+        eraser_blocks: list of tuple
             List of erased parts with (x_start, y_start, z_start, x_dim, y_dim
         """
 
