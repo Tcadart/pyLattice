@@ -44,7 +44,7 @@ Lattice_Type = [0]
 GradDimRule = 'constant'
 GradDimDirection = [0, 1, 0]
 GradDimParameters = [2.5, 5.0, 1.5]  # Float
-# Gradient on radius of beams
+# Gradient on radii of beams
 GradRadRule = 'constant'
 GradRadDirection = [0, 0, 1]
 GradRadParameters = [0.01, 0.0, 0.15]

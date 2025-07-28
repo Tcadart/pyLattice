@@ -16,6 +16,7 @@ documentation for details.
    :caption: Contents:
 
    modules
+   cell_geometries
 
 Indices and tables
 ==================

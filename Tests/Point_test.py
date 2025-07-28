@@ -1,3 +1,3 @@
 import pytest
 
-from Point import Point
+from point import Point

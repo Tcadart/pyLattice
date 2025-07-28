@@ -42,6 +42,7 @@
               <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="modules.html">src</a></li>
+<li class="toctree-l1"><a class="reference internal" href="cell_geometries.html">🔷 Geometry Definitions for Lattice Structures</a></li>
 </ul>
 
         </div>
@@ -78,14 +79,12 @@
  | <a href="#E"><strong>E</strong></a>
  | <a href="#F"><strong>F</strong></a>
  | <a href="#G"><strong>G</strong></a>
- | <a href="#H"><strong>H</strong></a>
  | <a href="#I"><strong>I</strong></a>
  | <a href="#L"><strong>L</strong></a>
  | <a href="#M"><strong>M</strong></a>
  | <a href="#P"><strong>P</strong></a>
  | <a href="#R"><strong>R</strong></a>
  | <a href="#S"><strong>S</strong></a>
- | <a href="#T"><strong>T</strong></a>
  | <a href="#U"><strong>U</strong></a>
  | <a href="#V"><strong>V</strong></a>
  
@@ -93,33 +92,27 @@
 <h2 id="A">A</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="src.html#src.Cell.Cell.addBeam">addBeam() (src.Cell.Cell method)</a>
+      <li><a href="src.html#src.Lattice.Lattice.add_mesh_object">add_mesh_object() (src.Lattice.Lattice method)</a>
 </li>
-      <li><a href="src.html#src.Cell.Cell.addCellNeighbour">addCellNeighbour() (src.Cell.Cell method)</a>
+      <li><a href="src.html#src.Lattice.Lattice.apply_boundary_conditions_node">apply_boundary_conditions_node() (src.Lattice.Lattice method)</a>
 </li>
-      <li><a href="src.html#src.Lattice.Lattice.addMeshObject">addMeshObject() (src.Lattice.Lattice method)</a>
+      <li><a href="src.html#src.Lattice.Lattice.apply_boundary_conditions_surface">apply_boundary_conditions_surface() (src.Lattice.Lattice method)</a>
 </li>
-      <li><a href="src.html#src.Lattice.Lattice.applyAllConstraintsOnNodes">applyAllConstraintsOnNodes() (src.Lattice.Lattice method)</a>
+      <li><a href="src.html#src.Lattice.Lattice.apply_constraints_nodes">apply_constraints_nodes() (src.Lattice.Lattice method)</a>
 </li>
-      <li><a href="src.html#src.Lattice.Lattice.applyBoundaryConditionsOnNode">applyBoundaryConditionsOnNode() (src.Lattice.Lattice method)</a>
-</li>
-      <li><a href="src.html#src.Lattice.Lattice.applyBoundaryConditionsOnSurface">applyBoundaryConditionsOnSurface() (src.Lattice.Lattice method)</a>
+      <li><a href="src.html#src.Lattice.Lattice.apply_displacement_on_node_list">apply_displacement_on_node_list() (src.Lattice.Lattice method)</a>
 </li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="src.html#src.Lattice.Lattice.applyDisplacementOnNodeList">applyDisplacementOnNodeList() (src.Lattice.Lattice method)</a>
+      <li><a href="src.html#src.Lattice.Lattice.apply_force_on_surface">apply_force_on_surface() (src.Lattice.Lattice method)</a>
 </li>
-      <li><a href="src.html#src.Lattice.Lattice.applyForceOnSurface">applyForceOnSurface() (src.Lattice.Lattice method)</a>
+      <li><a href="src.html#src.Lattice.Lattice.apply_reaction_force_on_node_list">apply_reaction_force_on_node_list() (src.Lattice.Lattice method)</a>
 </li>
-      <li><a href="src.html#src.Lattice.Lattice.applyReactionForceOnNodeList">applyReactionForceOnNodeList() (src.Lattice.Lattice method)</a>
+      <li><a href="src.html#src.Lattice.Lattice.apply_symmetry">apply_symmetry() (src.Lattice.Lattice method)</a>
 </li>
-      <li><a href="src.html#src.Lattice.Lattice.applySymmetry">applySymmetry() (src.Lattice.Lattice method)</a>
-</li>
-      <li><a href="src.html#src.Lattice.Lattice.applyTagToAllPoint">applyTagToAllPoint() (src.Lattice.Lattice method)</a>
+      <li><a href="src.html#src.Lattice.Lattice.apply_tag_all_point">apply_tag_all_point() (src.Lattice.Lattice method)</a>
 </li>
       <li><a href="src.html#src.Lattice.Lattice.are_cells_identical">are_cells_identical() (src.Lattice.Lattice method)</a>
-</li>
-      <li><a href="src.html#src.Lattice.Lattice.attractorLattice">attractorLattice() (src.Lattice.Lattice method)</a>
 </li>
   </ul></td>
 </tr></table>
@@ -127,17 +120,11 @@
 <h2 id="B">B</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="src.html#src.Beam.Beam">Beam (class in src.Beam)</a>
-</li>
-      <li><a href="src.html#src.Cell.Cell.buildCouplingOperator">buildCouplingOperator() (src.Cell.Cell method)</a>
+      <li><a href="src.html#src.Lattice.Lattice.build_coupling_operator_cells">build_coupling_operator_cells() (src.Lattice.Lattice method)</a>
 </li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="src.html#src.Lattice.Lattice.buildCouplingOperatorForEachCells">buildCouplingOperatorForEachCells() (src.Lattice.Lattice method)</a>
-</li>
-      <li><a href="src.html#src.Lattice.Lattice.buildLUSchurComplement">buildLUSchurComplement() (src.Lattice.Lattice method)</a>
-</li>
-      <li><a href="src.html#src.Cell.Cell.buildPreconditioner">buildPreconditioner() (src.Cell.Cell method)</a>
+      <li><a href="src.html#src.Lattice.Lattice.build_LU_schur_complement">build_LU_schur_complement() (src.Lattice.Lattice method)</a>
 </li>
   </ul></td>
 </tr></table>
@@ -145,27 +132,17 @@
 <h2 id="C">C</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="src.html#src.Lattice.Lattice.calculateObjective">calculateObjective() (src.Lattice.Lattice method)</a>
+      <li><a href="src.html#src.Lattice.Lattice.calculate_objective">calculate_objective() (src.Lattice.Lattice method)</a>
 </li>
-      <li><a href="src.html#src.Point.Point.calculatePointEnergy">calculatePointEnergy() (src.Point.Point method)</a>
-</li>
-      <li><a href="src.html#src.Cell.Cell">Cell (class in src.Cell)</a>
-</li>
-      <li><a href="src.html#src.Cell.Cell.changeBeamRadius">changeBeamRadius() (src.Cell.Cell method)</a>
-</li>
-      <li><a href="src.html#src.Lattice.Lattice.changeBeamRadiusForType">changeBeamRadiusForType() (src.Lattice.Lattice method)</a>
+      <li><a href="src.html#src.Lattice.Lattice.change_beam_radius_data_hybrid_lattice">change_beam_radius_data_hybrid_lattice() (src.Lattice.Lattice method)</a>
 </li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="src.html#src.Lattice.Lattice.changeHybridData">changeHybridData() (src.Lattice.Lattice method)</a>
+      <li><a href="src.html#src.Lattice.Lattice.change_beam_radius_depending_type">change_beam_radius_depending_type() (src.Lattice.Lattice method)</a>
 </li>
-      <li><a href="src.html#src.Lattice.Lattice.checkHybridCollision">checkHybridCollision() (src.Lattice.Lattice method)</a>
+      <li><a href="src.html#src.Lattice.Lattice.check_hybrid_collision">check_hybrid_collision() (src.Lattice.Lattice method)</a>
 </li>
-      <li><a href="src.html#src.Lattice.Lattice.curveLattice">curveLattice() (src.Lattice.Lattice method)</a>
-</li>
-      <li><a href="src.html#src.Lattice.Lattice.cutBeamsAtMeshIntersection">cutBeamsAtMeshIntersection() (src.Lattice.Lattice method)</a>
-</li>
-      <li><a href="src.html#src.Lattice.Lattice.cylindrical_transform">cylindrical_transform() (src.Lattice.Lattice method)</a>
+      <li><a href="src.html#src.Lattice.Lattice.cut_beams_at_mesh_intersection">cut_beams_at_mesh_intersection() (src.Lattice.Lattice method)</a>
 </li>
   </ul></td>
 </tr></table>
@@ -173,27 +150,23 @@
 <h2 id="D">D</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="src.html#src.Beam.Beam.data">data (src.Beam.Beam property)</a>
+      <li><a href="src.html#src.Lattice.Lattice.define_beam_node_index">define_beam_node_index() (src.Lattice.Lattice method)</a>
 </li>
-      <li><a href="src.html#src.Lattice.Lattice.defineBeamNodeIndex">defineBeamNodeIndex() (src.Lattice.Lattice method)</a>
+      <li><a href="src.html#src.Lattice.Lattice.define_cell_index">define_cell_index() (src.Lattice.Lattice method)</a>
 </li>
-      <li><a href="src.html#src.Lattice.Lattice.defineCellIndex">defineCellIndex() (src.Lattice.Lattice method)</a>
+      <li><a href="src.html#src.Lattice.Lattice.define_cell_neighbours">define_cell_neighbours() (src.Lattice.Lattice method)</a>
 </li>
-      <li><a href="src.html#src.Lattice.Lattice.defineCellNeighbours">defineCellNeighbours() (src.Lattice.Lattice method)</a>
-</li>
-      <li><a href="src.html#src.Lattice.Lattice.defineNodeIndexBoundary">defineNodeIndexBoundary() (src.Lattice.Lattice method)</a>
+      <li><a href="src.html#src.Lattice.Lattice.define_node_index_boundary">define_node_index_boundary() (src.Lattice.Lattice method)</a>
 </li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="src.html#src.Cell.Cell.defineOriginalTags">defineOriginalTags() (src.Cell.Cell method)</a>
+      <li><a href="src.html#src.Lattice.Lattice.define_relative_density_function">define_relative_density_function() (src.Lattice.Lattice method)</a>
 </li>
-      <li><a href="src.html#src.Lattice.Lattice.defineRelativeDensityFunction">defineRelativeDensityFunction() (src.Lattice.Lattice method)</a>
+      <li><a href="src.html#src.Lattice.Lattice.delete_beams_under_radius_threshold">delete_beams_under_radius_threshold() (src.Lattice.Lattice method)</a>
 </li>
-      <li><a href="src.html#src.Lattice.Lattice.deleteBeamsGeomScheme">deleteBeamsGeomScheme() (src.Lattice.Lattice method)</a>
+      <li><a href="src.html#src.Lattice.Lattice.delete_beams_with_geom_scheme">delete_beams_with_geom_scheme() (src.Lattice.Lattice method)</a>
 </li>
-      <li><a href="src.html#src.Lattice.Lattice.deleteBeamsUnderThreshold">deleteBeamsUnderThreshold() (src.Lattice.Lattice method)</a>
-</li>
-      <li><a href="src.html#src.Lattice.Lattice.deleteDuplicatedBeams">deleteDuplicatedBeams() (src.Lattice.Lattice method)</a>
+      <li><a href="src.html#src.Lattice.Lattice.delete_duplicated_beams">delete_duplicated_beams() (src.Lattice.Lattice method)</a>
 </li>
   </ul></td>
 </tr></table>
@@ -201,7 +174,7 @@
 <h2 id="E">E</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="src.html#src.Lattice.Lattice.expandSchurToFullBasis">expandSchurToFullBasis() (src.Lattice.Lattice method)</a>
+      <li><a href="src.html#src.Lattice.Lattice.expand_schur_to_full_basis">expand_schur_to_full_basis() (src.Lattice.Lattice method)</a>
 </li>
   </ul></td>
 </tr></table>
@@ -209,31 +182,23 @@
 <h2 id="F">F</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="src.html#src.Lattice.Lattice.findBoundaryBeams">findBoundaryBeams() (src.Lattice.Lattice method)</a>
+      <li><a href="src.html#src.Lattice.Lattice.find_boundary_beams">find_boundary_beams() (src.Lattice.Lattice method)</a>
 </li>
-      <li><a href="src.html#src.Lattice.Lattice.findBoundaryNodes">findBoundaryNodes() (src.Lattice.Lattice method)</a>
+      <li><a href="src.html#src.Lattice.Lattice.find_boundary_nodes">find_boundary_nodes() (src.Lattice.Lattice method)</a>
 </li>
-      <li><a href="src.html#src.Beam.Beam.findIntersectionWithMesh">findIntersectionWithMesh() (src.Beam.Beam method)</a>
+      <li><a href="src.html#src.Lattice.Lattice.find_minimum_beam_length">find_minimum_beam_length() (src.Lattice.Lattice method)</a>
 </li>
-      <li><a href="src.html#src.Lattice.Lattice.findMinimumBeamLength">findMinimumBeamLength() (src.Lattice.Lattice method)</a>
-</li>
-      <li><a href="src.html#src.Lattice.Lattice.findPointOnLatticeSurface">findPointOnLatticeSurface() (src.Lattice.Lattice method)</a>
-</li>
-      <li><a href="src.html#src.Lattice.Lattice.findPointOnLatticeSurfaceComplex">findPointOnLatticeSurfaceComplex() (src.Lattice.Lattice method)</a>
+      <li><a href="src.html#src.Lattice.Lattice.find_point_on_lattice_surface">find_point_on_lattice_surface() (src.Lattice.Lattice method)</a>
 </li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="src.html#src.Lattice.Lattice.fitToSurface">fitToSurface() (src.Lattice.Lattice method)</a>
+      <li><a href="src.html#src.Lattice.Lattice.find_point_on_lattice_surface_complex">find_point_on_lattice_surface_complex() (src.Lattice.Lattice method)</a>
 </li>
-      <li><a href="src.html#src.Point.Point.fixDOF">fixDOF() (src.Point.Point method)</a>
+      <li><a href="src.html#src.Lattice.Lattice.fix_DOF_on_node">fix_DOF_on_node() (src.Lattice.Lattice method)</a>
 </li>
-      <li><a href="src.html#src.Lattice.Lattice.fixDOFOnNode">fixDOFOnNode() (src.Lattice.Lattice method)</a>
-</li>
-      <li><a href="src.html#src.Lattice.Lattice.fixDOFOnSurface">fixDOFOnSurface() (src.Lattice.Lattice method)</a>
+      <li><a href="src.html#src.Lattice.Lattice.fix_DOF_on_surface">fix_DOF_on_surface() (src.Lattice.Lattice method)</a>
 </li>
       <li><a href="src.html#src.Lattice.Lattice.from_json">from_json() (src.Lattice.Lattice class method)</a>
-</li>
-      <li><a href="src.html#src.Utils.functionPenalizationLzone">functionPenalizationLzone() (in module src.Utils)</a>
 </li>
   </ul></td>
 </tr></table>
@@ -241,153 +206,75 @@
 <h2 id="G">G</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="src.html#src.Cell.Cell.generateBeamsInCell">generateBeamsInCell() (src.Cell.Cell method)</a>
+      <li><a href="src.html#src.Lattice.Lattice.generate_lattice">generate_lattice() (src.Lattice.Lattice method)</a>
 </li>
-      <li><a href="src.html#src.Cell.Cell.generateCellProperties">generateCellProperties() (src.Cell.Cell method)</a>
+      <li><a href="src.html#src.Lattice.Lattice.generate_mesh_lattice_Gmsh">generate_mesh_lattice_Gmsh() (src.Lattice.Lattice method)</a>
 </li>
-      <li><a href="src.html#src.Lattice.Lattice.generateLattice">generateLattice() (src.Lattice.Lattice method)</a>
+      <li><a href="src.html#src.Lattice.Lattice.get_all_angles">get_all_angles() (src.Lattice.Lattice method)</a>
 </li>
-      <li><a href="src.html#src.Lattice.Lattice.generateMeshLatticeGmsh">generateMeshLatticeGmsh() (src.Lattice.Lattice method)</a>
+      <li><a href="src.html#src.Lattice.Lattice.get_all_beam_length">get_all_beam_length() (src.Lattice.Lattice method)</a>
 </li>
-      <li><a href="src.html#src.Lattice.Lattice.getAllAngles">getAllAngles() (src.Lattice.Lattice method)</a>
+      <li><a href="src.html#src.Lattice.Lattice.get_beam_radius_min_max">get_beam_radius_min_max() (src.Lattice.Lattice method)</a>
 </li>
-      <li><a href="src.html#src.Lattice.Lattice.getAllBeamLength">getAllBeamLength() (src.Lattice.Lattice method)</a>
+      <li><a href="src.html#src.Lattice.Lattice.get_beam_type">get_beam_type() (src.Lattice.Lattice method)</a>
 </li>
-      <li><a href="src.html#src.Cell.Cell.getAllPoints">getAllPoints() (src.Cell.Cell method)</a>
+      <li><a href="src.html#src.Lattice.Lattice.get_cell_occupancy_matrix">get_cell_occupancy_matrix() (src.Lattice.Lattice method)</a>
 </li>
-      <li><a href="src.html#src.Cell.Cell.getBeamMaterial">getBeamMaterial() (src.Cell.Cell method)</a>
+      <li><a href="src.html#src.Lattice.Lattice.get_cell_on_surface">get_cell_on_surface() (src.Lattice.Lattice method)</a>
 </li>
-      <li><a href="src.html#src.Cell.Cell.getBeamRadius">getBeamRadius() (src.Cell.Cell method)</a>
+      <li><a href="src.html#src.Lattice.Lattice.get_cells_at_index">get_cells_at_index() (src.Lattice.Lattice method)</a>
 </li>
-      <li><a href="src.html#src.Lattice.Lattice.getBeamType">getBeamType() (src.Lattice.Lattice method)</a>
+      <li><a href="src.html#src.Lattice.Lattice.get_connected_beams">get_connected_beams() (src.Lattice.Lattice method)</a>
 </li>
-      <li><a href="src.html#src.Cell.Cell.getCellBoundaryBox">getCellBoundaryBox() (src.Cell.Cell method)</a>
+      <li><a href="src.html#src.Lattice.Lattice.get_connected_node">get_connected_node() (src.Lattice.Lattice method)</a>
 </li>
-      <li><a href="src.html#src.Cell.Cell.getCellCenter">getCellCenter() (src.Cell.Cell method)</a>
+      <li><a href="src.html#src.Lattice.Lattice.get_edge_index">get_edge_index() (src.Lattice.Lattice method)</a>
 </li>
-      <li><a href="src.html#src.Cell.Cell.getCellCornerCoordinates">getCellCornerCoordinates() (src.Cell.Cell method)</a>
+      <li><a href="src.html#src.Lattice.Lattice.get_global_displacement">get_global_displacement() (src.Lattice.Lattice method)</a>
 </li>
-      <li><a href="src.html#src.Lattice.Lattice.getCellOccupancyMatrix">getCellOccupancyMatrix() (src.Lattice.Lattice method)</a>
+      <li><a href="src.html#src.Lattice.Lattice.get_global_reaction_force">get_global_reaction_force() (src.Lattice.Lattice method)</a>
 </li>
-      <li><a href="src.html#src.Lattice.Lattice.getCellsAt">getCellsAt() (src.Lattice.Lattice method)</a>
+      <li><a href="src.html#src.Lattice.Lattice.get_lattice_boundary_box">get_lattice_boundary_box() (src.Lattice.Lattice method)</a>
 </li>
-      <li><a href="src.html#src.Cell.Cell.getCellSize">getCellSize() (src.Cell.Cell method)</a>
+      <li><a href="src.html#src.Lattice.Lattice.get_lattice_dimensions">get_lattice_dimensions() (src.Lattice.Lattice method)</a>
 </li>
-      <li><a href="src.html#src.Lattice.Lattice.getCellSurface">getCellSurface() (src.Lattice.Lattice method)</a>
+      <li><a href="src.html#src.Lattice.Lattice.get_list_angle_beam">get_list_angle_beam() (src.Lattice.Lattice method)</a>
 </li>
-      <li><a href="src.html#src.Lattice.Lattice.getConnectedBeams">getConnectedBeams() (src.Lattice.Lattice method)</a>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="src.html#src.Lattice.Lattice.get_name_lattice">get_name_lattice() (src.Lattice.Lattice method)</a>
 </li>
-      <li><a href="src.html#src.Lattice.Lattice.getConnectedNode">getConnectedNode() (src.Lattice.Lattice method)</a>
+      <li><a href="src.html#src.Lattice.Lattice.get_node_coordinates_data">get_node_coordinates_data() (src.Lattice.Lattice method)</a>
 </li>
-      <li><a href="src.html#src.Point.Point.getData">getData() (src.Point.Point method)</a>
+      <li><a href="src.html#src.Lattice.Lattice.get_number_beams">get_number_beams() (src.Lattice.Lattice method)</a>
 </li>
-      <li><a href="src.html#src.Point.Point.getDeformedPos">getDeformedPos() (src.Point.Point method)</a>
+      <li><a href="src.html#src.Lattice.Lattice.get_number_nodes">get_number_nodes() (src.Lattice.Lattice method)</a>
 </li>
-      <li><a href="src.html#src.Cell.Cell.getDisplacementAtNodes">getDisplacementAtNodes() (src.Cell.Cell method)</a>
+      <li><a href="src.html#src.Lattice.Lattice.get_number_parameters_optimization">get_number_parameters_optimization() (src.Lattice.Lattice method)</a>
 </li>
-      <li><a href="src.html#src.Cell.Cell.getDisplacementData">getDisplacementData() (src.Cell.Cell method)</a>
+      <li><a href="src.html#src.Lattice.Lattice.get_radius_continuity_difference">get_radius_continuity_difference() (src.Lattice.Lattice method)</a>
 </li>
-      <li><a href="src.html#src.Lattice.Lattice.getDisplacementGlobal">getDisplacementGlobal() (src.Lattice.Lattice method)</a>
+      <li><a href="src.html#src.Lattice.Lattice.get_radius_continuity_jacobian">get_radius_continuity_jacobian() (src.Lattice.Lattice method)</a>
 </li>
-      <li><a href="src.html#src.Lattice.Lattice.getEdgeIndex">getEdgeIndex() (src.Lattice.Lattice method)</a>
+      <li><a href="src.html#src.Lattice.Lattice.get_radius_temp">get_radius_temp() (src.Lattice.Lattice method)</a>
 </li>
-      <li><a href="src.html#src.Lattice.Lattice.getGlobalReactionForce">getGlobalReactionForce() (src.Lattice.Lattice method)</a>
+      <li><a href="src.html#src.Lattice.Lattice.get_relative_boundary_box">get_relative_boundary_box() (src.Lattice.Lattice method)</a>
+</li>
+      <li><a href="src.html#src.Lattice.Lattice.get_relative_density">get_relative_density() (src.Lattice.Lattice method)</a>
+</li>
+      <li><a href="src.html#src.Lattice.Lattice.get_relative_density_constraint">get_relative_density_constraint() (src.Lattice.Lattice method)</a>
+</li>
+      <li><a href="src.html#src.Lattice.Lattice.get_relative_density_gradient">get_relative_density_gradient() (src.Lattice.Lattice method)</a>
+</li>
+      <li><a href="src.html#src.Lattice.Lattice.get_relative_density_gradient_kriging">get_relative_density_gradient_kriging() (src.Lattice.Lattice method)</a>
+</li>
+      <li><a href="src.html#src.Lattice.Lattice.get_size_lattice">get_size_lattice() (src.Lattice.Lattice method)</a>
+</li>
+      <li><a href="src.html#src.Lattice.Lattice.get_tag_list">get_tag_list() (src.Lattice.Lattice method)</a>
+</li>
+      <li><a href="src.html#src.Lattice.Lattice.get_tag_list_boundary">get_tag_list_boundary() (src.Lattice.Lattice method)</a>
 </li>
       <li><a href="src.html#src.Lattice.Lattice.getGlobalReactionForceWithoutFixedDOF">getGlobalReactionForceWithoutFixedDOF() (src.Lattice.Lattice method)</a>
-</li>
-      <li><a href="src.html#src.Cell.Cell.getInternalEnergy">getInternalEnergy() (src.Cell.Cell method)</a>
-</li>
-      <li><a href="src.html#src.Lattice.Lattice.getLatticeBoundaryBox">getLatticeBoundaryBox() (src.Lattice.Lattice method)</a>
-</li>
-      <li><a href="src.html#src.Beam.Beam.getLength">getLength() (src.Beam.Beam method)</a>
-</li>
-      <li><a href="src.html#src.Beam.Beam.getLengthMod">getLengthMod() (src.Beam.Beam method)</a>
-</li>
-      <li><a href="src.html#src.Lattice.Lattice.getListAngleBeam">getListAngleBeam() (src.Lattice.Lattice method)</a>
-</li>
-      <li><a href="src.html#src.Lattice.Lattice.getMinMaxValues">getMinMaxValues() (src.Lattice.Lattice method)</a>
-</li>
-      <li><a href="src.html#src.Lattice.Lattice.getName">getName() (src.Lattice.Lattice method)</a>
-</li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="src.html#src.Cell.Cell.getNodeOrderToSimulate">getNodeOrderToSimulate() (src.Cell.Cell method)</a>
-</li>
-      <li><a href="src.html#src.Cell.Cell.getNodesOrderNN">getNodesOrderNN() (src.Cell.Cell method)</a>
-</li>
-      <li><a href="src.html#src.Cell.Cell.getNumberNodesAtBoundary">getNumberNodesAtBoundary() (src.Cell.Cell method)</a>
-</li>
-      <li><a href="src.html#src.Lattice.Lattice.getNumberOfBeams">getNumberOfBeams() (src.Lattice.Lattice method)</a>
-</li>
-      <li><a href="src.html#src.Cell.Cell.getNumberOfBoundaryNodes">getNumberOfBoundaryNodes() (src.Cell.Cell method)</a>
-</li>
-      <li><a href="src.html#src.Lattice.Lattice.getNumberOfNodes">getNumberOfNodes() (src.Lattice.Lattice method)</a>
-</li>
-      <li><a href="src.html#src.Lattice.Lattice.getNumberParametersOptimization">getNumberParametersOptimization() (src.Lattice.Lattice method)</a>
-</li>
-      <li><a href="src.html#src.Beam.Beam.getPointOnBeamFromDistance">getPointOnBeamFromDistance() (src.Beam.Beam method)</a>
-</li>
-      <li><a href="src.html#src.Cell.Cell.getPointOnSurface">getPointOnSurface() (src.Cell.Cell method)</a>
-</li>
-      <li><a href="src.html#src.Point.Point.getPos">getPos() (src.Point.Point method)</a>
-</li>
-      <li><a href="src.html#src.Lattice.Lattice.getPosData">getPosData() (src.Lattice.Lattice method)</a>
-</li>
-      <li><a href="src.html#src.Lattice.Lattice.getRadius">getRadius() (src.Lattice.Lattice method)</a>
-</li>
-      <li><a href="src.html#src.Lattice.Lattice.getRadiusContinuityDifference">getRadiusContinuityDifference() (src.Lattice.Lattice method)</a>
-</li>
-      <li><a href="src.html#src.Lattice.Lattice.getRadiusContinuityJacobian">getRadiusContinuityJacobian() (src.Lattice.Lattice method)</a>
-</li>
-      <li><a href="src.html#src.Lattice.Lattice.getRadiusMinMax">getRadiusMinMax() (src.Lattice.Lattice method)</a>
-</li>
-      <li><a href="src.html#src.Lattice.Lattice.getRelativeBoundaryBox">getRelativeBoundaryBox() (src.Lattice.Lattice method)</a>
-</li>
-      <li><a href="src.html#src.Lattice.Lattice.getRelativeDensity">getRelativeDensity() (src.Lattice.Lattice method)</a>
-</li>
-      <li><a href="src.html#src.Cell.Cell.getRelativeDensityCell">getRelativeDensityCell() (src.Cell.Cell method)</a>
-</li>
-      <li><a href="src.html#src.Lattice.Lattice.getRelativeDensityConstraint">getRelativeDensityConstraint() (src.Lattice.Lattice method)</a>
-</li>
-      <li><a href="src.html#src.Cell.Cell.getRelativeDensityGradient">getRelativeDensityGradient() (src.Cell.Cell method)</a>
-
-      <ul>
-        <li><a href="src.html#src.Lattice.Lattice.getRelativeDensityGradient">(src.Lattice.Lattice method)</a>
-</li>
-      </ul></li>
-      <li><a href="src.html#src.Lattice.Lattice.getRelativeDensityGradientKriging">getRelativeDensityGradientKriging() (src.Lattice.Lattice method)</a>
-</li>
-      <li><a href="src.html#src.Cell.Cell.getRelativeDensityGradientKrigingCell">getRelativeDensityGradientKrigingCell() (src.Cell.Cell method)</a>
-</li>
-      <li><a href="src.html#src.Cell.Cell.getRelativeDensityKriging">getRelativeDensityKriging() (src.Cell.Cell method)</a>
-</li>
-      <li><a href="src.html#src.Cell.Cell.getRGBcolorDependingOfRadius">getRGBcolorDependingOfRadius() (src.Cell.Cell method)</a>
-</li>
-      <li><a href="src.html#src.Cell.Cell.getRotationRigidBody">getRotationRigidBody() (src.Cell.Cell method)</a>
-</li>
-      <li><a href="src.html#src.Lattice.Lattice.getSizeLattice">getSizeLattice() (src.Lattice.Lattice method)</a>
-</li>
-      <li><a href="src.html#src.Lattice.Lattice.getTagList">getTagList() (src.Lattice.Lattice method)</a>
-</li>
-      <li><a href="src.html#src.Lattice.Lattice.getTagListBoundary">getTagListBoundary() (src.Lattice.Lattice method)</a>
-</li>
-      <li><a href="src.html#src.Cell.Cell.getTranslationRigidBody">getTranslationRigidBody() (src.Cell.Cell method)</a>
-</li>
-      <li><a href="src.html#src.Beam.Beam.getVolume">getVolume() (src.Beam.Beam method)</a>
-</li>
-      <li><a href="src.html#src.Cell.Cell.getVolumeCell">getVolumeCell() (src.Cell.Cell method)</a>
-</li>
-      <li><a href="src.html#src.Cell.Cell.getVolumeGeomSeparated">getVolumeGeomSeparated() (src.Cell.Cell method)</a>
-</li>
-      <li><a href="src.html#src.gradientProperties.grad_settings_constant">grad_settings_constant() (in module src.gradientProperties)</a>
-</li>
-  </ul></td>
-</tr></table>
-
-<h2 id="H">H</h2>
-<table style="width: 100%" class="indextable genindextable"><tr>
-  <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="src.html#src.Lattice.Lattice.hybridgeometry">hybridgeometry() (src.Lattice.Lattice class method)</a>
 </li>
   </ul></td>
 </tr></table>
@@ -397,35 +284,17 @@
   <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="src.html#src.LatticePlotting.LatticePlotting.initFigure">initFigure() (src.LatticePlotting.LatticePlotting method)</a>
 </li>
-      <li><a href="src.html#src.Lattice.Lattice.initializeDisplacementToZero">initializeDisplacementToZero() (src.Lattice.Lattice method)</a>
-
-      <ul>
-        <li><a href="src.html#src.Point.Point.initializeDisplacementToZero">(src.Point.Point method)</a>
+      <li><a href="src.html#src.Lattice.Lattice.initialize_displacement">initialize_displacement() (src.Lattice.Lattice method)</a>
 </li>
-      </ul></li>
-      <li><a href="src.html#src.Lattice.Lattice.initializeReactionForce">initializeReactionForce() (src.Lattice.Lattice method)</a>
-
-      <ul>
-        <li><a href="src.html#src.Point.Point.initializeReactionForce">(src.Point.Point method)</a>
+      <li><a href="src.html#src.Lattice.Lattice.initialize_reaction_force">initialize_reaction_force() (src.Lattice.Lattice method)</a>
 </li>
-      </ul></li>
-      <li><a href="src.html#src.Beam.Beam.is_identical_to">is_identical_to() (src.Beam.Beam method)</a>
-
-      <ul>
-        <li><a href="src.html#src.Point.Point.is_identical_to">(src.Point.Point method)</a>
-</li>
-      </ul></li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="src.html#src.Lattice.Lattice.isCellInMesh">isCellInMesh() (src.Lattice.Lattice method)</a>
+      <li><a href="src.html#src.Lattice.Lattice.is_cell_in_mesh">is_cell_in_mesh() (src.Lattice.Lattice method)</a>
 </li>
-      <li><a href="src.html#src.Lattice.Lattice.isNodeOnBoundary">isNodeOnBoundary() (src.Lattice.Lattice method)</a>
+      <li><a href="src.html#src.Lattice.Lattice.is_not_in_erased_region">is_not_in_erased_region() (src.Lattice.Lattice method)</a>
 </li>
-      <li><a href="src.html#src.Lattice.Lattice.isNotInErasedRegion">isNotInErasedRegion() (src.Lattice.Lattice method)</a>
-</li>
-      <li><a href="src.html#src.Lattice.Lattice.isPointInMesh">isPointInMesh() (src.Lattice.Lattice method)</a>
-</li>
-      <li><a href="src.html#src.Beam.Beam.isPointOnBeam">isPointOnBeam() (src.Beam.Beam method)</a>
+      <li><a href="src.html#src.Lattice.Lattice.is_point_in_mesh">is_point_in_mesh() (src.Lattice.Lattice method)</a>
 </li>
   </ul></td>
 </tr></table>
@@ -435,19 +304,11 @@
   <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="src.html#src.Lattice.Lattice">Lattice (class in src.Lattice)</a>
 </li>
-      <li><a href="src.html#src.Geometry_Lattice.Lattice_geometry">Lattice_geometry() (in module src.Geometry_Lattice)</a>
-</li>
-      <li><a href="src.html#src.Lattice.Lattice.latticeInfo">latticeInfo() (src.Lattice.Lattice method)</a>
-</li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="src.html#src.LatticePlotting.LatticePlotting">LatticePlotting (class in src.LatticePlotting)</a>
 </li>
-      <li><a href="src.html#src.Materials.MatProperties.load_material">load_material() (src.Materials.MatProperties method)</a>
-</li>
-      <li><a href="src.html#src.Lattice.Lattice.loadLatticeObject">loadLatticeObject() (src.Lattice.Lattice class method)</a>
-</li>
-      <li><a href="src.html#src.Lattice.Lattice.loadRelativeDensityModel">loadRelativeDensityModel() (src.Lattice.Lattice method)</a>
+      <li><a href="src.html#src.Lattice.Lattice.load_relative_density_model">load_relative_density_model() (src.Lattice.Lattice method)</a>
 </li>
   </ul></td>
 </tr></table>
@@ -455,58 +316,30 @@
 <h2 id="M">M</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="src.html#src.Materials.MatProperties.MATERIALS_DIR">MATERIALS_DIR (src.Materials.MatProperties attribute)</a>
-</li>
-      <li><a href="src.html#src.Materials.MatProperties">MatProperties (class in src.Materials)</a>
-</li>
       <li>
     module
 
       <ul>
         <li><a href="src.html#module-src">src</a>
 </li>
-        <li><a href="src.html#module-src.Beam">src.Beam</a>
-</li>
-        <li><a href="src.html#module-src.Cell">src.Cell</a>
-</li>
-        <li><a href="src.html#module-src.Geometry_Lattice">src.Geometry_Lattice</a>
-</li>
-        <li><a href="src.html#module-src.gradientProperties">src.gradientProperties</a>
-</li>
         <li><a href="src.html#module-src.Lattice">src.Lattice</a>
 </li>
         <li><a href="src.html#module-src.LatticePlotting">src.LatticePlotting</a>
 </li>
-        <li><a href="src.html#module-src.Materials">src.Materials</a>
-</li>
-        <li><a href="src.html#module-src.Point">src.Point</a>
-</li>
-        <li><a href="src.html#module-src.Timing">src.Timing</a>
-</li>
-        <li><a href="src.html#module-src.Utils">src.Utils</a>
-</li>
       </ul></li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="src.html#src.Point.Point.movePoint">movePoint() (src.Point.Point method)</a>
-</li>
-      <li><a href="src.html#src.Lattice.Lattice.moveToCylinderForm">moveToCylinderForm() (src.Lattice.Lattice method)</a>
-</li>
   </ul></td>
 </tr></table>
 
 <h2 id="P">P</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="src.html#src.LatticePlotting.LatticePlotting.plotRadiusDistribution">plotRadiusDistribution() (src.LatticePlotting.LatticePlotting method)</a>
-</li>
-      <li><a href="src.html#src.Point.Point">Point (class in src.Point)</a>
+      <li><a href="src.html#src.Lattice.Lattice.pickle_lattice">pickle_lattice() (src.Lattice.Lattice class method)</a>
 </li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="src.html#src.Cell.Cell.printCellData">printCellData() (src.Cell.Cell method)</a>
+      <li><a href="src.html#src.LatticePlotting.LatticePlotting.plotRadiusDistribution">plotRadiusDistribution() (src.LatticePlotting.LatticePlotting method)</a>
 </li>
-      <li><a href="src.html#src.Lattice.Lattice.printStatistics">printStatistics() (src.Lattice.Lattice method)</a>
+      <li><a href="src.html#src.Lattice.Lattice.print_statistics_lattice">print_statistics_lattice() (src.Lattice.Lattice method)</a>
 </li>
   </ul></td>
 </tr></table>
@@ -514,11 +347,7 @@
 <h2 id="R">R</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="src.html#src.Cell.Cell.removeBeam">removeBeam() (src.Cell.Cell method)</a>
-</li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="src.html#src.Lattice.Lattice.removeCell">removeCell() (src.Lattice.Lattice method)</a>
+      <li><a href="src.html#src.Lattice.Lattice.remove_cell">remove_cell() (src.Lattice.Lattice method)</a>
 </li>
   </ul></td>
 </tr></table>
@@ -526,83 +355,33 @@
 <h2 id="S">S</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="src.html#src.Utils.saveJSONToGrasshopper">saveJSONToGrasshopper() (in module src.Utils)</a>
+      <li><a href="src.html#src.Lattice.Lattice.set_beam_node_mod">set_beam_node_mod() (src.Lattice.Lattice method)</a>
 </li>
-      <li><a href="src.html#src.Utils.saveLatticeObject">saveLatticeObject() (in module src.Utils)</a>
+      <li><a href="src.html#src.Lattice.Lattice.set_displacement_with_vector">set_displacement_with_vector() (src.Lattice.Lattice method)</a>
 </li>
-      <li><a href="src.html#src.Utils.saveMeshLattice">saveMeshLattice() (in module src.Utils)</a>
+      <li><a href="src.html#src.Lattice.Lattice.set_free_DOF">set_free_DOF() (src.Lattice.Lattice method)</a>
 </li>
-      <li><a href="src.html#src.Beam.Beam.setAngle">setAngle() (src.Beam.Beam method)</a>
+      <li><a href="src.html#src.Lattice.Lattice.set_global_free_DOF_index">set_global_free_DOF_index() (src.Lattice.Lattice method)</a>
 </li>
-      <li><a href="src.html#src.Point.Point.setAppliedForce">setAppliedForce() (src.Point.Point method)</a>
+      <li><a href="src.html#src.Lattice.Lattice.set_lattice_dimensions_dict">set_lattice_dimensions_dict() (src.Lattice.Lattice method)</a>
 </li>
-      <li><a href="src.html#src.Beam.Beam.setBeamMod">setBeamMod() (src.Beam.Beam method)</a>
+      <li><a href="src.html#src.Lattice.Lattice.set_objective_data">set_objective_data() (src.Lattice.Lattice method)</a>
 </li>
-      <li><a href="src.html#src.Lattice.Lattice.setBeamNodeMod">setBeamNodeMod() (src.Lattice.Lattice method)</a>
+      <li><a href="src.html#src.Lattice.Lattice.set_optimization_parameters">set_optimization_parameters() (src.Lattice.Lattice method)</a>
 </li>
-      <li><a href="src.html#src.Cell.Cell.setDisplacementAtBoundaryNodes">setDisplacementAtBoundaryNodes() (src.Cell.Cell method)</a>
+      <li><a href="src.html#src.Lattice.Lattice.set_point_local_tag">set_point_local_tag() (src.Lattice.Lattice method)</a>
 </li>
-      <li><a href="src.html#src.Lattice.Lattice.setDisplacementWithVector">setDisplacementWithVector() (src.Lattice.Lattice method)</a>
-</li>
-      <li><a href="src.html#src.Lattice.Lattice.setFreeDOF">setFreeDOF() (src.Lattice.Lattice method)</a>
-</li>
-      <li><a href="src.html#src.Lattice.Lattice.setGlobalFreeDOFIndex">setGlobalFreeDOFIndex() (src.Lattice.Lattice method)</a>
-</li>
-      <li><a href="src.html#src.Lattice.Lattice.setLatticeDimensionsDict">setLatticeDimensionsDict() (src.Lattice.Lattice method)</a>
-</li>
-      <li><a href="src.html#src.Point.Point.setLocalTag">setLocalTag() (src.Point.Point method)</a>
-</li>
-      <li><a href="src.html#src.Lattice.Lattice.setObjectiveData">setObjectiveData() (src.Lattice.Lattice method)</a>
-</li>
-      <li><a href="src.html#src.Lattice.Lattice.setOptimizationParameters">setOptimizationParameters() (src.Lattice.Lattice method)</a>
-</li>
-      <li><a href="src.html#src.Lattice.Lattice.setPointLocalTag">setPointLocalTag() (src.Lattice.Lattice method)</a>
-</li>
-      <li><a href="src.html#src.Lattice.Lattice.setRandomDisplacementOnCell">setRandomDisplacementOnCell() (src.Lattice.Lattice method)</a>
-</li>
-      <li><a href="src.html#src.Point.Point.setReactionForce">setReactionForce() (src.Point.Point method)</a>
-</li>
-      <li><a href="src.html#src.Cell.Cell.setReactionForceOnEachNodes">setReactionForceOnEachNodes() (src.Cell.Cell method)</a>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="src.html#src.Lattice.Lattice.set_tag_classification">set_tag_classification() (src.Lattice.Lattice method)</a>
 </li>
       <li><a href="src.html#src.LatticePlotting.LatticePlotting.show">show() (src.LatticePlotting.LatticePlotting method)</a>
-</li>
-      <li><a href="src.html#src.Lattice.Lattice.simpleLattice">simpleLattice() (src.Lattice.Lattice class method)</a>
 </li>
       <li>
     src
 
       <ul>
         <li><a href="src.html#module-src">module</a>
-</li>
-      </ul></li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
-      <li>
-    src.Beam
-
-      <ul>
-        <li><a href="src.html#module-src.Beam">module</a>
-</li>
-      </ul></li>
-      <li>
-    src.Cell
-
-      <ul>
-        <li><a href="src.html#module-src.Cell">module</a>
-</li>
-      </ul></li>
-      <li>
-    src.Geometry_Lattice
-
-      <ul>
-        <li><a href="src.html#module-src.Geometry_Lattice">module</a>
-</li>
-      </ul></li>
-      <li>
-    src.gradientProperties
-
-      <ul>
-        <li><a href="src.html#module-src.gradientProperties">module</a>
 </li>
       </ul></li>
       <li>
@@ -619,51 +398,7 @@
         <li><a href="src.html#module-src.LatticePlotting">module</a>
 </li>
       </ul></li>
-      <li>
-    src.Materials
-
-      <ul>
-        <li><a href="src.html#module-src.Materials">module</a>
-</li>
-      </ul></li>
-      <li>
-    src.Point
-
-      <ul>
-        <li><a href="src.html#module-src.Point">module</a>
-</li>
-      </ul></li>
-      <li>
-    src.Timing
-
-      <ul>
-        <li><a href="src.html#module-src.Timing">module</a>
-</li>
-      </ul></li>
-      <li>
-    src.Utils
-
-      <ul>
-        <li><a href="src.html#module-src.Utils">module</a>
-</li>
-      </ul></li>
       <li><a href="src.html#src.LatticePlotting.LatticePlotting.subplotLatticeGeometries">subplotLatticeGeometries() (src.LatticePlotting.LatticePlotting method)</a>
-</li>
-      <li><a href="src.html#src.Timing.Timing.summary">summary() (src.Timing.Timing method)</a>
-</li>
-  </ul></td>
-</tr></table>
-
-<h2 id="T">T</h2>
-<table style="width: 100%" class="indextable genindextable"><tr>
-  <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="src.html#src.Point.Point.tagPoint">tagPoint() (src.Point.Point method)</a>
-</li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="src.html#src.Timing.Timing.timeit">timeit() (src.Timing.Timing method)</a>
-</li>
-      <li><a href="src.html#src.Timing.Timing">Timing (class in src.Timing)</a>
 </li>
   </ul></td>
 </tr></table>
@@ -681,11 +416,9 @@
   <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="src.html#src.LatticePlotting.LatticePlotting.visualCellZoneBlocker">visualCellZoneBlocker() (src.LatticePlotting.LatticePlotting method)</a>
 </li>
-      <li><a href="src.html#src.LatticePlotting.LatticePlotting.visualizeLattice3D">visualizeLattice3D() (src.LatticePlotting.LatticePlotting method)</a>
-</li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="src.html#src.Utils.visualizeLattice3D_interactive">visualizeLattice3D_interactive() (in module src.Utils)</a>
+      <li><a href="src.html#src.LatticePlotting.LatticePlotting.visualizeLattice3D">visualizeLattice3D() (src.LatticePlotting.LatticePlotting method)</a>
 </li>
       <li><a href="src.html#src.LatticePlotting.LatticePlotting.visualizeMesh">visualizeMesh() (src.LatticePlotting.LatticePlotting method)</a>
 </li>

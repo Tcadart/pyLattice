@@ -1,0 +1,21 @@
+{
+  "geometry": {
+    "cell_size": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+      },
+    "number_of_cells": {
+      "x": 10,
+      "y": 5,
+      "z": 5
+    },
+    "radii": [0.1, 0.1, 0.1],
+    "geom_types": ["BCC", "Hybrid1", "Hybrid4"]
+  },
+    "simulation_parameters": {
+    "enable" : true,
+    "material": "VeroClear",
+    "periodicity": true
+  }
+}

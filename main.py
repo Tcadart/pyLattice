@@ -1,6 +1,6 @@
-from Lattice import *
-from Utils import *
-from LatticePlotting import *
+from lattice import *
+from utils import *
+from plotting_lattice import *
 from Mesh import *
 from preset_lattice.settings import *
 
@@ -23,8 +23,8 @@ lattice = Lattice(cell_size_X, cell_size_Y, cell_size_Z, number_cell_X, number_c
 
 # print(lattice.getRelativeDensity())
 # vizualizer.saveJSONToGrasshopper(lattice, "Beam3PointFlexion", multipleParts=1)
-vizualizer.visualizeLattice3D(lattice.cells, lattice.lattice_dimension_dict, "radii", plotNodeIndex=False,
-                              plotting=False)
+vizualizer.visualize_lattice_3D(lattice.cells, lattice.lattice_dimension_dict, "radii", plotNodeIndex=False,
+                                plotting=False)
 
 # lattice.generateMeshLattice(15, cutMeshAtBoundary=True, remeshLattice=False)
 # lattice.cutMeshLatticeAtBoundary()

@@ -7,7 +7,7 @@ class MatProperties:
     A class to represent the properties of a material loaded from a file.
     """
 
-    MATERIALS_DIR = "src/Materials_data/"  # Directory containing material files
+    MATERIALS_DIR = "src/materials/"  # Directory containing material files
 
     def __init__(self, material_file):
         """
@@ -22,7 +22,7 @@ class MatProperties:
         """
         Loads material properties from a JSON file.
 
-        :return: Material name, density, elastic properties, and plastic properties
+        :return: Material name_lattice, density, elastic properties, and plastic properties
         """
         if not os.path.exists(self.file_path):
             raise FileNotFoundError(f"Material file not found: {self.file_path}")
@@ -31,7 +31,7 @@ class MatProperties:
             data = json.load(file)
 
         return (
-            data["name"],
+            data["name_lattice"],
             data["density"],
             data["elastic"],
             data["plastic"]

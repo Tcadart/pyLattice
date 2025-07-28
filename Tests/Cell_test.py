@@ -16,18 +16,18 @@
 #     initial_size = [1.0, 1.0, 1.0]
 #     start_pos = [0.0, 0.0, 0.0]
 #     lattice_type = [0]
-#     radius = [0.05]
+#     radii = [0.05]
 #     grad_radius = [[1.0], [1.0], [1.0]]
 #     grad_dim = [[1.0], [1.0], [1.0]]
 #     grad_mat = [[0]]
-#     return Cell(pos, initial_size, start_pos, lattice_type, radius, grad_radius, grad_dim, grad_mat)
+#     return Cell(pos, initial_size, start_pos, lattice_type, radii, grad_radius, grad_dim, grad_mat)
 #
 #
 # def test_cell_initialization(basic_cell):
-#     assert basic_cell.posCell == [0, 0, 0]
-#     assert basic_cell.coordinateCell == [0.0, 0.0, 0.0]
+#     assert basic_cell.pos_cell == [0, 0, 0]
+#     assert basic_cell.coordinate_cell == [0.0, 0.0, 0.0]
 #     assert isinstance(basic_cell.beams, list)
-#     assert basic_cell.cellSize is not None
+#     assert basic_cell.cell_size is not None
 #
 # #
 # # def test_get_cell_volume(basic_cell):
@@ -48,7 +48,7 @@
 # #
 # # def test_cell_center(basic_cell):
 # #     expected_center = [0.5, 0.5, 0.5]
-# #     assert all(np.isclose(a, b) for a, b in zip(basic_cell.centerPoint, expected_center))
+# #     assert all(np.isclose(a, b) for a, b in zip(basic_cell.center_point, expected_center))
 # #
 # #
 # # def test_get_cell_corner_coordinates(basic_cell):

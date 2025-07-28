@@ -27,16 +27,16 @@ def _validate_inputs(cell_size_x, cell_size_y, cell_size_z,
     assert isinstance(num_cells_y, int) and num_cells_y > 0, "num_cells_y must be a positive integer"
     assert isinstance(num_cells_z, int) and num_cells_z > 0, "num_cells_z must be a positive integer"
 
-    # Check lattice type
+    # Check lattice type_beam
     assert isinstance(Lattice_Type, list), "Lattice_Type must be a list"
-    assert all(isinstance(lt, int) for lt in Lattice_Type), "All elements of Lattice_Type must be integers"
+    assert all(isinstance(lt, str) for lt in Lattice_Type), "All elements of Lattice_Type must be strings"
 
-    # Check radius
+    # Check radii
     assert isinstance(Radius, list), "radii must be a list"
-    assert all(isinstance(r, float) for r in Radius), "All radius values must be floats"
-    assert len(Radius) == len(Lattice_Type), "The number of radius must be equal to the number of lattice types"
+    assert all(isinstance(r, float) for r in Radius), "All radii values must be floats"
+    assert len(Radius) == len(Lattice_Type), "The number of radii must be equal to the number of lattice types"
 
-    # Check material name
+    # Check material name_lattice
     assert isinstance(materialName, str), "material_name must be a string"
 
     # Check gradient properties
@@ -62,18 +62,18 @@ def _validate_inputs(cell_size_x, cell_size_y, cell_size_z,
                 isinstance(x, float) for x in erasedPart), "eraser_blocks must be a list of 6 floats"
 
 
-def functionPenalizationLzone(radiusAngleData: Tuple[float, float]) -> float:
+def function_penalization_Lzone(radiusAngleData: Tuple[float, float]) -> float:
     """
-    Calculate the penalization length based on radius and angle data.
+    Calculate the penalization length based on radii and angle data.
 
     Args:
-        radiusAngleData (Tuple[float, float]): (radius, angle).
+        radiusAngleData (Tuple[float, float]): (radii, angle).
 
     Returns:
         float: Length of the penalization zone.
     """
     if radiusAngleData is None or len(radiusAngleData) != 2:
-        raise ValueError("radiusAngleData must be a tuple of (radius, angle).")
+        raise ValueError("radiusAngleData must be a tuple of (radii, angle).")
     radius, angle = radiusAngleData
     # Case beam quasi-aligned, avoid division by zero
     if angle > 170:
@@ -81,7 +81,7 @@ def functionPenalizationLzone(radiusAngleData: Tuple[float, float]) -> float:
     return radius / math.tan(math.radians(angle) / 2)
 
 
-def saveLatticeObject(lattice, file_name: str = "LatticeObject") -> None:
+def save_lattice_object(lattice, file_name: str = "LatticeObject") -> None:
     """
     Save the lattice object to a file.
 
@@ -104,7 +104,7 @@ def saveLatticeObject(lattice, file_name: str = "LatticeObject") -> None:
     print(f"Lattice saved successfully to {file_path}")
 
 
-def _prepareLatticePlotData(beam, deformedForm: bool = False):
+def _prepare_lattice_plot_data(beam, deformedForm: bool = False):
     """Prepare lines and node positions for lattice plotting."""
     beamDraw = set()
     lines = []
@@ -112,9 +112,9 @@ def _prepareLatticePlotData(beam, deformedForm: bool = False):
     nodes = set()
 
     if beam.radius != 0.0 and beam not in beamDraw:
-        node1 = beam.point1.getDeformedPos() if deformedForm else (
+        node1 = beam.point1.deformed_coordinates if deformedForm else (
             beam.point1.x, beam.point1.y, beam.point1.z)
-        node2 = beam.point2.getDeformedPos() if deformedForm else (
+        node2 = beam.point2.deformed_coordinates if deformedForm else (
             beam.point2.x, beam.point2.y, beam.point2.z)
         lines.append([node1, node2])
         nodes.update([node1, node2])
@@ -124,24 +124,24 @@ def _prepareLatticePlotData(beam, deformedForm: bool = False):
     return lines, nodes, index
 
 
-def _getBeamColor(beam, color_palette, beamColor, idxColor, cells, nbRadiusBins):
+def _get_beam_color(beam, color_palette, beamColor, idxColor, cells, nbRadiusBins):
     # Assign colors based on the selected scheme
     if beamColor == "Material":
         colorBeam = color_palette[beam.material % len(color_palette)]
     elif beamColor == "Type":
-        colorBeam = color_palette[beam.type % len(color_palette)]
+        colorBeam = color_palette[beam.type_beam % len(color_palette)]
     elif beamColor == "radii":
         if beam.radius not in idxColor:
             idxColor.append(beam.radius)
         colorBeam = color_palette[idxColor.index(beam.radius) % len(color_palette)]
     elif beamColor == "RadiusBin":
-        dimRadius = len(cells[0].radius)
+        dimRadius = len(cells[0].radii)
         # Ensure radii are extracted properly depending on the dimension
         if not idxColor:
             all_radii = sorted({
-                b.radius[dimRadius] if hasattr(b.radius, '__len__') else b.radius
+                b.radii[dimRadius] if hasattr(b.radii, '__len__') else b.radii
                 for c in cells for b in c.beams if
-                (b.radius[dimRadius] if hasattr(b.radius, '__len__') else b.radius) > 0
+                (b.radii[dimRadius] if hasattr(b.radii, '__len__') else b.radii) > 0
             })
             if not all_radii:
                 idxColor = [0.0]
@@ -150,7 +150,7 @@ def _getBeamColor(beam, color_palette, beamColor, idxColor, cells, nbRadiusBins)
                 bin_edges = np.linspace(min_r, max_r, nbRadiusBins + 1)
                 idxColor = bin_edges
 
-        # Get the beam radius at the specified dimension
+        # Get the beam radii at the specified dimension
         radius_value = beam.radius[dimRadius] if hasattr(beam.radius,
                                                          '__len__') else beam.radius
         bin_idx = np.digitize(radius_value, idxColor, right=True) - 1
@@ -160,8 +160,8 @@ def _getBeamColor(beam, color_palette, beamColor, idxColor, cells, nbRadiusBins)
     return colorBeam, idxColor
 
 
-def visualizeLattice3D_interactive(lattice, beamColor: str = "Material", voxelViz: bool = False,
-                                   deformedForm: bool = False, plotCellIndex: bool = False) -> "go.Figure":
+def visualize_lattice_3D_interactive(lattice, beamColor: str = "Material", voxelViz: bool = False,
+                                     deformedForm: bool = False, plotCellIndex: bool = False) -> "go.Figure":
     """
     Visualizes the lattice in 3D using Plotly.
 
@@ -169,7 +169,7 @@ def visualizeLattice3D_interactive(lattice, beamColor: str = "Material", voxelVi
     -----------
     beamColor: string (default: "Material")
         "Material" -> color by material
-        "Type" -> color by type
+        "Type" -> color by type_beam
     voxelViz: boolean (default: False)
         True -> voxel visualization
         False -> beam visualization
@@ -198,8 +198,8 @@ def visualizeLattice3D_interactive(lattice, beamColor: str = "Material", voxelVi
             for beam in cell.beams:
                 if beam not in beamDraw:
                     if deformedForm:
-                        node1 = beam.point1.getDeformedPos()
-                        node2 = beam.point2.getDeformedPos()
+                        node1 = beam.point1.deformed_coordinates
+                        node2 = beam.point2.deformed_coordinates
                     else:
                         node1 = (beam.point1.x, beam.point1.y, beam.point1.z)
                         node2 = (beam.point2.x, beam.point2.y, beam.point2.z)
@@ -213,7 +213,7 @@ def visualizeLattice3D_interactive(lattice, beamColor: str = "Material", voxelVi
                     if beamColor == "Material":
                         colorBeam = color_list[beam.material % len(color_list)]
                     elif beamColor == "Type":
-                        colorBeam = color_list[beam.type % len(color_list)]
+                        colorBeam = color_list[beam.type_beam % len(color_list)]
                     else:
                         colorBeam = 'grey'
 
@@ -230,7 +230,7 @@ def visualizeLattice3D_interactive(lattice, beamColor: str = "Material", voxelVi
                         node_colors.append('black')
 
             if plotCellIndex:
-                cell_center = cell.centerPoint
+                cell_center = cell.center_point
                 fig.add_trace(go.Scatter3d(
                     x=[cell_center[0]],
                     y=[cell_center[1]],
@@ -268,8 +268,8 @@ def visualizeLattice3D_interactive(lattice, beamColor: str = "Material", voxelVi
     else:
         # Vizualize the lattice as a voxel grid
         for cell in lattice.cells:
-            x, y, z = cell.coordinateCell
-            dx, dy, dz = cell.cellSize
+            x, y, z = cell.coordinate_cell
+            dx, dy, dz = cell.cell_size
 
             if beamColor == "Material":
                 colorCell = color_list[cell.beams[0].material % len(color_list)]
@@ -289,8 +289,8 @@ def visualizeLattice3D_interactive(lattice, beamColor: str = "Material", voxelVi
             ))
 
     # Configure the layout
-    limMin = min(lattice.xMin, lattice.yMin, lattice.zMin)
-    limMax = max(lattice.xMax, lattice.yMax, lattice.zMax)
+    limMin = min(lattice.x_min, lattice.y_min, lattice.z_min)
+    limMax = max(lattice.x_max, lattice.y_max, lattice.z_max)
     fig.update_layout(
         scene=dict(
             xaxis=dict(title='X', range=[limMin, limMax], backgroundcolor='white', showgrid=True, zeroline=True),
@@ -305,7 +305,7 @@ def visualizeLattice3D_interactive(lattice, beamColor: str = "Material", voxelVi
     return fig  # Return the figure
 
 
-def saveJSONToGrasshopper(lattice, nameLattice: str = "LatticeObject", multipleParts: int = 1) -> None:
+def save_JSON_to_Grasshopper(lattice, nameLattice: str = "LatticeObject", multipleParts: int = 1) -> None:
     """
     Save the current lattice object to JSON files for Grasshopper compatibility, separating by cells.
 
@@ -351,14 +351,14 @@ def saveJSONToGrasshopper(lattice, nameLattice: str = "LatticeObject", multipleP
             "nodesX": partNodesX,
             "nodesY": partNodesY,
             "nodesZ": partNodesZ,
-            "radius": partRadius,
-            "maxX": lattice.xMax,
-            "minX": lattice.xMin,
-            "maxY": lattice.yMax,
-            "minY": lattice.yMin,
-            "maxZ": lattice.zMax,
-            "minZ": lattice.zMin,
-            "relativeDensity": lattice.getRelativeDensity()
+            "radii": partRadius,
+            "maxX": lattice.x_max,
+            "minX": lattice.x_min,
+            "maxY": lattice.y_max,
+            "minY": lattice.y_min,
+            "maxZ": lattice.z_max,
+            "minZ": lattice.z_min,
+            "relativeDensity": lattice.get_relative_density()
         }
 
         with open(file_pathJSON, 'w') as f:
@@ -367,30 +367,7 @@ def saveJSONToGrasshopper(lattice, nameLattice: str = "LatticeObject", multipleP
         print(f"Saved lattice part {partIdx + 1} to {file_pathJSON}")
 
 
-def saveLatticeObject(lattice, file_name: str = "LatticeObject") -> None:
-    """
-    Save the lattice object to a file.
-
-    Parameters:
-    -----------
-    file_name: str
-        Name of the file to save (with or without the '.pkl' extension).
-    """
-    folder = "Saved_Lattice"
-    os.makedirs(folder, exist_ok=True)
-
-    if not file_name.endswith(".pkl"):
-        file_name += ".pkl"
-
-    file_path = os.path.join(folder, file_name)
-
-    with open(file_path, "wb") as file:
-        pickle.dump(lattice, file)
-
-    print(f"Lattice saved successfully to {file_path}")
-
-
-def saveMeshLattice(outputPath: str, meshObject: trimesh.Trimesh = None):
+def save_mesh_lattice(outputPath: str, meshObject: trimesh.Trimesh = None):
     """
     Save the mesh to a file.
 

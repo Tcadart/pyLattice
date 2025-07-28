@@ -5,8 +5,8 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../")))
 
 import pytest
 
-from src.Point import Point
-from src.Beam import Beam
+from src.point import Point
+from src.beam import Beam
 
 
 def test_beam_length():

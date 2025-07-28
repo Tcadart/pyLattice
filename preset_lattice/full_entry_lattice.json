@@ -14,7 +14,7 @@
       0.1
     ],
     "geom_types": [
-      6
+      "OctahedronZ"
     ]
   },
   "gradient": {

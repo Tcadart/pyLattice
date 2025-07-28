@@ -22,6 +22,7 @@ release = '1.0'
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration
 
 extensions = [
+    'myst_parser',
     'sphinx.ext.autodoc',
     'sphinx.ext.napoleon',      # support Google & NumPy docstring
     'sphinx.ext.viewcode',      # ajoute lien vers code source

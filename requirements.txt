@@ -7,3 +7,7 @@ trimesh~=4.6.3
 colorama~=0.4.6
 joblib~=1.4.2
 scikit-learn~=1.4.2
+sympy~=1.12
+gmsh~=4.14.0
+pytest~=8.4.1
+lattice~=0.1.0

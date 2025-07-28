@@ -43,17 +43,18 @@ The structures are defined by cells, beams, and nodes. The code supports various
 
 ### Basic Lattice Generation
 To generate a simple lattice structure:
+
 ```python
-from Lattice import Lattice
+from lattice import Lattice
 
 lattice = Lattice.simpleLattice(
-    cell_size_x=1.0, 
-    cell_size_y=1.0, 
-    cell_size_z=1.0, 
-    num_cells_x=5, 
-    num_cells_y=5, 
-    num_cells_z=5, 
-    Lattice_Type=0, 
+    cell_size_x=1.0,
+    cell_size_y=1.0,
+    cell_size_z=1.0,
+    num_cells_x=5,
+    num_cells_y=5,
+    num_cells_z=5,
+    Lattice_Type=0,
     Radius=0.1
 )
 ```
@@ -83,7 +84,7 @@ lattice = Lattice(
 To visualize the generated lattice structure in 3D:
 
 ```python
-lattice.visualizeLattice3D()
+lattice.visualize_lattice_3D()
 ```
 
 ### Simulation Preparation

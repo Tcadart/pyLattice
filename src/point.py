@@ -1,0 +1,287 @@
+"""
+point.py
+"""
+import math
+import random
+from typing import List, Tuple, Optional
+
+
+class Point:
+    """
+    Represents a point in 3D space with additional attributes for simulation.
+    """
+
+    def __init__(self, x: float, y: float, z: float, node_uncertainty_SD: float = 0.0) -> None:
+        """
+        Initialize a Point object.
+
+        Args:
+            x (float): X-coordinate of the point.
+            y (float): Y-coordinate of the point.
+            z (float): Z-coordinate of the point.
+            node_uncertainty_SD (float, optional): Standard deviation for adding uncertainty to node coordinates.
+        """
+        # Validate input types and values
+        if not isinstance(x, (int, float)) or not isinstance(y, (int, float)) or not isinstance(z, (int, float)):
+            raise ValueError("Coordinates must be numeric (int or float).")
+        if not isinstance(node_uncertainty_SD, (int, float)):
+            raise ValueError("Node uncertainty standard deviation must be numeric (int or float).")
+        if node_uncertainty_SD < 0:
+            raise ValueError("Node uncertainty standard deviation cannot be negative.")
+
+        # Initialize coordinates with added uncertainty
+        self.x: float = float(x) + random.gauss(0, node_uncertainty_SD)
+        self.y: float = float(y) + random.gauss(0, node_uncertainty_SD)
+        self.z: float = float(z) + random.gauss(0, node_uncertainty_SD)
+        self.index: Optional[int] = None  # Global index of the point
+        self.tag: Optional[int] = None  # Global boundary tag
+        self.local_tag: List[int] = []  # Cell local boundary tag
+        self.index_boundary: Optional[int] = None  # Global index for boundary cell
+        self.displacement_vector: List[float] = [0.0] * 6  # Displacement vector of 6 DOF (Degrees of Freedom).
+        self.reaction_force_vector: List[float] = [0.0] * 6  # Reaction force vector of 6 DOF.
+        self.applied_force: List[float] = [0.0] * 6  # Applied force vector of 6 DOF.
+        self.fixed_DOF: List[bool] = [False] * 6  # Fixed DOF vector (False: free, True: fixed).
+        self.global_free_DOF_index: List[Optional[float]] = [None] * 6  # Global free DOF index.
+        self.node_mod: bool = False
+
+    def __eq__(self, other: object) -> bool:
+        return isinstance(other, Point) and self.x == other.x and self.y == other.y and self.z == other.z
+
+    def __hash__(self) -> int:
+        return hash((self.x, self.y, self.z))
+
+    def __sub__(self, other: 'Point') -> List[float]:
+        return [self.x - other.x, self.y - other.y, self.z - other.z]
+
+    def __repr__(self) -> str:
+        return f"Point({self.x}, {self.y}, {self.z}, Index:{self.index})"
+
+    @property
+    def coordinates(self) -> Tuple[float, float, float]:
+        """
+        Retrieve the current position of the point.
+
+        Returns:
+            Tuple[float, float, float]: (x, y, z) coordinates of the point.
+        """
+        return self.x, self.y, self.z
+
+    @property
+    def data(self) -> List[float]:
+        """
+        Retrieve point data for exporting.
+
+        Returns:
+            List[float]: [index, x, y, z] of the point.
+        """
+        return [self.index, self.x, self.y, self.z]
+
+    @property
+    def deformed_coordinates(self) -> Tuple[float, float, float]:
+        """
+        Retrieve the deformed position of the point.
+
+        Returns:
+            Tuple[float, float, float]: (x, y, z) coordinates including displacements.
+        """
+        return (self.x + self.displacement_vector[0],
+                self.y + self.displacement_vector[1],
+                self.z + self.displacement_vector[2])
+
+    def move_to(self, xNew: float, yNew: float, zNew: float) -> None:
+        """
+        Move the point to new coordinates.
+
+        Args:
+            xNew (float): New X-coordinate.
+            yNew (float): New Y-coordinate.
+            zNew (float): New Z-coordinate.
+        """
+        self.x, self.y, self.z = xNew, yNew, zNew
+
+    def tag_point(self, boundary_box_domain: list[float]) -> List[int]:
+        """
+        Generate standardized tags for the point based on its position.
+        Check : https://docs.fenicsproject.org/basix/v0.2.0/index.html for more informations
+
+        Parameters
+        ----------
+        boundary_box_domain : List[float]
+            Boundary box domain containing [x_min, x_max, y_min, y_max, z_min, z_max].
+
+        Returns
+        -------
+        List[int]
+            List of tags associated with the point.
+        """
+        if len(boundary_box_domain) != 6:
+            raise ValueError("Boundary box domain must contain 6 values.")
+        xMin, xMax, yMin, yMax, zMin, zMax = boundary_box_domain
+
+        tag: List[int] = []
+
+        def is_in(v, min_v, max_v):
+            """ Check if a value is strictly between min_v and max_v. """
+            return min_v < v < max_v
+
+        face_codes = {(self.x == xMin, is_in(self.y, yMin, yMax), is_in(self.z, zMin, zMax)): 12,
+                      (self.x == xMax, is_in(self.y, yMin, yMax), is_in(self.z, zMin, zMax)): 13,
+                      (is_in(self.x, xMin, xMax), self.y == yMin, is_in(self.z, zMin, zMax)): 11,
+                      (is_in(self.x, xMin, xMax), self.y == yMax, is_in(self.z, zMin, zMax)): 14,
+                      (is_in(self.x, xMin, xMax), is_in(self.y, yMin, yMax), self.z == zMin): 10,
+                      (is_in(self.x, xMin, xMax), is_in(self.y, yMin, yMax), self.z == zMax): 15}
+
+        edge_codes = {
+            (self.x == xMin, self.y == yMin, is_in(self.z, zMin, zMax)): 102,
+            (is_in(self.x, xMin, xMax), self.y == yMin, self.z == zMin): 100,
+            (self.x == xMax, self.y == yMin, is_in(self.z, zMin, zMax)): 104,
+            (is_in(self.x, xMin, xMax), self.y == yMin, self.z == zMax): 108,
+            (self.x == xMin, is_in(self.y, yMin, yMax), self.z == zMin): 101,
+            (self.x == xMax, is_in(self.y, yMin, yMax), self.z == zMin): 103,
+            (self.x == xMin, self.y == yMax, is_in(self.z, zMin, zMax)): 106,
+            (is_in(self.x, xMin, xMax), self.y == yMax, self.z == zMin): 105,
+            (self.x == xMax, self.y == yMax, is_in(self.z, zMin, zMax)): 107,
+            (is_in(self.x, xMin, xMax), self.y == yMax, self.z == zMax): 111,
+            (self.x == xMin, is_in(self.y, yMin, yMax), self.z == zMax): 109,
+            (self.x == xMax, is_in(self.y, yMin, yMax), self.z == zMax): 110,
+        }
+
+        corner_codes = {
+            (self.x == xMin, self.y == yMin, self.z == zMin): 1000,
+            (self.x == xMax, self.y == yMin, self.z == zMin): 1001,
+            (self.x == xMin, self.y == yMax, self.z == zMin): 1002,
+            (self.x == xMax, self.y == yMax, self.z == zMin): 1003,
+            (self.x == xMin, self.y == yMin, self.z == zMax): 1004,
+            (self.x == xMax, self.y == yMin, self.z == zMax): 1005,
+            (self.x == xMin, self.y == yMax, self.z == zMax): 1006,
+            (self.x == xMax, self.y == yMax, self.z == zMax): 1007,
+        }
+
+        for condition, code in face_codes.items():
+            if all(condition):
+                tag.append(code)
+
+        for condition, code in edge_codes.items():
+            if all(condition):
+                tag.append(code)
+
+        for condition, code in corner_codes.items():
+            if all(condition):
+                tag.append(code)
+
+        return tag
+
+    def initialize_reaction_force(self) -> None:
+        """
+        Reset the reaction force vector to zero.
+        """
+        self.reaction_force_vector = [0.0] * 6
+
+    def initialize_displacement(self) -> None:
+        """
+        Reset displacement values to zero for all DOF.
+        """
+        self.displacement_vector = [0.0] * 6
+
+    def set_applied_force(self, appliedForce: List[float], DOF: list[int]) -> None:
+        """
+        Assign applied force to the point.
+
+        Parameters
+        ----------
+        appliedForce : List[float]
+            Applied force values for each DOF.
+        DOF : list[int]
+            List of DOF to assign (0: x, 1: y, 2: z, 3: Rx, 4: Ry, 5: Rz).
+        """
+        if len(DOF) != len(appliedForce):
+            raise ValueError("Length of DOF and applied_force must be equal.")
+        for i in range(len(DOF)):
+            self.applied_force[DOF[i]] = appliedForce[i]
+
+    def set_reaction_force(self, reactionForce: List[float]) -> None:
+        """
+        Assign reaction force to the point.
+
+        Args:
+            reactionForce (List[float]): Reaction force values for each DOF.
+        """
+        if len(reactionForce) != 6:
+            raise ValueError("Reaction force must have exactly 6 values.")
+        for i in range(len(self.reaction_force_vector)):
+            self.reaction_force_vector[i] += reactionForce[i]
+
+    def fix_DOF(self, DOF: List[int]) -> None:
+        """
+        Fix specific degrees of freedom for the point.
+
+        Args:
+            DOF (List[int]): List of DOF to fix (0: x, 1: y, 2: z, 3: Rx, 4: Ry, 5: Rz).
+        """
+        for i in DOF:
+            self.fixed_DOF[i] = True
+
+    def calculate_point_energy(self) -> float:
+        """
+        Calculate the internal energy of the point.
+
+        Returns:
+            float: Internal energy based on displacement and reaction forces.
+        """
+        return sum([self.displacement_vector[i] * self.reaction_force_vector[i] for i in range(6)])
+
+    def set_local_tag(self, localTag: List[int]) -> None:
+        """
+        Assign local tags to the point.
+
+        Parameters
+        ----------
+        localTag : List[int]
+            Local tags to assign.
+        """
+        if not isinstance(localTag, list):
+            raise ValueError("Local tag must be a list.")
+        self.local_tag = localTag
+
+    def is_identical_to(self, other: 'Point') -> bool:
+        """
+        Check if this point is identical to another point.
+
+        Args:
+            other (Point): The other point to compare with.
+
+        Returns:
+            bool: True if the points are identical, False otherwise.
+        """
+        return self.x == other.x and self.y == other.y and self.z == other.z
+
+    def is_on_boundary(self, boundary_box_lattice) -> bool:
+        """
+        Get boolean that give information of boundary node
+
+        Parameters:
+        -----------
+        boundary_box_lattice: list[float]
+            Boundary box of the lattice containing [x_min, x_max, y_min, y_max, z_min, z_max].
+        Returns:
+        ----------
+        boolean: (True if node on boundary)
+        """
+        return (self.x == boundary_box_lattice[0] or
+                self.x == boundary_box_lattice[1] or
+                self.y == boundary_box_lattice[2] or
+                self.y == boundary_box_lattice[3] or
+                self.z == boundary_box_lattice[4] or
+                self.z == boundary_box_lattice[5])
+
+    def distance_to(self, other: 'Point') -> float:
+        """
+        Calculate the distance to another point.
+
+        Args:
+            other (Point): The other point.
+
+        Returns:
+            float: The Euclidean distance to the other point.
+        """
+        return math.sqrt((self.x - other.x) ** 2 + (self.y - other.y) ** 2 + (self.z - other.z) ** 2)

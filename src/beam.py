@@ -1,5 +1,5 @@
 """
-# Beam.py
+# beam.py
 """
 
 from typing import List, Tuple, Optional, cast
@@ -8,8 +8,8 @@ import math
 import numpy as np
 import trimesh
 
-from Point import Point
-from Utils import functionPenalizationLzone
+from point import Point
+from utils import function_penalization_Lzone
 
 
 class Beam(object):
@@ -17,32 +17,33 @@ class Beam(object):
     Class Beam represents a beam element in lattice structures.
     """
 
-    def __init__(self, point1: 'Point', point2: 'Point', Radius: float, Material: int, Type: int) -> None:
+    def __init__(self, point1: 'Point', point2: 'Point', radius: float, material: int, type_beam: int) -> None:
         """
         Initialize a Beam object representing a beam element.
 
         Args:
             point1 (Point): First endpoint of the beam.
             point2 (Point): Second endpoint of the beam.
-            Radius (float): radii of the beam.
-            Material (int): Material identifier of the beam.
-            Type (int): Type of the beam (0: normal, 1: modified, 2: boundary beam).
+            radius (float): radii of the beam.
+            material (int): Material identifier of the beam.
+            type_beam (int): Type of the beam (0: normal, 1: modified, 2: boundary beam).
         """
         self.point1: 'Point' = point1
         self.point2: 'Point' = point2
-        self.radius: float = Radius
-        self.material: int = Material
-        self.type: int = Type
+        self.radius: float = radius
+        self.material: int = material
+        self.type_beam: int = type_beam
         self.index: Optional[int] = None
-        self.angle1: Optional[Tuple[float, float]] = None  # Tuple of (radius, angle) for the first endpoint
-        self.angle2: Optional[Tuple[float, float]] = None  # Tuple of (radius, angle) for the second endpoint
-        self.length: float = self.getLength()
-        self.modBeam: bool = False
-        self.penalizationCoefficient: float = 1.5  # Fixed with previous optimization
-        self.initialRadius: Optional[float] = None
+        self.angle1: Optional[Tuple[float, float]] = None  # Tuple of (radii, angle) for the first endpoint
+        self.angle2: Optional[Tuple[float, float]] = None  # Tuple of (radii, angle) for the second endpoint
+        self.length: float = self.get_length()
+        self.volume: float = self.get_volume(sectionType="circular")
+        self.beam_mod: bool = False
+        self.penalization_coefficient: float = 1.5  # Fixed with previous optimization
+        self.initial_radius: Optional[float] = None
 
     def __repr__(self) -> str:
-        return f"Beam({self.point1}, {self.point2}, radii:{self.radius}, Type:{self.type}, Index:{self.index})"
+        return f"Beam({self.point1}, {self.point2}, radii:{self.radius}, Type:{self.type_beam}, Index:{self.index})"
 
     def __eq__(self, other: object) -> bool:
         return isinstance(other, Beam) and self.point1 == other.point1 and self.point2 == other.point2
@@ -58,9 +59,9 @@ class Beam(object):
         Returns:
             List[int]: [beam_index, point1_index, point2_index, beam_type].
         """
-        return [self.index, self.point1.index, self.point2.index, self.type]
+        return [self.index, self.point1.index, self.point2.index, self.type_beam]
 
-    def getLength(self) -> float:
+    def get_length(self) -> float:
         """
         Calculate the length of the beam.
 
@@ -72,7 +73,7 @@ class Beam(object):
         length = round(math.sqrt((x2 - x1) ** 2 + (y2 - y1) ** 2 + (z2 - z1) ** 2), 4)
         return length
 
-    def getVolume(self, sectionType: str = "circular") -> float:
+    def get_volume(self, sectionType: str = "circular") -> float:
         """
         Calculate the volume of the beam in case of a circular section.
 
@@ -82,7 +83,7 @@ class Beam(object):
             float: Volume of the beam.
         """
         if sectionType.lower() != "circular":
-            raise ValueError("Currently only circular section type is supported.")
+            raise ValueError("Currently only circular section type_beam is supported.")
         return math.pi * (self.radius ** 2) * self.length
 
     def get_angle_between_beams(self, other: 'Beam', periodicity: bool) -> float:
@@ -152,13 +153,13 @@ class Beam(object):
         angle_deg = math.degrees(angle_rad)
         return angle_deg
 
-    def getPointOnBeamFromDistance(self, distance: float, pointIndex: int) -> List[float]:
+    def get_point_on_beam_at_distance(self, distance: float, start_point: int) -> "Point":
         """
         Calculate the coordinates of a point on the beam at a specific distance from an endpoint.
 
         Args:
             distance (float): Distance from the specified endpoint.
-            pointIndex (int): Index of the endpoint (1 for point1, 2 for point2).
+            start_point (int): Index of the endpoint (1 for point1, 2 for point2).
 
         Returns:
             List[float]: Coordinates [x, y, z] of the calculated point.
@@ -166,20 +167,19 @@ class Beam(object):
         Raises:
             ValueError: If the point index is not 1 or 2.
         """
-        beam_length = self.getLength()
-        if pointIndex == 1:
+        if start_point == 1:
             start_point = self.point1
             end_point = self.point2
-        elif pointIndex == 2:
+        elif start_point == 2:
             start_point = self.point2
             end_point = self.point1
         else:
             raise ValueError("Point must be 1 or 2.")
 
         direction_ratios = [
-            (end_point.x - start_point.x) / beam_length,
-            (end_point.y - start_point.y) / beam_length,
-            (end_point.z - start_point.z) / beam_length,
+            (end_point.x - start_point.x) / self.length,
+            (end_point.y - start_point.y) / self.length,
+            (end_point.z - start_point.z) / self.length,
         ]
 
         factors = [dr * distance for dr in direction_ratios]
@@ -190,9 +190,11 @@ class Beam(object):
             start_point.z + factors[2]
         ]
 
+        point_mod = Point(*point_mod)
+
         return point_mod
 
-    def isPointOnBeam(self, node: 'Point') -> bool:
+    def is_point_on_beam(self, node: 'Point') -> bool:
         """
         Check if a given node lies on the beam.
 
@@ -221,7 +223,7 @@ class Beam(object):
         else:
             return False
 
-    def setAngle(self, AngleData: Tuple[float, float, float, float]) -> None:
+    def set_angle(self, AngleData: Tuple[float, float, float, float]) -> None:
         """
         Assign angle data to the beam.
 
@@ -233,26 +235,26 @@ class Beam(object):
         self.angle1 = AngleData[0:2]
         self.angle2 = AngleData[2:4]
 
-    def getLengthMod(self) -> Tuple[float, float]:
+    def get_length_mod(self) -> Tuple[float, float]:
         """
         Calculate the modification length for the penalization method.
 
         Returns:
             Tuple[float, float]: Length modifications for point1 and point2.
         """
-        L1 = functionPenalizationLzone(self.angle1)
-        L2 = functionPenalizationLzone(self.angle2)
+        L1 = function_penalization_Lzone(self.angle1)
+        L2 = function_penalization_Lzone(self.angle2)
         return L1, L2
 
-    def setBeamMod(self):
+    def set_beam_mod(self):
         """
         Set the beam as modified.
         """
-        self.modBeam = True
-        self.initialRadius = self.radius
-        self.radius *= self.penalizationCoefficient
+        self.beam_mod = True
+        self.initial_radius = self.radius
+        self.radius *= self.penalization_coefficient
 
-    def findIntersectionWithMesh(self, meshObject: 'Mesh') -> Tuple[float, float, float] | None:
+    def find_intersection_with_mesh(self, meshObject: 'Mesh') -> Tuple[float, float, float] | None:
         """
         Find the intersection point of the beam with a mesh.
         Returns the first intersection point if it exists, None otherwise.
@@ -288,10 +290,10 @@ class Beam(object):
         """
         Check if this beam is identical to another beam.
         """
-        lengthtest = math.isclose(self.getLength(), other.getLength(), rel_tol=1e-5)
+        lengthtest = math.isclose(self.length, other.length, rel_tol=1e-5)
         radiustest = math.isclose(self.radius, other.radius, rel_tol=1e-5)
         materialtest = self.material == other.material
-        typetest = self.type == other.type
+        typetest = self.type_beam == other.type_beam
         return (
                 lengthtest
                 and radiustest
