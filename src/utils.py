@@ -376,12 +376,29 @@ def save_mesh_lattice(outputPath: str, meshObject: trimesh.Trimesh = None):
     outputPath : str
         Path where the mesh should be saved.
     meshObject : mesh, optional
-        Mesh object to save. If None, uses the default mesh object.
+        mesh_file object to save. If None, uses the default mesh object.
     """
+    #TODO : PATH
     if not outputPath.endswith('.stl'):
         outputPath += '.stl'
-    if not outputPath.startswith('Mesh/'):
-        outputPath = 'Mesh/' + outputPath
+    if not outputPath.startswith('mesh_file/'):
+        outputPath = 'mesh_file/' + outputPath
 
     meshObject.export(outputPath)
-    print(f"Mesh Lattice saved to {outputPath}")
+    print(f"mesh_file Lattice saved to {outputPath}")
+
+
+def plot_coordinate_system(ax):
+    """
+    Plot a 3D coordinate system with arrows representing the X, Y, and Z axes.
+    """
+    origin = [0, 0, 0]
+    axis_length = 1
+
+    ax.quiver(*origin, axis_length, 0, 0, color='r', arrow_length_ratio=0.1)
+    ax.quiver(*origin, 0, axis_length, 0, color='g', arrow_length_ratio=0.1)
+    ax.quiver(*origin, 0, 0, axis_length, color='b', arrow_length_ratio=0.1)
+
+    ax.text(origin[0] + axis_length, origin[1], origin[2], "X", color='r')
+    ax.text(origin[0], origin[1] + axis_length, origin[2], "Y", color='g')
+    ax.text(origin[0], origin[1], origin[2] + axis_length, "Z", color='b')

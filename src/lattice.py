@@ -9,16 +9,10 @@ including the definition of cell dimensions, material properties, and gradient s
 Created in 2023 by Cadart Thomas, University of technology Belfort Montbéliard.
 """
 import os
-import sys
-import json
-import math
-import os
 import pickle
-import random
 from statistics import mean
 
 import joblib
-import numpy as np
 from scipy.sparse.linalg import splu
 import gmsh
 
@@ -26,6 +20,7 @@ from cell import *
 from timing import *
 from utils import _validate_inputs
 from gradient_properties import get_grad_settings, grad_material_setting, grad_settings_constant
+from mesh_file.mesh_trimmer import MeshTrimmer
 
 timing = Timing()
 
@@ -40,8 +35,8 @@ class Lattice(object):
                  geom_types: list[str], radii: list[float], material_name: str = "",
                  grad_radius_property: list = None, grad_dim_property: list = None, grad_mat_property: list = None,
                  uncertainty_node: float = 0.0, enable_periodicity: bool = False, eraser_blocks: list = None,
-                 mesh_object: "mesh" = None, symmetry_lattice: dict = None,
-                 enable_simulation_properties: bool = False, verbose: bool = False) -> None:
+                 mesh_trimmer: "MeshTrimmer" = None, symmetry_lattice: dict = None,
+                 enable_simulation_properties: bool = False, verbose: int = 0) -> None:
         """
         Constructor general for the Lattice class.
 
@@ -83,14 +78,14 @@ class Lattice(object):
             Applying enable_periodicity on the outer box of the lattice structure to calculate penalization method
         eraser_blocks: list of float in dim 6
             (xStart, yStart, zStart, xDim, yDim, zDim) of the erased region
-        mesh_object: mesh
-            Mesh object to check if the lattice structure is inside the mesh
+        mesh_trimmer: class object MeshTrimmer
+            Class to trim the lattice structure with a mesh.
         symmetry_lattice: dictionary {"sym_plane": string, "sym_point": tuple}
             Data to apply symmetry on the lattice structure
         enable_simulation_properties: boolean
             If True, the lattice will generate properties necessary for simulation and optimization
             And joint beam penalization method will be applied
-        verbose: boolean
+        _verbose: boolean
             If True, print statistics and information during the lattice generation process
         """
         _validate_inputs(cell_size_x, cell_size_y, cell_size_z, num_cells_x, num_cells_y, num_cells_z,
@@ -137,8 +132,8 @@ class Lattice(object):
         self.uncertainty_node = uncertainty_node
         self.enable_periodicity = enable_periodicity  # Warning not working for graded structures
         self.eraser_blocks = eraser_blocks
-        self.mesh_object = mesh_object
-        self.verbose = verbose
+        self.mesh_trimmer = mesh_trimmer
+        self._verbose: int = verbose
 
         self.cells = []
 
@@ -182,11 +177,12 @@ class Lattice(object):
             # Optimization necessary
             self.load_relative_density_model()
 
-        if self.verbose:
+        if self._verbose > 0:
             self.print_statistics_lattice()
+            timing.summary()
 
     @classmethod
-    def from_json(cls, file_path: 'Path') -> "Lattice":
+    def from_json(cls, name_file: str, mesh_trimmer: "MeshTrimmer" = None) -> "Lattice":
         """
         Load a lattice object from a JSON file.
 
@@ -200,7 +196,12 @@ class Lattice(object):
         Lattice
             The loaded lattice object.
         """
-        with open(file_path, 'r') as file:
+        project_root = Path(__file__).resolve().parent.parent
+        json_path = project_root / "preset_lattice" / name_file
+        if json_path.suffix != ".json":
+            json_path = json_path.with_suffix('.json')
+
+        with open(json_path, 'r') as file:
             data = json.load(file)
 
         # Geometry
@@ -299,7 +300,8 @@ class Lattice(object):
                    enable_periodicity=periodicity,
                    eraser_blocks=erased_blocks,
                    symmetry_lattice=symmetry_lattice,
-                   enable_simulation_properties=enable_simulation_properties)
+                   enable_simulation_properties=enable_simulation_properties,
+                   mesh_trimmer=mesh_trimmer)
 
     @classmethod
     def pickle_lattice(cls, file_name: str = "LatticeObject", folder: str = "Saved_Lattice") -> "Lattice":
@@ -375,10 +377,11 @@ class Lattice(object):
                     if not self.is_not_in_erased_region(start_cell_pos):
                         radius = self.radii
                         new_cell = Cell(pos_cell, initial_cell_size, start_cell_pos, self.geom_types, radius,
-                                        self.grad_radius, self.grad_dim, self.grad_mat, self.uncertainty_node)
-                        if self.mesh_object is not None and self.is_cell_in_mesh(new_cell):
+                                        self.grad_radius, self.grad_dim, self.grad_mat, self.uncertainty_node,
+                                        self._verbose)
+                        if self.mesh_trimmer is not None and self.mesh_trimmer.is_cell_in_mesh(new_cell):
                             self.cells.append(new_cell)
-                        elif self.mesh_object is None:
+                        elif self.mesh_trimmer is None:
                             self.cells.append(new_cell)
                         else:
                             del new_cell
@@ -441,24 +444,6 @@ class Lattice(object):
                     return True
 
         return False  # cell removed
-
-    def is_point_in_mesh(self, point):
-        """
-        Check if the point is inside the mesh.
-        """
-        if self.mesh_object is not None:
-            return self.mesh_object.is_inside_mesh(point)
-
-    def is_cell_in_mesh(self, cell) -> bool:
-        """
-        Check if the cell is in the mesh.
-        """
-        cellBoundaryPoint = cell.corner_coordinates
-        for point in cellBoundaryPoint:
-            self.is_point_in_mesh(point)
-            if self.is_point_in_mesh(point):
-                return True
-        return False
 
     @timing.timeit
     def define_beam_node_index(self) -> None:
@@ -1202,7 +1187,7 @@ class Lattice(object):
             if self.kriging_model_relative_density is not None:
                 cellRelDens.append(cell.get_relative_density_kriging(self.kriging_model_relative_density, geom_scheme))
             else:
-                cellRelDens.append(cell.getRelativeDensityCell())
+                cellRelDens.append(cell.relative_density)
         meanRelDens = mean(cellRelDens)
         return meanRelDens
 
@@ -1219,7 +1204,7 @@ class Lattice(object):
         if len(self.relative_density_poly) == 0:
             fictiveCell = Cell([0, 0, 0], [self.cell_size_x, self.cell_size_y, self.cell_size_z], [0, 0, 0],
                                self.geom_types, self.radii, self.grad_radius, self.grad_dim, self.grad_mat,
-                               self.uncertainty_node)
+                               self.uncertainty_node, self._verbose)
             domainRadius = np.linspace(0.01, 0.1, 10)
             for idxRad in range(len(self.radii)):
                 radius = np.zeros(len(self.radii))
@@ -1378,7 +1363,7 @@ class Lattice(object):
         return numNodes
 
     def apply_boundary_conditions_surface(self, surfaceNames: list[str], valueDisplacement: list[float],
-                                         DOF: list[int]) -> None:
+                                          DOF: list[int]) -> None:
         """
         Apply boundary conditions to the lattice
 
@@ -1394,7 +1379,7 @@ class Lattice(object):
         self.apply_constraints_nodes(surfaceNames, valueDisplacement, DOF, "Displacement")
 
     def apply_constraints_nodes(self, surfaceNames: list[str], value: list[float], DOF: list[int],
-                                   type: str = "Displacement", surfaceNamePoint: list[str] = None) -> None:
+                                type: str = "Displacement", surfaceNamePoint: list[str] = None) -> None:
         """
         Apply boundary conditions to the lattice
 
@@ -1512,7 +1497,7 @@ class Lattice(object):
         return pointSet
 
     def apply_boundary_conditions_node(self, nodeList: list[int], valueDisplacement: list[float],
-                                      DOF: list[int]) -> None:
+                                       DOF: list[int]) -> None:
         """
         Apply boundary conditions to the lattice
 
@@ -1980,7 +1965,7 @@ class Lattice(object):
             reaction_force_array = np.array(list(reactionForce.values())).flatten()
             displacement = np.array(self.get_global_displacement(OnlyImposed=True)[0])
             objective = 0.5 * np.dot(reaction_force_array, displacement)
-            if self.verbose > 2:
+            if self._verbose > 2:
                 np.set_printoptions(threshold=np.inf)
                 print("Reaction force: ", reaction_force_array[displacement != 0])
                 print("Displacement: ", displacement[displacement != 0])
@@ -2136,60 +2121,14 @@ class Lattice(object):
                     radMax = max(radMax, beam.radius)
         return radMax, radMin
 
-    def add_mesh_object(self, meshObject):
+    @timing.timeit
+    def cut_beam_with_mesh_trimmer(self):
         """
-        Add a mesh object to the lattice
-
-        Parameters:
-        -----------
-        mesh_object: MeshObject
-            Mesh object to add to the lattice
+        Cut beams in the lattice using the mesh trimmer.
         """
-        #TODO : Changer gestion des mesh
-        self.mesh_object = meshObject
-
-    def cut_beams_at_mesh_intersection(self):
-        """
-        Cut beams at the intersection with the mesh
-        """
-        if self.mesh_object is None:
+        if self.mesh_trimmer is None:
             raise ValueError("A mesh object must be assigned to the lattice before cutting beams.")
-
-        new_beams = []
-        beams_to_remove = []
-
-        for cell in self.cells:
-            for beam in cell.beams:
-                if not beam.beam_mod:
-                    p1_inside = self.mesh_object.is_inside_mesh([beam.point1.x, beam.point1.y, beam.point1.z])
-                    p2_inside = self.mesh_object.is_inside_mesh([beam.point2.x, beam.point2.y, beam.point2.z])
-
-                    if not p1_inside and not p2_inside:
-                        # The Beam is outside the mesh, remove it
-                        beams_to_remove.append(beam)
-                    elif not p1_inside or not p2_inside:
-                        # The Beam intersects the mesh, cut it
-                        intersection_point = beam.find_intersection_with_mesh(self.mesh_object)
-                        if intersection_point is not None:
-                            new_point = Point(intersection_point[0], intersection_point[1], intersection_point[2])
-
-                            if not p1_inside:
-                                new_beam = Beam(new_point, beam.point2, beam.radius, beam.material, beam.type_beam)
-                            else:
-                                new_beam = Beam(beam.point1, new_point, beam.radius, beam.material, beam.type_beam)
-
-                            new_beams.append(new_beam)
-                            beams_to_remove.append(beam)
-                else:
-                    raise ValueError("Cutting is only available for non modified lattice.")
-            # Apply changes
-            for beam in beams_to_remove:
-                cell.remove_beam(beam)
-            for beam in new_beams:
-                cell.add_beam(beam)
-
-            new_beams = []
-            beams_to_remove = []
+        self.mesh_trimmer.cut_beams_at_mesh_intersection(self.cells)
 
     @timing.timeit
     def apply_symmetry(self, symmetry_plane: str, reference_point: tuple = (0, 0, 0)) -> None:
@@ -2258,7 +2197,7 @@ class Lattice(object):
 
             # Create a new mirrored cell
             new_cell = Cell(new_pos, cell.cell_size, new_start_pos, cell.geom_types, cell.radii, cell.grad_radius,
-                            cell.grad_dim, cell.grad_mat, cell.uncertainty_node)
+                            cell.grad_dim, cell.grad_mat, cell.uncertainty_node, self._verbose)
 
             new_cell.beams = mirrored_beams
             new_cells.append(new_cell)
@@ -2337,8 +2276,9 @@ class Lattice(object):
         self.objectif_data = objectifData
 
     @timing.timeit
-    def generate_mesh_lattice_Gmsh(self, cutMeshAtBoundary: bool = False, meshSize: float = 0.05, runGmshApp: bool =
-    False, saveMesh: bool = True, nameMesh: str = "Lattice", saveSTL: bool = False):
+    def generate_mesh_lattice_Gmsh(self, cutMeshAtBoundary: bool = False, meshSize: float = 0.05,
+                                   runGmshApp: bool = False, saveMesh: bool = False, nameMesh: str = "Lattice",
+                                   saveSTL: bool = True):
         """
         Generate a mesh representation of the lattice structure using GMSH.
 
@@ -2356,9 +2296,10 @@ class Lattice(object):
             Name of the mesh file to save.
         """
         if self.enable_simulation_properties == 1:
-            raise ValueError("Mesh generation is not available for the current simulation method.")
+            raise ValueError("mesh_file generation is not available for the current simulation method.")
 
         gmsh.initialize()
+        gmsh.option.setNumber("General.Verbosity", 1)
         gmsh.model.add(nameMesh)
         dim = 3  # Dimension of the mesh
 
@@ -2395,14 +2336,16 @@ class Lattice(object):
         if runGmshApp:
             gmsh.fltk.run()
 
-        saving_path = "Mesh/"
+        project_root = Path(__file__).resolve().parent
         if saveMesh:
-            gmsh.write(saving_path + nameMesh + ".msh")
-            print("Mesh saved as ", nameMesh + ".msh")
+            path = project_root / f"{nameMesh}.msh"
+            gmsh.write(str(path))
+            print("mesh_file saved as ", nameMesh + ".msh")
 
         if saveSTL:
-            gmsh.write(saving_path + nameMesh + ".stl")
-            print("Mesh saved as ", nameMesh + ".stl")
+            path = project_root / f"{nameMesh}.stl"
+            gmsh.write(str(path))
+            print("mesh_file saved as ", nameMesh + ".stl")
 
         gmsh.finalize()
 

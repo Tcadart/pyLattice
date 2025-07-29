@@ -10,10 +10,9 @@ import matplotlib.pyplot as plt
 
 from cell import Cell
 
-from utils import _get_beam_color, _prepare_lattice_plot_data
+from utils import _get_beam_color, _prepare_lattice_plot_data, plot_coordinate_system
 
 matplotlib.use('TkAgg')  # Or 'Qt5Agg' if you prefer Qt backend
-
 
 class LatticePlotting:
     """
@@ -47,7 +46,8 @@ class LatticePlotting:
     def visualize_lattice_3D(self, lattice_object, beam_color_type: str = "Material",
                              voxelViz: bool = False, deformedForm: bool = False, file_save_path: str = None,
                              plotCellIndex: bool = False, plotNodeIndex: bool = False, explode_voxel: float = 0.0,
-                             plotting: bool = True, nbRadiusBins: int = 5) -> None:
+                             plotting: bool = True, nbRadiusBins: int = 5,
+                             enable_system_coordinates: bool = True) -> None:
 
         """
         Visualizes the lattice in 3D using matplotlib.
@@ -115,7 +115,7 @@ class LatticePlotting:
                                 nodeY.append(node[1])
                                 nodeZ.append(node[2])
                                 if plotNodeIndex:
-                                    self.ax.text(node[0], node[1], node[2], str(beam_indices[i]), fontsize=6,
+                                    self.ax.text(node[0], node[1], node[2], str(beam_indices[i]), fontsize=5,
                                                  color='gray')
 
                         beamDraw.add(beam)
@@ -151,6 +151,9 @@ class LatticePlotting:
 
         if self.axisSet is False:
             self._set_min_max_axis(latticeDimDict)
+
+        if enable_system_coordinates:
+            plot_coordinate_system(self.ax)
 
         # Save or show the plot
         if plotting:
@@ -197,29 +200,6 @@ class LatticePlotting:
         self.ax.set_zlim([0, z_max])
 
         plt.show()
-
-    def visualize_mesh(self, mesh_object):
-        """
-        Visualize a mesh object in 3D.
-        """
-        if self.initFig is False:
-            self.init_figure()
-
-        if hasattr(mesh_object, "mesh"):
-            mesh = mesh_object.mesh
-        else:
-            mesh = mesh_object
-
-        faces = mesh.vertices[mesh.faces]
-        self.ax.add_collection3d(Poly3DCollection(faces, facecolors='cyan', linewidths=0.1, edgecolors='k'))
-
-        minAxis = min(mesh.bounds[0])
-        maxAxis = max(mesh.bounds[1])
-        self.minAxis = min(minAxis, self.minAxis) if self.minAxis is not None else minAxis
-        self.maxAxis = max(maxAxis, self.maxAxis) if self.maxAxis is not None else maxAxis
-
-        # Ajouter un point rouge à l'origine
-        self.ax.scatter([0], [0], [0], color='red', s=50, label="Origin (0,0,0)")
 
     def plot_radius_distribution(self, cells: list["Cell"], nbRadiusBins: int = 5):
         """

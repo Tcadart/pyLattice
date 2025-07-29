@@ -1,14 +1,14 @@
 from lattice import *
 from utils import *
 from plotting_lattice import *
-from Mesh import *
+from mesh_file import *
 from preset_lattice.settings import *
 
 
-# mesh_object = mesh("CutedBone2.stl")
-# mesh_object = mesh("Lattice.stl")
-# mesh_object.scaleMesh(4)
-# mesh_object.saveMesh("CutedBone2_scaled")
+# mesh_trimmer = mesh("CutedBone2.stl")
+# mesh_trimmer = mesh("Lattice.stl")
+# mesh_trimmer.scaleMesh(4)
+# mesh_trimmer.saveMesh("CutedBone2_scaled")
 
 vizualizer = LatticePlotting()
 lattice = Lattice(cell_size_X, cell_size_Y, cell_size_Z, number_cell_X, number_cell_Y, number_cell_Z, Lattice_Type,
@@ -30,9 +30,9 @@ vizualizer.visualize_lattice_3D(lattice.cells, lattice.lattice_dimension_dict, "
 # lattice.cutMeshLatticeAtBoundary()
 # lattice.generateMeshLatticeGmsh(cutMeshAtBoundary=True, meshSize=0.1, saveMesh=True, saveSTL=False, runGmshApp=False)
 
-# mesh_object = mesh("Lattice.stl")
+# mesh_trimmer = mesh("Lattice.stl")
 #
-# vizualizer.visualizeMesh(mesh_object)
+# vizualizer.visualizeMesh(mesh_trimmer)
 # vizualizer.visualizeMesh(lattice.mesh_lattice)
 # vizualizer.saveMeshLattice("testLatticeMesh", lattice.mesh_lattice)
 

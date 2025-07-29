@@ -1,0 +1,16 @@
+{
+  "geometry": {
+    "cell_size": {
+        "x": 0.4,
+        "y": 0.4,
+        "z": 0.4
+      },
+    "number_of_cells": {
+      "x": 20,
+      "y": 20,
+      "z": 25
+    },
+    "radii": [0.1],
+    "geom_types": ["BCC"]
+  }
+}

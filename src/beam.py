@@ -2,15 +2,11 @@
 # beam.py
 """
 
-from typing import List, Tuple, Optional, cast
+from typing import List, Tuple, Optional
 import math
-
-import numpy as np
-import trimesh
 
 from point import Point
 from utils import function_penalization_Lzone
-
 
 class Beam(object):
     """
@@ -253,38 +249,6 @@ class Beam(object):
         self.beam_mod = True
         self.initial_radius = self.radius
         self.radius *= self.penalization_coefficient
-
-    def find_intersection_with_mesh(self, meshObject: 'Mesh') -> Tuple[float, float, float] | None:
-        """
-        Find the intersection point of the beam with a mesh.
-        Returns the first intersection point if it exists, None otherwise.
-
-        Parameters:
-        -----
-            mesh_object (Mesh): The mesh object to check for intersection.
-        Returns:
-            Tuple[float, float, float] | None: The intersection point (x, y, z) or None if no intersection.
-        """
-        ray_origin = np.array([self.point1.x, self.point1.y, self.point1.z])
-        ray_direction = np.array([self.point2.x - self.point1.x,
-                                  self.point2.y - self.point1.y,
-                                  self.point2.z - self.point1.z])
-
-        norm = np.linalg.norm(ray_direction)
-        if norm == 0:
-            return None
-        ray_direction /= norm  # Norm
-
-        intersector = trimesh.ray.ray_pyembree.RayMeshIntersector(meshObject.mesh)
-
-        locations, _, _ = intersector.intersects_location(
-            ray_origins=[ray_origin],
-            ray_directions=[ray_direction]
-        )
-
-        if len(locations) > 0:
-            return cast(Tuple[float, float, float], tuple(locations[0]))
-        return None
 
     def is_identical_to(self, other: "Beam") -> bool:
         """

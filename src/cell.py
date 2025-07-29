@@ -17,8 +17,9 @@ class Cell(object):
     Define Cell data for lattice structure
     """
 
-    def __init__(self, pos_cell: list, initial_cell_size: list, coordinate_cell: list, geom_types: list[int],
-                 radii: list[float], grad_radius: list, grad_dim: list, grad_mat: list, uncertainty_node: float = 0.0):
+    def __init__(self, pos_cell: list, initial_cell_size: list, coordinate_cell: list, geom_types: list[str],
+                 radii: list[float], grad_radius: list, grad_dim: list, grad_mat: list, uncertainty_node: float = 0.0,
+                 verbose: int = 0):
         """
         Initialize a Cell with its dimensions and position
 
@@ -30,7 +31,7 @@ class Cell(object):
             Initial size of the cell
         coordinate_cell: list
             Coordinates of the cell minimum corner in the lattice
-        geom_types: int
+        geom_types: list[str]
             Type of lattice geometry
         radii: float
             Base radii of the beam
@@ -42,6 +43,8 @@ class Cell(object):
             Gradient of the material
         uncertainty_node: float
             Standard deviation for adding uncertainty to node coordinates. Defaults to 0.0.
+        _verbose: bool
+            If True, prints additional information during initialization. Defaults to False.
         """
         self.original_cell_geom = None
         self.original_tags = None
@@ -52,13 +55,14 @@ class Cell(object):
         self.coordinate_cell: list[float] = coordinate_cell
         self.beams: Optional[list] = []
         self.index: Optional[int] = None
-        self.geom_types: list[int] = geom_types
+        self.geom_types: list[str] = geom_types
         self.radii: list[float] = radii
         self.coupling_matrix_B: Optional = None  # B matrix (Coupling matrix)
         self.uncertainty_node: float = uncertainty_node
         self.grad_radius: list = grad_radius
         self.grad_mat: list = grad_mat
         self.grad_dim: list = grad_dim
+        self._verbose: int = verbose
         self.neighbour_cells: Optional = []
 
         self.define_original_tags()
@@ -72,6 +76,7 @@ class Cell(object):
         """ Calculate the volume of the cell."""
         return self.cell_size[0] * self.cell_size[1] * self.cell_size[2]
 
+    @property
     def relative_density(self) -> float:
         """
         Calculate the relative density of the cell based on the volume of beams and the cell volume.
@@ -303,7 +308,7 @@ class Cell(object):
                     pointList.append(point)
         return pointList
 
-    def remove_beam(self, beamToDelete: "Beam") -> None:
+    def remove_beam(self, beam_to_delete: "Beam") -> None:
         """
         Removes a beam from the lattice
 
@@ -313,18 +318,19 @@ class Cell(object):
             Beam to remove
         """
         try:
-            self.beams.remove(beamToDelete)
+            self.beams.remove(beam_to_delete)
         except ValueError:
-            print("Beam not found in the list")
+            if self._verbose > 0:
+                print("Beam not found in the list for delete:", beam_to_delete)
 
-    def add_beam(self, beamToAdd: "Beam") -> None:
+    def add_beam(self, beam_to_add: "Beam") -> None:
         """
         Adding beam to cell
         """
-        if isinstance(beamToAdd, Beam):
-            self.beams.append(beamToAdd)
-        elif isinstance(beamToAdd, tuple):
-            for beam in beamToAdd:
+        if isinstance(beam_to_add, Beam):
+            self.beams.append(beam_to_add)
+        elif isinstance(beam_to_add, tuple):
+            for beam in beam_to_add:
                 self.beams.append(beam)
         else:
             raise ValueError("Invalid beam type_beam")
