@@ -2,8 +2,8 @@
 Example of lattice structure design with all entries from the package.
 """
 
-from lattice import Lattice
-from plotting_lattice import LatticePlotting
+from pyLattice.lattice import Lattice
+from pyLattice.plotting_lattice import LatticePlotting
 
 name_file = "full_entry_lattice"
 

@@ -9,7 +9,7 @@ from colorama import Fore, Style
 from beam import *
 from geometries.geometries_utils import *
 
-from scipy.sparse import coo_matrix
+# from scipy.sparse import coo_matrix
 
 
 class Cell(object):

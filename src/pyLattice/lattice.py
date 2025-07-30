@@ -13,7 +13,7 @@ import pickle
 from statistics import mean
 
 import joblib
-from scipy.sparse.linalg import splu
+# from scipy.sparse.linalg import splu
 import gmsh
 
 from cell import *
