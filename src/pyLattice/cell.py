@@ -6,8 +6,8 @@ import json
 import numpy as np
 from colorama import Fore, Style
 
-from beam import *
-from geometries.geometries_utils import *
+from .beam import *
+from .geometries.geometries_utils import *
 
 # from scipy.sparse import coo_matrix
 

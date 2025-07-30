@@ -8,9 +8,9 @@ import matplotlib
 import matplotlib.colors as mcolors
 import matplotlib.pyplot as plt
 
-from cell import Cell
+from .cell import Cell
 
-from utils import _get_beam_color, _prepare_lattice_plot_data, plot_coordinate_system
+from .utils import _get_beam_color, _prepare_lattice_plot_data, plot_coordinate_system
 
 matplotlib.use('TkAgg')  # Or 'Qt5Agg' if you prefer Qt backend
 

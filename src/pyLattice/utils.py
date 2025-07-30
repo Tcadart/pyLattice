@@ -10,8 +10,8 @@ from pathlib import Path
 from typing import Tuple
 
 import numpy as np
-import plotly.graph_objects as go
-import trimesh
+# import plotly.graph_objects as go
+# import trimesh
 
 
 def _validate_inputs(cell_size_x, cell_size_y, cell_size_z,
@@ -369,7 +369,7 @@ def save_JSON_to_Grasshopper(lattice, nameLattice: str = "LatticeObject", multip
         print(f"Saved lattice part {partIdx + 1} to {file_pathJSON}")
 
 
-def save_mesh_lattice(outputPath: str, meshObject: trimesh.Trimesh = None):
+def save_mesh_lattice(outputPath: str, meshObject = None):
     """
     Save the mesh to a file.
 

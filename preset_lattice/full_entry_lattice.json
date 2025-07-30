@@ -44,7 +44,7 @@
   "simulation_parameters": {
     "enable" : true,
     "material": "VeroClear",
-    "periodicity": true
+    "periodicity": false
   },
   "suplementary": {
     "node_uncertainty": 0.0,

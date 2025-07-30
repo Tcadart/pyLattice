@@ -6,7 +6,7 @@ import math
 import random
 from enum import Enum
 
-from timing import *
+from .timing import *
 
 timing = Timing()
 

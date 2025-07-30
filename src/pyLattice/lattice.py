@@ -13,13 +13,12 @@ import pickle
 from statistics import mean
 
 import joblib
-# from scipy.sparse.linalg import splu
 import gmsh
 
-from cell import *
-from timing import *
-from utils import _validate_inputs
-from gradient_properties import get_grad_settings, grad_material_setting, grad_settings_constant
+from .cell import *
+from .timing import *
+from .utils import _validate_inputs
+from .gradient_properties import get_grad_settings, grad_material_setting, grad_settings_constant
 from mesh_file.mesh_trimmer import MeshTrimmer
 
 timing = Timing()
@@ -199,7 +198,7 @@ class Lattice(object):
         Lattice
             The loaded lattice object.
         """
-        project_root = Path(__file__).resolve().parent.parent
+        project_root = Path(__file__).resolve().parent.parent.parent
         json_path = project_root / "preset_lattice" / name_file
         if json_path.suffix != ".json":
             json_path = json_path.with_suffix('.json')
@@ -1779,7 +1778,7 @@ class Lattice(object):
         for cell in self.cells:
             cell.build_coupling_operator(self.free_DOF)
 
-    def build_LU_schur_complement(self, dictSchurComplement: dict = None) -> splu:
+    def build_LU_schur_complement(self, dictSchurComplement: dict = None):
         """
         Build LU decomposition of the Schur complement matrix for the lattice
 
@@ -1790,6 +1789,7 @@ class Lattice(object):
         """
         #TODO : Voir quoi faire avec ça
         from ConjugateGradientMethod.Utils_Schur import loadSchurComplement, getSref_nearest
+        from scipy.sparse.linalg import splu, coo_matrix
 
         if dictSchurComplement is None:
             nameFileSchur = "ConjugateGradientMethod/schurComplement/Hybrid_" + str(

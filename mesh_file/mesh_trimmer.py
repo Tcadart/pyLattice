@@ -6,13 +6,13 @@ from typing import cast, Tuple
 
 import matplotlib.pyplot as plt
 import numpy as np
-import trimesh
+# import trimesh
 from mpl_toolkits.mplot3d.art3d import Poly3DCollection
 
-from beam import Beam
-from point import Point
-from cell import Cell
-from utils import plot_coordinate_system
+from pyLattice.beam import Beam
+from pyLattice.point import Point
+from pyLattice.cell import Cell
+from pyLattice.utils import plot_coordinate_system
 
 class MeshTrimmer:
     """

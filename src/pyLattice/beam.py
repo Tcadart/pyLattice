@@ -5,8 +5,8 @@
 from typing import List, Tuple, Optional
 import math
 
-from point import Point
-from utils import function_penalization_Lzone
+from .point import Point
+from .utils import function_penalization_Lzone
 
 class Beam(object):
     """
