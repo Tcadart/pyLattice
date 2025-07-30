@@ -88,8 +88,8 @@ class Lattice(object):
         _verbose: boolean
             If True, print statistics and information during the lattice generation process
         """
-        _validate_inputs(cell_size_x, cell_size_y, cell_size_z, num_cells_x, num_cells_y, num_cells_z,
-                         geom_types, radii, material_name, grad_radius_property, grad_dim_property, grad_mat_property,
+        _validate_inputs(cell_size_x, cell_size_y, cell_size_z, num_cells_x, num_cells_y, num_cells_z, geom_types,
+                         radii, material_name, grad_radius_property, grad_dim_property, grad_mat_property,
                          uncertainty_node, enable_periodicity, eraser_blocks)
 
         self.name_lattice: str = "Lattice"
@@ -151,11 +151,10 @@ class Lattice(object):
         self.kriging_model_relative_density = None
         self.penalization_coefficient: float = 1.5  # Fixed with previous optimization
         self.mesh_lattice = None
+        self.timing = timing
 
         # Generate global structure
         self.generate_lattice()
-        if symmetry_lattice is not None:
-            self.apply_symmetry(symmetry_lattice["sym_plane"], symmetry_lattice["sym_point"])
 
         # Generate important data for the lattice structure
         self.set_tag_classification()
@@ -177,12 +176,16 @@ class Lattice(object):
             # Optimization necessary
             self.load_relative_density_model()
 
+        if symmetry_lattice is not None:
+            self.apply_symmetry(symmetry_lattice["sym_plane"], symmetry_lattice["sym_point"])
+
         if self._verbose > 0:
+            self.are_cells_identical()
             self.print_statistics_lattice()
-            timing.summary()
+            self.timing.summary()
 
     @classmethod
-    def from_json(cls, name_file: str, mesh_trimmer: "MeshTrimmer" = None) -> "Lattice":
+    def from_json(cls, name_file: str, mesh_trimmer: "MeshTrimmer" = None, verbose: int = 0) -> "Lattice":
         """
         Load a lattice object from a JSON file.
 
@@ -301,10 +304,11 @@ class Lattice(object):
                    eraser_blocks=erased_blocks,
                    symmetry_lattice=symmetry_lattice,
                    enable_simulation_properties=enable_simulation_properties,
-                   mesh_trimmer=mesh_trimmer)
+                   mesh_trimmer=mesh_trimmer,
+                   verbose=verbose)
 
     @classmethod
-    def pickle_lattice(cls, file_name: str = "LatticeObject", folder: str = "Saved_Lattice") -> "Lattice":
+    def open_pickle_lattice(cls, file_name: str = "LatticeObject") -> "Lattice":
         """
         Load a lattice pickle from a file.
 
@@ -320,18 +324,18 @@ class Lattice(object):
         Lattice
             The loaded lattice object.
         """
-        if not file_name.endswith(".pkl"):
-            file_name += ".pkl"
+        project_root = Path(__file__).resolve().parent.parent
+        path = project_root / "saved_lattice_file" / file_name
+        if path.suffix != ".pkl":
+            path = path.with_suffix('.pkl')
 
-        file_path = os.path.join(folder, file_name)
+        if not os.path.exists(path):
+            raise FileNotFoundError(f"The file {path} does not exist.")
 
-        if not os.path.exists(file_path):
-            raise FileNotFoundError(f"The file {file_path} does not exist.")
-
-        with open(file_path, "rb") as file:
+        with open(path, "rb") as file:
             lattice = pickle.load(file)
 
-        print(f"Lattice loaded successfully from {file_path}")
+        print(f"Lattice loaded successfully from {path}")
         return lattice
 
     def __repr__(self) -> str:
@@ -394,7 +398,7 @@ class Lattice(object):
         """
         self.edge_tags = [[102, 104, 106, 107], [100, 108, 105, 111], [101, 109, 103, 110]]
         self.face_tags = [[10, 15], [11, 14], [12, 13]]
-        self.corner_tags = [1000, 1001, 1002, 1003, 1004, 1005, 1006, 1007]
+        self.corner_tags = [[1000, 1001, 1002, 1003, 1004, 1005, 1006, 1007]]
 
     def get_size_lattice(self) -> list[float]:
         """
@@ -1016,29 +1020,12 @@ class Lattice(object):
         ---------
         name_lattice: string
         """
-        nameList = [
-            "BCC",  # 0
-            "Octet",  # 1
-            "OctetExt",  # 2
-            "OctetInt",  # 3
-            "BCCZ",  # 4
-            "Cubic",  # 5
-            "OctahedronZ",  # 6
-            "OctahedronZcross",  # 7
-            "Kelvin",  # 8
-            "CubicV2",  # 9 (centered)
-            "CubicV3",  # 10
-            "CubicV4",  # 11
-            "NewlatticeUnknown",  # 12 GPT generated
-            "Diamond",  # 13
-            "Auxetic"  # 14
-        ]
         if len(self.geom_types) == 1:
-            self.name_lattice = nameList[self.geom_types[0]]
+            self.name_lattice = self.geom_types[0]
         else:
             self.name_lattice = "Hybrid_"
             for i, geom_type in enumerate(self.geom_types):
-                self.name_lattice += nameList[geom_type] + "_"
+                self.name_lattice += geom_type + "_"
         if self.enable_simulation_properties == 1:
             self.name_lattice += "_Mod"
         return self.name_lattice
@@ -1052,7 +1039,7 @@ class Lattice(object):
             cellPoints = cell.get_list_points()
             for node in cellPoints:
                 for beam in cell.beams:
-                    if beam.isPointOnBeam(node):
+                    if beam.is_point_on_beam(node):
                         typeBeamToRemove = beam.type_beam  # Get beam to remove type_beam to apply in new separated beams
                         beam1 = Beam(beam.point1, node, beam.radius, beam.material, typeBeamToRemove)
                         beam2 = Beam(beam.point2, node, beam.radius, beam.material, typeBeamToRemove)
@@ -2095,7 +2082,7 @@ class Lattice(object):
         print("Number of cells: ", len(self.cells))
         print("Number of beams: ", self.get_number_beams())
         print("Number of nodes: ", self.get_number_nodes())
-        print("Relative density: ", self.get_relative_density())
+        print("Relative density approximate: ", self.get_relative_density())
         radMax, radMin = self.get_beam_radius_min_max()
         print("radii max: ", radMax)
         print("radii min: ", radMin)
@@ -2206,7 +2193,7 @@ class Lattice(object):
         self.get_lattice_dimensions()  # Recalculate the lattice boundaries
 
     @timing.timeit
-    def load_relative_density_model(self, model_path="Lattice/Saved_Lattice/RelativeDensityKrigingModel.pkl"):
+    def load_relative_density_model(self, model_path="Lattice/saved_lattice_file/RelativeDensityKrigingModel.pkl"):
         """
         Load the relative density model from a file
 
@@ -2277,8 +2264,8 @@ class Lattice(object):
 
     @timing.timeit
     def generate_mesh_lattice_Gmsh(self, cutMeshAtBoundary: bool = False, meshSize: float = 0.05,
-                                   runGmshApp: bool = False, saveMesh: bool = False, nameMesh: str = "Lattice",
-                                   saveSTL: bool = True):
+                                   nameMesh: str = "Lattice", runGmshApp: bool = False,
+                                   saveMesh: bool = False, saveSTL: bool = True, volume_computation: bool = False):
         """
         Generate a mesh representation of the lattice structure using GMSH.
 
@@ -2331,23 +2318,41 @@ class Lattice(object):
         gmsh.model.mesh.setSize(points, meshSize)
         gmsh.model.occ.synchronize()
 
+        if volume_computation:
+            self.get_volume_mesh()
+
+
         gmsh.model.mesh.generate(dim)
 
         if runGmshApp:
             gmsh.fltk.run()
 
-        project_root = Path(__file__).resolve().parent
+        project_root = Path(__file__).resolve().parent.parent
         if saveMesh:
-            path = project_root / f"{nameMesh}.msh"
+            path = project_root / "mesh_file" / f"{nameMesh}.msh"
             gmsh.write(str(path))
-            print("mesh_file saved as ", nameMesh + ".msh")
+            print("mesh_file saved at ", path)
 
         if saveSTL:
-            path = project_root / f"{nameMesh}.stl"
+            path = project_root / "mesh_file" / f"{nameMesh}.stl"
             gmsh.write(str(path))
-            print("mesh_file saved as ", nameMesh + ".stl")
+            print("mesh_file saved at ", path)
 
         gmsh.finalize()
+
+    @timing.timeit
+    def get_volume_mesh(self):
+        """
+        Compute the total volume of the mesh and the relative density of the lattice.
+        """
+        vol = 0.0
+        for dim, tag in gmsh.model.getEntities(dim=3):
+            vol += gmsh.model.occ.getMass(dim, tag)
+        print(f"Total volume: {vol}")
+        bb = self.get_lattice_boundary_box()
+        volume_lattice = bb[1] - bb[0] * bb[3] - bb[2] * bb[5] - bb[4]
+        relative_density = vol / volume_lattice
+        print(f"Relative density: {relative_density:.4f}")
 
     def are_cells_identical(self) -> bool:
         """
@@ -2380,7 +2385,7 @@ class Lattice(object):
                 return False
 
             for j, (b1, b2) in enumerate(zip(reference.beams, cell.beams)):
-                if not b1.is_identical_to(b2):
+                if not b1.is_identical_to(b2, reference.cell_size):
                     print(b1, b2)
                     print(Fore.RED + f"Difference found in beam {j} between cell 0 and cell {i}" + Style.RESET_ALL)
                     return False

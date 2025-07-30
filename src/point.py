@@ -243,17 +243,27 @@ class Point:
             raise ValueError("Local tag must be a list.")
         self.local_tag = localTag
 
-    def is_identical_to(self, other: 'Point') -> bool:
+    def is_identical_to(self, other: 'Point', cell_size: list[float]) -> bool:
         """
-        Check if this point is identical to another point.
+        Check if this point is identical to another point, modulo the cell size (periodicity).
 
-        Args:
-            other (Point): The other point to compare with.
+        Parameters
+        ----------
+        other : Point
+            The other point to compare with.
+        cell_size : list[float]
+            Size of the unit cell in x, y, z directions.
 
-        Returns:
-            bool: True if the points are identical, False otherwise.
+        Returns
+        -------
+        bool
+            True if the points are identical modulo the cell size, False otherwise.
         """
-        return self.x == other.x and self.y == other.y and self.z == other.z
+        return all(
+            min(abs(getattr(self, coord)) - abs(getattr(other, coord)),
+                size - abs(getattr(self, coord)) - abs(getattr(other, coord))) < 1e-6
+            for coord, size in zip(['x', 'y', 'z'], cell_size)
+        )
 
     def is_on_boundary(self, boundary_box_lattice) -> bool:
         """

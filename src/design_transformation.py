@@ -7,7 +7,6 @@ applying cylindrical transformations, and fitting to surfaces.
 import math
 from point import Point
 
-
 def attractor_lattice(lattice, PointAttractorList: list[float] = None, alpha: float = 0.5,
                       inverse: bool = False) -> None:
     """

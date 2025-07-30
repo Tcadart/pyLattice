@@ -14,6 +14,7 @@ from utils import _get_beam_color, _prepare_lattice_plot_data, plot_coordinate_s
 
 matplotlib.use('TkAgg')  # Or 'Qt5Agg' if you prefer Qt backend
 
+
 class LatticePlotting:
     """
     Class for visualizing lattice structures in 3D.
@@ -134,9 +135,10 @@ class LatticePlotting:
                 x, y, z = cell.coordinate_cell
                 dx, dy, dz = cell.cell_size
 
-                if beam_color_type == "Material":
+                beam_color_type = beam_color_type.lower()
+                if beam_color_type == "material":
                     colorCell = color_palette[cell.beams[0].material % len(color_palette)]
-                elif beam_color_type == "Type":
+                elif beam_color_type == "type":
                     colorCell = color_palette[cell.geom_types % len(color_palette)]
                 elif beam_color_type == "radii":
                     colorCell = cell.get_RGBcolor_depending_of_radius()
@@ -250,7 +252,7 @@ class LatticePlotting:
         plt.show()
 
     def subplot_lattice_geometries(self, cells: list["Cell"], latticeDimDict: dict, nbRadiusBins: int = 5,
-                                 explodeVoxel: float = 0.0):
+                                   explodeVoxel: float = 0.0):
         """
         Create subplots:
         - One subplot per geometry (radii index) with voxel visualization.

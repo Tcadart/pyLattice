@@ -2,7 +2,7 @@
 Simple example of how to plot a simple BCC lattice using Matplotlib.
 """
 
-from src.lattice import Lattice
+from lattice import Lattice
 from plotting_lattice import LatticePlotting
 
 

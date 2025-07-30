@@ -250,17 +250,28 @@ class Beam(object):
         self.initial_radius = self.radius
         self.radius *= self.penalization_coefficient
 
-    def is_identical_to(self, other: "Beam") -> bool:
+    def is_identical_to(self, other: "Beam", cell_size: list) -> bool:
         """
         Check if this beam is identical to another beam.
+
+        Parameters
+        ----------
+        other : Beam
+            The other beam to compare with.
+        cell_size : list
+            cell size [cell_size_X, cell_size_Y, cell_size_Z].
         """
         lengthtest = math.isclose(self.length, other.length, rel_tol=1e-5)
         radiustest = math.isclose(self.radius, other.radius, rel_tol=1e-5)
+        point1test = self.point1.is_identical_to(other.point1, cell_size)
+        point2test = self.point2.is_identical_to(other.point2, cell_size)
         materialtest = self.material == other.material
         typetest = self.type_beam == other.type_beam
         return (
                 lengthtest
                 and radiustest
+                and point1test
+                and point2test
                 and materialtest
                 and typetest
         )

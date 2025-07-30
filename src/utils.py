@@ -6,6 +6,7 @@ import json
 import math
 import os
 import pickle
+from pathlib import Path
 from typing import Tuple
 
 import numpy as np
@@ -15,8 +16,8 @@ import trimesh
 
 def _validate_inputs(cell_size_x, cell_size_y, cell_size_z,
                      num_cells_x, num_cells_y, num_cells_z,
-                     Lattice_Type, Radius, materialName, gradRadiusProperty, gradDimProperty, gradMatProperty,
-                     uncertaintyNode, periodicity, erasedParts):
+                     geom_types, radii, material_name, grad_radius_property, grad_dim_property, grad_mat_property,
+                     uncertainty_node, enable_periodicity, eraser_blocks):
     # Check cell sizes
     assert isinstance(cell_size_x, (int, float)) and cell_size_x > 0, "cell_size_x must be a positive number"
     assert isinstance(cell_size_y, (int, float)) and cell_size_y > 0, "cell_size_y must be a positive number"
@@ -28,36 +29,36 @@ def _validate_inputs(cell_size_x, cell_size_y, cell_size_z,
     assert isinstance(num_cells_z, int) and num_cells_z > 0, "num_cells_z must be a positive integer"
 
     # Check lattice type_beam
-    assert isinstance(Lattice_Type, list), "Lattice_Type must be a list"
-    assert all(isinstance(lt, str) for lt in Lattice_Type), "All elements of Lattice_Type must be strings"
+    assert isinstance(geom_types, list), "Lattice_Type must be a list"
+    assert all(isinstance(lt, str) for lt in geom_types), "All elements of Lattice_Type must be strings"
 
     # Check radii
-    assert isinstance(Radius, list), "radii must be a list"
-    assert all(isinstance(r, float) for r in Radius), "All radii values must be floats"
-    assert len(Radius) == len(Lattice_Type), "The number of radii must be equal to the number of lattice types"
+    assert isinstance(radii, list), "radii must be a list"
+    assert all(isinstance(r, float) for r in radii), "All radii values must be floats"
+    assert len(radii) == len(geom_types), "The number of radii must be equal to the number of lattice types"
 
     # Check material name_lattice
-    assert isinstance(materialName, str), "material_name must be a string"
+    assert isinstance(material_name, str), "material_name must be a string"
 
     # Check gradient properties
-    if gradRadiusProperty is not None:
-        assert isinstance(gradRadiusProperty, list), "gradRadiusProperty must be a list"
-        assert len(gradRadiusProperty) == 3, "gradRadiusProperty must be a list of 3 elements"
-    if gradDimProperty is not None:
-        assert isinstance(gradDimProperty, list), "gradDimProperty must be a list"
-        assert len(gradDimProperty) == 3, "gradDimProperty must be a list of 3 elements"
-    if gradMatProperty is not None:
-        assert len(gradMatProperty) == 2, "gradMatProperty must be a list of 2 elements"
-        assert isinstance(gradMatProperty[0], int), "gradMatProperty[0] must be an integer"
-        assert isinstance(gradMatProperty[1], int), "gradMatProperty[1] must be an integer"
+    if grad_radius_property is not None:
+        assert isinstance(grad_radius_property, list), "gradRadiusProperty must be a list"
+        assert len(grad_radius_property) == 3, "gradRadiusProperty must be a list of 3 elements"
+    if grad_dim_property is not None:
+        assert isinstance(grad_dim_property, list), "gradDimProperty must be a list"
+        assert len(grad_dim_property) == 3, "gradDimProperty must be a list of 3 elements"
+    if grad_mat_property is not None:
+        assert len(grad_mat_property) == 2, "gradMatProperty must be a list of 2 elements"
+        assert isinstance(grad_mat_property[0], int), "gradMatProperty[0] must be an integer"
+        assert isinstance(grad_mat_property[1], int), "gradMatProperty[1] must be an integer"
 
     # Check optional parameters
-    assert isinstance(uncertaintyNode, float), "uncertainty_node must be a float"
+    assert isinstance(uncertainty_node, float), "uncertainty_node must be a float"
 
-    assert isinstance(periodicity, int), "enable_periodicity must be an integer"
+    assert isinstance(enable_periodicity, int), "enable_periodicity must be an integer"
 
-    if erasedParts is not None:
-        for erasedPart in erasedParts:
+    if eraser_blocks is not None:
+        for erasedPart in eraser_blocks:
             assert len(erasedPart) == 6 and all(
                 isinstance(x, float) for x in erasedPart), "eraser_blocks must be a list of 6 floats"
 
@@ -90,18 +91,18 @@ def save_lattice_object(lattice, file_name: str = "LatticeObject") -> None:
     file_name: str
         Name of the file to save (with or without the '.pkl' extension).
     """
-    folder = "Saved_Lattice"
-    os.makedirs(folder, exist_ok=True)
+    project_root = Path(__file__).resolve().parent.parent
+    path = project_root / "saved_lattice_file" / file_name
+    if path.suffix != ".pkl":
+        path = path.with_suffix('.pkl')
 
-    if not file_name.endswith(".pkl"):
-        file_name += ".pkl"
+    try:
+        with open(path, "wb") as file:
+            pickle.dump(lattice, file)
+    except Exception as e:
+        raise IOError(f"Failed to save lattice pickle: {e}")
 
-    file_path = os.path.join(folder, file_name)
-
-    with open(file_path, "wb") as file:
-        pickle.dump(lattice, file)
-
-    print(f"Lattice saved successfully to {file_path}")
+    print(f"Lattice pickle saved successfully to {path}")
 
 
 def _prepare_lattice_plot_data(beam, deformedForm: bool = False):
@@ -126,15 +127,16 @@ def _prepare_lattice_plot_data(beam, deformedForm: bool = False):
 
 def _get_beam_color(beam, color_palette, beamColor, idxColor, cells, nbRadiusBins):
     # Assign colors based on the selected scheme
-    if beamColor == "Material":
+    beamColor = beamColor.lower()
+    if beamColor == "material":
         colorBeam = color_palette[beam.material % len(color_palette)]
-    elif beamColor == "Type":
+    elif beamColor == "type":
         colorBeam = color_palette[beam.type_beam % len(color_palette)]
     elif beamColor == "radii":
         if beam.radius not in idxColor:
             idxColor.append(beam.radius)
         colorBeam = color_palette[idxColor.index(beam.radius) % len(color_palette)]
-    elif beamColor == "RadiusBin":
+    elif beamColor == "radiusbin":
         dimRadius = len(cells[0].radii)
         # Ensure radii are extracted properly depending on the dimension
         if not idxColor:
@@ -318,7 +320,7 @@ def save_JSON_to_Grasshopper(lattice, nameLattice: str = "LatticeObject", multip
     multipleParts: int, optional (default: 1)
         Number of parts to save.
     """
-    folder = "Saved_Lattice"
+    folder = "saved_lattice_file"
     if not os.path.exists(folder):
         os.makedirs(folder)
 
@@ -393,7 +395,7 @@ def plot_coordinate_system(ax):
     Plot a 3D coordinate system with arrows representing the X, Y, and Z axes.
     """
     origin = [0, 0, 0]
-    axis_length = 1
+    axis_length = 0.8
 
     ax.quiver(*origin, axis_length, 0, 0, color='r', arrow_length_ratio=0.1)
     ax.quiver(*origin, 0, axis_length, 0, color='g', arrow_length_ratio=0.1)

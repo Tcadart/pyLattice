@@ -14,7 +14,7 @@
       0.1
     ],
     "geom_types": [
-      "OctahedronZ"
+      "Octahedron"
     ]
   },
   "gradient": {
@@ -44,7 +44,7 @@
   "simulation_parameters": {
     "enable" : true,
     "material": "VeroClear",
-    "periodicity": false
+    "periodicity": true
   },
   "suplementary": {
     "node_uncertainty": 0.0,

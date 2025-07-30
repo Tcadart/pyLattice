@@ -30,8 +30,8 @@ a
 fort.7
 __pycache__
 /src/Lattice.egg-info
-/Saved_Lattice/HybridCellForRelativeDensity
-/Saved_Lattice/RelativeDensity
+/saved_lattice_file/HybridCellForRelativeDensity
+/saved_lattice_file/RelativeDensity
 /Saved_Lattice/*.json
 *.pkl
 *.stlbak

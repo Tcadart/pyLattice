@@ -1,0 +1,17 @@
+[project]
+name = "pyLattice"
+version = "0.1.0"
+description = "Toolkit for lattice design and FE simulation"
+authors = [{name="Thomas Cadart", email="thomas.cadart@utbm.fr"}]
+license = {text = "MIT"}
+dependencies = [
+    "numpy>=1.26.4",
+    "scipy>=1.15.2",
+    "matplotlib>=3.8.0",
+]
+
+[project.optional-dependencies]
+simulation = [
+    "dolfinx",
+    "petsc4py"
+]

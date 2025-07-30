@@ -66,6 +66,10 @@ def get_beam_structure(lattice_type: str) -> list[list[float]]:
     try:
         with open(json_path, 'r') as file:
             geometry = json.load(file)
+    except json.JSONDecodeError as e:
+        raise ValueError(
+            f"Error in geometry json file (Wrong formatting) '{json_path}': {e.msg} at line {e.lineno}, "
+            f"column {e.colno}") from e
     except FileNotFoundError:
         raise FileNotFoundError(f"Geometry file '{json_path}' not found.")
 
