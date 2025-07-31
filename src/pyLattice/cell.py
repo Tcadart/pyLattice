@@ -67,6 +67,9 @@ class Cell(object):
 
         self.define_original_tags()
         self.generate_cell_properties(initial_size)
+        if self.relative_density > 1:
+            print(Fore.YELLOW + "WARNING: Approximated relative density of the cell is greater than 1. "
+                                "Beam radius and cell size is probably not well defined" + Style.RESET_ALL)
 
     def __repr__(self) -> str:
         return f"Cell(Coordinates:{self.coordinate}, Size: {self.size}, Index:{self.index})"

@@ -32,7 +32,11 @@
       }
     },
     "Force": {
-
+        "Force": {
+            "Surface": ["Xmax", "Zmin"],
+            "DOF": ["Y"],
+            "Value": [0.025]
+        }
     }
   }
 }

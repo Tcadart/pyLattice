@@ -1,12 +1,10 @@
-from typing import List
-
-import ufl
-from ufl import as_vector, grad, dot, split, diag, dx, action
-from dolfinx import fem, mesh, common
 import dolfinx_mpc
-from dolfinx_mpc import MultiPointConstraint
 import numpy as np
+import ufl
+from dolfinx import fem, mesh, common
+from dolfinx_mpc import MultiPointConstraint
 from petsc4py import PETSc
+from ufl import as_vector, dot
 
 from .simulation_base import SimulationBase
 
@@ -42,8 +40,7 @@ class HomogenizedCell(SimulationBase):
         self._a2 = self.BeamModel.a2
         self._V = None
 
-
-    def calculate_imposed_stress_strain(self, case:int):
+    def calculate_imposed_stress_strain(self, case: int):
         """
         Calculate stress and strain from an imposed study case
 
@@ -99,7 +96,6 @@ class HomogenizedCell(SimulationBase):
             raise ValueError("Invalid case number. Must be between 1 and 6.")
         return w
 
-
     def get_imposed_strains(self, w):
         """
         Calculate strains from imposed displacement domain on dim-6 vectorspace
@@ -110,10 +106,9 @@ class HomogenizedCell(SimulationBase):
             Imposed strain
         """
         return as_vector([dot(self.tgrad(w), self._t),
-                         dot(self.tgrad(w), self._a1),
-                         dot(self.tgrad(w), self._a2),
-                         0, 0, 0])
-
+                          dot(self.tgrad(w), self._a1),
+                          dot(self.tgrad(w), self._a2),
+                          0, 0, 0])
 
     def locate_Dofs(self, selection_function: callable):
         """
@@ -136,11 +131,11 @@ class HomogenizedCell(SimulationBase):
 
         Parameters:
         ----------
-        markers: List of integer
-            list of tag element to define k_form on
+        markers: int
+            Markers for boundary conditions, if None then use all boundaries
         """
         self._k_form_boundary = sum([self._Sig[i] * self._Eps[i] * self._dx(markers) for i in [0, 3, 4, 5]]) + (
-                    self._Sig[1] * self._Eps[1] + self._Sig[2] * self._Eps[2]) * self._dx_shear(markers)
+                self._Sig[1] * self._Eps[1] + self._Sig[2] * self._Eps[2]) * self._dx_shear(markers)
 
     def define_L_form(self):
         """
@@ -154,47 +149,34 @@ class HomogenizedCell(SimulationBase):
         """
         Applying periodic boundary condition on unit cell
         """
-        #TODO : a réécrire proprement
         self._mpc = MultiPointConstraint(self._V)
+
         idx_dict = {}
-        # Corner
-        idx_dict["Corner"] = {
-            "Master": 1000,
-            "Slave": np.arange(1001, 1008).tolist()
-        }
-        # Edge
-        idx_dict["Edge1"] = {
-            "Master": 102,
-            "Slave": [104, 106, 107]
-        }
-        idx_dict["Edge2"] = {
-            "Master": 100,
-            "Slave": [108, 105, 111]
-        }
-        idx_dict["Edge3"] = {
-            "Master": 101,
-            "Slave": [103, 109, 110]
-        }
-        # Face à faire
-        idx_dict["Face"] = {
-            "Master": 10,
-            "Slave": [15]
-        }
-        idx_dict["Face2"] = {
-            "Master": 11,
-            "Slave": [14]
-        }
-        idx_dict["Face3"] = {
-            "Master": 12,
-            "Slave": [13]
+
+        tag_categories = {
+            "Corner": self.BeamModel.lattice.corner_tags[0],
+            "Edge1": self.BeamModel.lattice.edge_tags[0],
+            "Edge2": self.BeamModel.lattice.edge_tags[1],
+            "Edge3": self.BeamModel.lattice.edge_tags[2],
+            "Face1": self.BeamModel.lattice.face_tags[0],
+            "Face2": self.BeamModel.lattice.face_tags[1],
+            "Face3": self.BeamModel.lattice.face_tags[2],
         }
 
+        for key, tags in tag_categories.items():
+            idx_dict[key] = {
+                "Master": tags[0],
+                "Slave": tags[1:]
+            }
+
+        # Add constraints for each category
         for key in idx_dict.keys():
             idx_master = idx_dict[key]["Master"]
             idx_slave = idx_dict[key]["Slave"]
             with common.Timer("Multi constraint"):
                 dof_masters = np.tile(fem.locate_dofs_topological(self._V, self.domain.topology.dim - 1,
-                                                                  self.BeamModel.facets.find(idx_master)), len(idx_slave))
+                                                                  self.BeamModel.facets.find(idx_master)),
+                                                                    len(idx_slave))
                 dof_slaves = np.block(
                     [fem.locate_dofs_topological(self._V, self.domain.topology.dim - 1, self.BeamModel.facets.find(
                         i)) for i in idx_slave])
@@ -212,7 +194,7 @@ class HomogenizedCell(SimulationBase):
         if self._solver is None:
             with common.Timer("Init Solver"):
                 # Assemble the matrix once
-                A = dolfinx_mpc.assemble_matrix(fem.form(self._k_form),self._mpc, bcs = self._bcs)
+                A = dolfinx_mpc.assemble_matrix(fem.form(self._k_form), self._mpc, bcs=self._bcs)
                 A.assemble()
 
                 # Create the solver
@@ -301,7 +283,6 @@ class HomogenizedCell(SimulationBase):
         else:
             raise ValueError(f"Unknown location type: {location}")
 
-
     def apply_dirichlet_for_homogenization(self):
         """
         Apply Dirichlet boundary condition for homogenization
@@ -311,11 +292,11 @@ class HomogenizedCell(SimulationBase):
         # nodesLocatedDofs = nodesLocatedDofs[50:53]
         selectionFunction = self.get_logical_function("Center")
         nodesLocatedDofs = self.locate_Dofs(selectionFunction)
-        #Define zero function of dim vector space to apply boundary condition
+        # Define zero function of dim vector space to apply boundary condition
         u_bc = fem.Function(self._V)
         self._bcs = [fem.dirichletbc(u_bc, nodesLocatedDofs)]
 
-    def calculate_generalized_stress(self, case:int):
+    def calculate_generalized_stress(self, case: int):
         """
         Calculate generalized stress on a strain case
 
@@ -333,7 +314,6 @@ class HomogenizedCell(SimulationBase):
         self._u_tot.x.array[:] = self.u.x.array + Macro.x.array
         self.generalizedStress = self.generalized_stress(self._u_tot)
 
-
     def solve_full_homogenization(self):
         """
         Solve the entire homogenization of the unit cell
@@ -342,7 +322,7 @@ class HomogenizedCell(SimulationBase):
         -------
         self.homogenizeMatrix: homogenization matrix
         """
-        ImposeStrainCase = range(1,7) # 6 loading cases
+        ImposeStrainCase = range(1, 7)  # 6 loading cases
         self.homogenizeMatrix = []
         self.saveDataToExport = []
         self.find_boundary_tags()
@@ -355,14 +335,15 @@ class HomogenizedCell(SimulationBase):
 
                 macroStress = self.calculate_macro_stress(loadingCase)
 
-                self.homogenizeMatrix.append(np.array([macroStress[0][0],macroStress[1][1],macroStress[2][2],macroStress[1][0],macroStress[2][0],macroStress[2][1]]).T)
+                self.homogenizeMatrix.append(np.array(
+                    [macroStress[0][0], macroStress[1][1], macroStress[2][2], macroStress[1][0], macroStress[2][0],
+                     macroStress[2][1]]).T)
                 self.saveDataToExport.append(self._u_tot)
         self.homogenizeMatrix = np.column_stack(self.homogenizeMatrix)
         self.convert_to_orthotropic_form()
         self.compute_errors()
-        self.homogenizeMatrix = 0.5 * (self.homogenizeMatrix + self.homogenizeMatrix.T) # Ensure symmetry
+        self.homogenizeMatrix = 0.5 * (self.homogenizeMatrix + self.homogenizeMatrix.T)  # Ensure symmetry
         return self.homogenizeMatrix
-
 
     def print_homogenized_matrix(self):
         """
@@ -377,15 +358,15 @@ class HomogenizedCell(SimulationBase):
         Convert homogenize matrix to orthotropic form
         """
         Hinv = np.linalg.inv(self.homogenizeMatrix)
-        Ex = 1/Hinv[0,0]
-        Ey = 1/Hinv[1,1]
-        Ez = 1/Hinv[2,2]
-        Gxy = 1/(2*Hinv[3,3])
-        Gxz = 1/(2*Hinv[4,4])
-        Gyz = 1/(2*Hinv[5,5])
-        nuxy = -Hinv[0,1]*Ey
-        nuxz = -Hinv[0,2]*Ez
-        nuyz = -Hinv[1,2]*Ez
+        Ex = 1 / Hinv[0, 0]
+        Ey = 1 / Hinv[1, 1]
+        Ez = 1 / Hinv[2, 2]
+        Gxy = 1 / (2 * Hinv[3, 3])
+        Gxz = 1 / (2 * Hinv[4, 4])
+        Gyz = 1 / (2 * Hinv[5, 5])
+        nuxy = -Hinv[0, 1] * Ey
+        nuxz = -Hinv[0, 2] * Ez
+        nuyz = -Hinv[1, 2] * Ez
 
         # Initialize orthotropic matrix
         self.orthotropicMatrix = np.zeros_like(self.homogenizeMatrix)
@@ -411,15 +392,15 @@ class HomogenizedCell(SimulationBase):
         Return orthotropic matrix
         """
         Hinv = np.linalg.inv(self.homogenizeMatrix)
-        Ex = 1/Hinv[0,0]
-        Ey = 1/Hinv[1,1]
-        Ez = 1/Hinv[2,2]
-        Gxy = 1/(2*Hinv[3,3])
-        Gxz = 1/(2*Hinv[4,4])
-        Gyz = 1/(2*Hinv[5,5])
-        nuxy = -Hinv[0,1]*Ey
-        nuxz = -Hinv[0,2]*Ez
-        nuyz = -Hinv[1,2]*Ez
+        Ex = 1 / Hinv[0, 0]
+        Ey = 1 / Hinv[1, 1]
+        Ez = 1 / Hinv[2, 2]
+        Gxy = 1 / (2 * Hinv[3, 3])
+        Gxz = 1 / (2 * Hinv[4, 4])
+        Gyz = 1 / (2 * Hinv[5, 5])
+        nuxy = -Hinv[0, 1] * Ey
+        nuxz = -Hinv[0, 2] * Ez
+        nuyz = -Hinv[1, 2] * Ez
         matSorthotropic = np.array([
             [1 / Ex, -nuxy / Ex, -nuxz / Ex, 0.0, 0.0, 0.0],
             [-nuxy / Ex, 1 / Ey, -nuyz / Ey, 0.0, 0.0, 0.0],
@@ -429,9 +410,8 @@ class HomogenizedCell(SimulationBase):
             [0.0, 0.0, 0.0, 0.0, 0.0, 1 / Gyz]])
         return matSorthotropic
 
-
     def print_orthotropic_form(self):
-        print('Ex ', self.orthotropicMatrix[0,0])
+        print('Ex ', self.orthotropicMatrix[0, 0])
         print('Ey ', self.orthotropicMatrix[1, 1])
         print('Ez ', self.orthotropicMatrix[2, 2])
         print('nuxy ', self.orthotropicMatrix[0, 1])
@@ -441,8 +421,6 @@ class HomogenizedCell(SimulationBase):
         print('Gxz ', self.orthotropicMatrix[4, 4])
         print('Gyz ', self.orthotropicMatrix[5, 5])
 
-
-
     def compute_errors(self):
         """
         Calculate errors
@@ -451,10 +429,8 @@ class HomogenizedCell(SimulationBase):
         C_symm = (C + C.T) / 2.0
         self._symmetryError = np.linalg.norm(C_symm - C) / np.linalg.norm(C)
 
-
-
     def print_errors(self):
         """
         Print multiple types of errors in the matrix of simulation results
         """
-        print("Symmetry error: ",self._symmetryError)
+        print("Symmetry error: ", self._symmetryError)

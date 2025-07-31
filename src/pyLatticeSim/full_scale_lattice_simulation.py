@@ -1,33 +1,25 @@
 """
 Class for full-scale lattice simulation.
 """
+from basix.ufl import element
 import numpy as np
-
-
+import ufl
 from dolfinx import fem
-from ufl import dot
 
 from .simulation_base import SimulationBase
 
 class FullScaleLatticeSimulation(SimulationBase):
     """
-    All type of lattice simulation
+    A class to handle full-scale lattice simulation using FenicsX.
     """
 
     def __init__(self, BeamModel):
         super().__init__(BeamModel)
         self.prepare_simulation()
 
-
-
     def apply_displacement_all_nodes_with_lattice_data(self):
         """
-        Applying displacement at all nodes with lattice data
-
-        Parameters:
-        ------------
-        latticeData: lattice object
-            Lattice object
+        Applying displacement at all nodes with lattice data.
         """
         alreadyDone = []
         nodePosition = self.domain.geometry.x
@@ -57,34 +49,35 @@ class FullScaleLatticeSimulation(SimulationBase):
 
     def set_result_diplacement_on_lattice_object(self):
         """
-        Set the result displacement on the lattice object.
+        Assigns the displacement and rotation values from the simulation to the lattice nodes.
         """
-        nodePosition = self.domain.geometry.x
-        nodePosition = np.round(nodePosition, 3)
-        triplet_tuples = [tuple(row) for row in nodePosition]
-        dictNode = {triplet: idx for idx, triplet in enumerate(triplet_tuples)}
+        # Displacement
+        displacement_fem = self.u.sub(0).collapse()
+        coords_disp = np.round(displacement_fem.function_space.tabulate_dof_coordinates(), 5)
+        values_disp = displacement_fem.x.array.reshape((-1, 3))
+
+        # Rotations
+        rotation_fem = self.u.sub(1).collapse()
+        coords_rot = np.round(rotation_fem.function_space.tabulate_dof_coordinates(), 5)
+        values_rot = rotation_fem.x.array.reshape((-1, 3))
+
+        # Mapping dictionaries
+        pos_to_disp = {tuple(coord): disp for coord, disp in zip(coords_disp, values_disp)}
+        pos_to_rot = {tuple(coord): rot for coord, rot in zip(coords_rot, values_rot)}
+
+        # Node assignment
         for cell in self.BeamModel.lattice.cells:
             for beam in cell.beams:
                 for node in [beam.point1, beam.point2]:
-                    nodeCoord = (node.x,node.y,node.z)
-                    if nodeCoord in dictNode:
-                        index_vertex = dictNode[nodeCoord]  # indice du sommet
-
-                        # --- Récupérer les DOFs de déplacement (sub(0)) ---
-                        dof_indices_disp = fem.locate_dofs_topological(
-                            self._V.sub(0), 0, [index_vertex])
-                        uvals_disp = self.u.vector.array[dof_indices_disp]
-
-                        # --- Récupérer les DOFs de rotation (sub(1)) ---
-                        dof_indices_rot = fem.locate_dofs_topological(
-                            self._V.sub(1), 0, [index_vertex])
-                        uvals_rot = self.u.vector.array[dof_indices_rot]
-
-                        # Concaténer pour avoir [ux, uy, uz, rx, ry, rz]
-                        dof_values = np.concatenate((uvals_disp, uvals_rot))
-
-                        # Stocker dans le Node de ta structure
-                        node.displacementValue = dof_values
+                    pos = tuple(np.round([node.x, node.y, node.z], 5))
+                    if pos in pos_to_disp:
+                        node.displacement_vector[:3] = pos_to_disp[pos]
+                    else:
+                        print(f"⚠️ Missing displacement for {pos}")
+                    if pos in pos_to_rot:
+                        node.displacement_vector[3:] = pos_to_rot[pos]
+                    else:
+                        print(f"⚠️ Missing rotation for {pos}")
 
     def apply_force_on_all_nodes_with_lattice_data(self):
         """
@@ -92,7 +85,6 @@ class FullScaleLatticeSimulation(SimulationBase):
 
         This function applies forces stored in the lattice structure onto the corresponding nodes in the finite element model.
         """
-        nodesLocatedDofs = []
         nodePosition = self.domain.geometry.x
         nodePosition = np.round(nodePosition, 3)
         triplet_tuples = [tuple(row) for row in nodePosition]
@@ -104,44 +96,28 @@ class FullScaleLatticeSimulation(SimulationBase):
                     if np.any(node.applied_force):  # Check if any force is applied
                         nodeIndices = dictNode.get((node.x, node.y, node.z), None)
                         if nodeIndices is not None:
-                            # Dirac au noeud
-                            delta_func = fem.Function(self._V)
-                            with delta_func.vector.localForm() as local_vec:
+                            # Dirac at node
+                            # delta_func = fem.Function(self._V)
+                            scalar_element = element("Lagrange", self.domain.basix_cell(), 1)
+                            scalar_space = fem.functionspace(self.domain, scalar_element)
+                            delta_func = fem.Function(scalar_space)
+                            with delta_func.x.petsc_vec.localForm() as local_vec:
                                 local_vec.set(0.0)
+                                entities = np.array([nodeIndices], dtype=np.int32)
                                 dofs_node = fem.locate_dofs_topological(self._V.sub(0),
                                                                         self.domain.topology.dim - 1,
-                                                                        [nodeIndices])
+                                                                        entities)
                                 for index in dofs_node:
                                     local_vec[index] += 1.0
-                            print(local_vec)
-                            # Force à appliquer
-                            forceValue = np.array(node.appliedForce)
-                            print(forceValue)
-                            force_expr = fem.Constant(self.domain, forceValue)
-                            print(force_expr)
-
-                            # Ajout de la contribution dans $self._l_form$
-                            if self._l_form is None:
-                                self._l_form = dot(force_expr, self._V.sub(0)) * delta_func * self._dx
-                            else:
-                                self._l_form += dot(force_expr, self._V.sub(0)) * delta_func * self._dx
-
-            # forceValue = np.array(node.appliedForce)
-                            #
-                            # # Create a delta function to apply nodal force
-                            # delta_func = fem.Function(self._V)
-                            # with delta_func.vector.localForm() as local_vec:
-                            #     local_vec.set(0.0)
-                            #     for index in nodesLocatedDofs:
-                            #         local_vec[index] += 1.0  # Dirac function at node
-                            #
-                            # force_expr = fem.Constant(self.domain, forceValue)
-                            #
-                            # # Add nodal force contribution to the L-form
-                            # if self._l_form is None:
-                            #     self._l_form = dot(force_expr, delta_func) * self._dx
-                            # else:
-                            #     self._l_form += dot(force_expr, delta_func) * self._dx
+                            # Force to apply
+                            forceValue = np.array(node.applied_force)
+                            v = ufl.TestFunction(self._V)
+                            for i in range(len(forceValue)):
+                                if not np.isclose(forceValue[i], 0.0):
+                                    if self._l_form is None:
+                                        self._l_form = forceValue[i] * v[i] * delta_func * self._dx
+                                    else:
+                                        self._l_form += forceValue[i] * v[i] * delta_func * self._dx
 
     def print_number_DOFs(self):
         """
