@@ -21,7 +21,10 @@ dependencies = [
 
 [project.optional-dependencies]
 simulation = [
-    "dolfinx",
+    "dolfinx==0.9.0",
+    "ufl==2024.2.0",
+    "basix==0.9.0",
+    "dolfinx_mpc",
     "petsc4py"
 ]
 

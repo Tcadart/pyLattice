@@ -24,10 +24,10 @@
 #
 #
 # def test_cell_initialization(basic_cell):
-#     assert basic_cell.pos_cell == [0, 0, 0]
-#     assert basic_cell.coordinate_cell == [0.0, 0.0, 0.0]
+#     assert basic_cell.pos == [0, 0, 0]
+#     assert basic_cell.coordinate == [0.0, 0.0, 0.0]
 #     assert isinstance(basic_cell.beams, list)
-#     assert basic_cell.cell_size is not None
+#     assert basic_cell.size is not None
 #
 # #
 # # def test_get_cell_volume(basic_cell):

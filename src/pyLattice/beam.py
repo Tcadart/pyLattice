@@ -13,7 +13,7 @@ class Beam(object):
     Class Beam represents a beam element in lattice structures.
     """
 
-    def __init__(self, point1: 'point', point2: 'point', radius: float, material: int, type_beam: int) -> None:
+    def __init__(self, point1: 'Point', point2: 'Point', radius: float, material: int, type_beam: int) -> None:
         """
         Initialize a Beam object representing a beam element.
 
@@ -24,8 +24,8 @@ class Beam(object):
             material (int): Material identifier of the beam.
             type_beam (int): Type of the beam (0: normal, 1: modified, 2: boundary beam).
         """
-        self.point1: 'point' = point1
-        self.point2: 'point' = point2
+        self.point1: 'Point' = point1
+        self.point2: 'Point' = point2
         self.radius: float = radius
         self.material: int = material
         self.type_beam: int = type_beam

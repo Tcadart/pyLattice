@@ -3,6 +3,9 @@ Visualization and saving of lattice structures from lattice objects.
 
 Created in 2025-01-16 by Cadart Thomas, University of technology Belfort-Montbéliard.
 """
+import numpy as np
+from matplotlib.lines import Line2D
+from matplotlib.patches import Patch
 from mpl_toolkits.mplot3d.art3d import Line3DCollection, Poly3DCollection
 import matplotlib
 import matplotlib.colors as mcolors
@@ -10,7 +13,7 @@ import matplotlib.pyplot as plt
 
 from .cell import Cell
 
-from .utils import _get_beam_color, _prepare_lattice_plot_data, plot_coordinate_system
+from .utils import _get_beam_color, _prepare_lattice_plot_data, plot_coordinate_system, get_boundary_condition_color
 
 matplotlib.use('TkAgg')  # Or 'Qt5Agg' if you prefer Qt backend
 
@@ -48,7 +51,7 @@ class LatticePlotting:
                              voxelViz: bool = False, deformedForm: bool = False, file_save_path: str = None,
                              plotCellIndex: bool = False, plotNodeIndex: bool = False, explode_voxel: float = 0.0,
                              plotting: bool = True, nbRadiusBins: int = 5,
-                             enable_system_coordinates: bool = True) -> None:
+                             enable_system_coordinates: bool = True, enable_boundary_conditions: bool = False) -> None:
 
         """
         Visualizes the lattice in 3D using matplotlib.
@@ -90,6 +93,7 @@ class LatticePlotting:
         max_elements = max(len(cells), 20)  # Dynamically decide the number of colors
         color_palette = generate_colors(max_elements)
         idxColor = []
+        legend_map = {}  # {nb_fixed: color}
 
         if not voxelViz:
             beamDraw = set()
@@ -105,19 +109,37 @@ class LatticePlotting:
                                                               nbRadiusBins)
 
                         # Add line and node data
-                        beam_lines, beam_nodes, beam_indices = _prepare_lattice_plot_data(beam, deformedForm)
+                        beam_lines, beam_nodes, beam_indices, = _prepare_lattice_plot_data(beam, deformedForm)
                         lines.extend(beam_lines)
                         colors.extend([colorBeam] * len(beam_lines))  # One color per line
 
                         for i, node in enumerate(beam_nodes):
                             if node not in nodeDraw:
                                 nodeDraw.add(node)
-                                nodeX.append(node[0])
-                                nodeY.append(node[1])
-                                nodeZ.append(node[2])
+                                nodeX.append(node.x if not deformedForm else node.deformed_coordinates[0])
+                                nodeY.append(node.y if not deformedForm else node.deformed_coordinates[1])
+                                nodeZ.append(node.z if not deformedForm else node.deformed_coordinates[2])
                                 if plotNodeIndex:
-                                    self.ax.text(node[0], node[1], node[2], str(beam_indices[i]), fontsize=5,
+                                    self.ax.text(nodeX[-1], nodeY[-1], nodeZ[-1], str(beam_indices[i]), fontsize=5,
                                                  color='gray')
+                                if enable_boundary_conditions:
+                                    if any(node.fixed_DOF):
+                                        bc_color = get_boundary_condition_color(node.fixed_DOF)
+                                        nb_fixed = sum(node.fixed_DOF)
+                                        legend_map.setdefault(nb_fixed, bc_color)
+
+                                        self.ax.scatter(nodeX[-1], nodeY[-1], nodeZ[-1], c=bc_color, s=70)
+                                        # Apply boundary condition labels
+                                        for i, (is_fixed, d_val) in enumerate(zip(node.fixed_DOF, node.displacement_vector)):
+                                            if is_fixed and abs(d_val) > 1e-10:
+                                                self.ax.text(nodeX[-1] + cell.size[0]/4, nodeY[-1], nodeZ[-1] + cell.size[2]/4,
+                                                             f"u{i}={d_val:.2e}", fontsize=10, color=bc_color)
+                                        if deformedForm:
+                                            # plot initial position of nodes of boundary conditions
+                                            self.ax.scatter(node.x, node.y, node.z, facecolor='none', edgecolor = 'k',
+                                                            s=70, label="Initial Position")
+
+
 
                         beamDraw.add(beam)
 
@@ -132,8 +154,8 @@ class LatticePlotting:
 
         else:  # Voxel visualization
             for cell in cells:
-                x, y, z = cell.coordinate_cell
-                dx, dy, dz = cell.cell_size
+                x, y, z = cell.coordinate
+                dx, dy, dz = cell.size
 
                 beam_color_type = beam_color_type.lower()
                 if beam_color_type == "material":
@@ -154,14 +176,30 @@ class LatticePlotting:
         if self.axisSet is False:
             self._set_min_max_axis(latticeDimDict)
 
+
+
         if enable_system_coordinates:
             plot_coordinate_system(self.ax)
+
+        if enable_boundary_conditions and legend_map:
+            legend_elements = [Patch(facecolor=color, label=f"{n} DOF")
+                               for n, color in sorted(legend_map.items())]
+
+            legend_elements.append(
+                Line2D([0], [0], marker='o', color='k', label="Initial Position",
+                       markerfacecolor='none', markersize=8, linestyle='None')
+            )
+
+            self.ax.legend(handles=legend_elements, title="Boundary Conditions", loc='upper right')
+
 
         # Save or show the plot
         if plotting:
             self.show()
         if file_save_path is not None:
             plt.savefig(file_save_path)
+
+
 
     def visual_cell_zone_blocker(self, lattice, erasedParts: list[tuple]) -> None:
         """
@@ -270,8 +308,8 @@ class LatticePlotting:
         for rad in range(dimRadius):
             ax = axs[rad]
             for cell in cells:
-                x, y, z = cell.coordinate_cell
-                dx, dy, dz = cell.cell_size
+                x, y, z = cell.coordinate
+                dx, dy, dz = cell.size
 
                 # Get color based on the radii value for current geometry
                 radius = cell.radii
@@ -304,6 +342,7 @@ class LatticePlotting:
 
         plt.tight_layout()
         plt.show()
+
 
     def show(self):
         """

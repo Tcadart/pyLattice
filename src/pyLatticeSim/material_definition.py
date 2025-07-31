@@ -8,7 +8,7 @@ import math
 from dolfinx.fem import Constant, Function, functionspace
 from ufl import as_vector
 
-from utils_timing import Timing
+from .utils_timing import Timing
 timingMaterial = Timing()
 
 class Material:
@@ -153,7 +153,7 @@ class Material:
             mod_rads = np.array(list(tagBeam[1]))
             for rad in mod_rads:
                 mask = np.abs(radius_array - rad) < tol
-                radius_array[mask] /= lattice.penalizationCoefficient
+                radius_array[mask] /= lattice.penalization_coefficient
 
         # Initialize tag array
         tag_array = np.full_like(radius_array, -1, dtype=int)
@@ -177,7 +177,7 @@ class Material:
 
         rad_mod = radius_array[is_mod]
         rad_norm = radius_array[is_norm]
-        P = lattice.penalizationCoefficient
+        P = lattice.penalization_coefficient
 
         # Modified beams
         if np.any(is_mod):

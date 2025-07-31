@@ -35,7 +35,8 @@ class Lattice(object):
                  grad_radius_property: list = None, grad_dim_property: list = None, grad_mat_property: list = None,
                  uncertainty_node: float = 0.0, enable_periodicity: bool = False, eraser_blocks: list = None,
                  mesh_trimmer: "MeshTrimmer" = None, symmetry_lattice: dict = None,
-                 enable_simulation_properties: bool = False, verbose: int = 0) -> None:
+                 enable_simulation_properties: bool = False, boundary_conditions: dict = None,
+                 verbose: int = 0):
         """
         Constructor general for the Lattice class.
 
@@ -178,6 +179,9 @@ class Lattice(object):
         if symmetry_lattice is not None:
             self.apply_symmetry(symmetry_lattice["sym_plane"], symmetry_lattice["sym_point"])
 
+        if boundary_conditions is not None:
+            self.set_boundary_conditions(boundary_conditions)
+
         if self._verbose > 0:
             self.are_cells_identical()
             self.print_statistics_lattice()
@@ -291,6 +295,8 @@ class Lattice(object):
         material_name = sim_params.get("material", "VeroClear")
         periodicity = sim_params.get("periodicity", False)
 
+        boundary_conditions = data.get("boundary_conditions", {})
+
         return cls(cell_size_x, cell_size_y, cell_size_z,
                    num_cells_x, num_cells_y, num_cells_z,
                    geom_types, radii,
@@ -303,7 +309,7 @@ class Lattice(object):
                    eraser_blocks=erased_blocks,
                    symmetry_lattice=symmetry_lattice,
                    enable_simulation_properties=enable_simulation_properties,
-                   mesh_trimmer=mesh_trimmer,
+                   mesh_trimmer=mesh_trimmer, boundary_conditions = boundary_conditions,
                    verbose=verbose)
 
     @classmethod
@@ -512,7 +518,7 @@ class Lattice(object):
         """
         Define neighbours for each cell in the lattice, with periodic boundaries if enabled.
         """
-        cell_dict = {tuple(cell.pos_cell): cell for cell in self.cells}
+        cell_dict = {tuple(cell.pos): cell for cell in self.cells}
 
         neighbor_offsets = [
             (-self.cell_size_x, 0, 0), (self.cell_size_x, 0, 0),
@@ -530,9 +536,9 @@ class Lattice(object):
 
             for offset in neighbor_offsets:
                 raw_pos = (
-                    cell.pos_cell[0] + offset[0],
-                    cell.pos_cell[1] + offset[1],
-                    cell.pos_cell[2] + offset[2]
+                    cell.pos[0] + offset[0],
+                    cell.pos[1] + offset[1],
+                    cell.pos[2] + offset[2]
                 )
 
                 if self.enable_periodicity:
@@ -886,7 +892,7 @@ class Lattice(object):
         """
         self.occupancy_matrix = np.empty((self.num_cells_x, self.num_cells_y, self.num_cells_z), dtype=object)
         for cell in self.cells:
-            i, j, k = cell.pos_cell
+            i, j, k = cell.pos
             self.occupancy_matrix[i, j, k] = cell
 
     def get_cells_at_index(self, axis: str, index: int) -> list:
@@ -920,7 +926,7 @@ class Lattice(object):
         cell: Cell object
             The cell for which the boundary box is computed.
         """
-        x, y, z = cell.pos_cell
+        x, y, z = cell.pos
         bbox = []
 
         for axis, index in zip(
@@ -1315,6 +1321,17 @@ class Lattice(object):
                 if beam.type_beam == typeToChange:
                     beam.radius = newRadius
 
+    def get_number_cells(self) -> int:
+        """
+        Get number of cells in the lattice
+
+        Returns:
+        --------
+        numCells: int
+            Number of cells in the lattice
+        """
+        return len(self.cells)
+
     def get_number_beams(self) -> int:
         """
         Get number of beams in the lattice
@@ -1348,7 +1365,7 @@ class Lattice(object):
                         numNodes += 1
         return numNodes
 
-    def apply_boundary_conditions_surface(self, surfaceNames: list[str], valueDisplacement: list[float],
+    def apply_displacement_surface(self, surfaceNames: list[str], valueDisplacement: list[float],
                                           DOF: list[int]) -> None:
         """
         Apply boundary conditions to the lattice
@@ -1514,7 +1531,7 @@ class Lattice(object):
                             node.displacement_vector[DOFi] = val
                             node.fix_DOF([DOFi])
 
-    def apply_force_on_surface(self, surfaceName: list[str], valueForce: list[float], DOF: list[int]) -> None:
+    def apply_force_surface(self, surfaceName: list[str], valueForce: list[float], DOF: list[int]) -> None:
         """
         Apply force to the lattice
 
@@ -2139,8 +2156,8 @@ class Lattice(object):
         node_map = {}
 
         for cell in self.cells:
-            new_pos = list(cell.pos_cell)
-            new_start_pos = list(cell.coordinate_cell)
+            new_pos = list(cell.pos)
+            new_start_pos = list(cell.coordinate)
             mirrored_beams = []
 
             for beam in cell.beams:
@@ -2183,7 +2200,7 @@ class Lattice(object):
                     Beam(node_map[new_point1], node_map[new_point2], beam.radius, beam.material, beam.type_beam))
 
             # Create a new mirrored cell
-            new_cell = Cell(new_pos, cell.cell_size, new_start_pos, cell.geom_types, cell.radii, cell.grad_radius,
+            new_cell = Cell(new_pos, cell.size, new_start_pos, cell.geom_types, cell.radii, cell.grad_radius,
                             cell.grad_dim, cell.grad_mat, cell.uncertainty_node, self._verbose)
 
             new_cell.beams = mirrored_beams
@@ -2366,7 +2383,7 @@ class Lattice(object):
         attrs_to_check = [
             "geom_types",
             "radii",
-            "cell_size",
+            "size",
             "grad_radius",
             "grad_dim",
         ]
@@ -2383,10 +2400,48 @@ class Lattice(object):
                 return False
 
             for j, (b1, b2) in enumerate(zip(reference.beams, cell.beams)):
-                if not b1.is_identical_to(b2, reference.cell_size):
+                if not b1.is_identical_to(b2, reference.size):
                     print(b1, b2)
                     print(Fore.RED + f"Difference found in beam {j} between cell 0 and cell {i}" + Style.RESET_ALL)
                     return False
 
         print(Fore.GREEN + "All cells are identical." + Style.RESET_ALL)
         return True
+
+    def set_boundary_conditions(self, boundary_conditions_dict: dict):
+        """
+        Set boundary conditions on the lattice.
+        """
+        def check_data_boundary_condition_validity(data_dict_valid: dict) -> None:
+            """
+            Check if the data of the boundary condition is valid
+            """
+            if "Surface" not in data_dict_valid or "Value" not in data_dict_valid or "DOF" not in data_dict_valid:
+                raise ValueError("Invalid boundary condition data. 'Surface', 'Value' and 'DOF' are required.")
+            if not isinstance(data_dict_valid["Surface"], list):
+                raise ValueError("Surface must be a list of strings.")
+            if not isinstance(data_dict_valid["Value"], list):
+                raise ValueError("Value must be a list of floats.")
+            if not isinstance(data_dict_valid["DOF"], list):
+                raise ValueError("DOF must be a list of strings.")
+            if len(data_dict_valid["Value"]) != len(data_dict_valid["DOF"]):
+                raise ValueError("Value and DOF must have the same length.")
+            if not all(dof in ["X", "Y", "Z", "RX", "RY", "RZ"] for dof in data_dict_valid["DOF"]):
+                raise ValueError("DOF must be one of 'X', 'Y', 'Z', 'RX', 'RY', 'RZ'.")
+            if not all(surface in ["Xmin", "Xmax", "Ymin", "Ymax", "Zmin", "Zmax", "Xmid", "Ymid", "Zmid"]
+                       for surface in data_dict_valid["Surface"]):
+                raise ValueError("Surface must be one of 'Xmin', 'Xmax', 'Ymin', 'Ymax', 'Zmin', 'Zmax', "
+                                 "'Xmid', 'Ymid', 'Zmid'.")
+
+
+        DOF_map = {"X": 0, "Y": 1, "Z": 2, "RX": 3, "RY": 4, "RZ": 5}
+        for key, dict_data in boundary_conditions_dict.items():
+            for name_condition, data in dict_data.items():
+                check_data_boundary_condition_validity(data)
+                numeric_DOFs = [DOF_map[dof] for dof in data["DOF"]]
+                if key == "Force":
+                    self.apply_force_surface(data["Surface"], data["Value"], numeric_DOFs)
+                elif key == "Displacement":
+                    self.apply_displacement_surface(data["Surface"], data["Value"], numeric_DOFs)
+                else:
+                    raise ValueError(f"Unknown boundary condition type: {key}")

@@ -30,12 +30,7 @@ class latticeGeneration:
         """
         Determine mesh size
         """
-        if self.lattice.simMethod == 0:
-            # Find minimum length in lattice to define mesh size
-            length = self.lattice.findMinimumBeamLength()
-            self._mesh_size = 0.05
-        elif self.lattice.simMethod == 1:
-            self._mesh_size = 0.05
+        self._mesh_size = 0.05
 
     @timingLG.timeit
     def mesh_lattice_cells(self, cell_index, mesh_element_lenght:float = 0.05, save_mesh:bool = True):
@@ -125,7 +120,7 @@ class latticeGeneration:
                             beam_already_added.add(beam)
                             beam_id = self.geom.addLine(self.point[beam.point1.index], self.point[beam.point2.index])
                             self.beams.append(beam_id)
-                            if beam.modBeam:
+                            if beam.beam_mod:
                                 tagBeam[1].add(beam.radius)
                             else:
                                 tagBeam[0].add(beam.radius)

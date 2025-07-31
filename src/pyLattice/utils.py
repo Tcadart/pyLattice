@@ -10,6 +10,7 @@ from pathlib import Path
 from typing import Tuple
 
 import numpy as np
+import matplotlib.colors as mcolors
 # import plotly.graph_objects as go
 # import trimesh
 
@@ -106,19 +107,17 @@ def save_lattice_object(lattice, file_name: str = "LatticeObject") -> None:
 
 
 def _prepare_lattice_plot_data(beam, deformedForm: bool = False):
-    """Prepare lines and node positions for lattice plotting."""
     beamDraw = set()
     lines = []
     index = []
-    nodes = set()
+    nodes = []
 
     if beam.radius != 0.0 and beam not in beamDraw:
-        node1 = beam.point1.deformed_coordinates if deformedForm else (
-            beam.point1.x, beam.point1.y, beam.point1.z)
-        node2 = beam.point2.deformed_coordinates if deformedForm else (
-            beam.point2.x, beam.point2.y, beam.point2.z)
+        node1 = beam.point1.deformed_coordinates if deformedForm else (beam.point1.x, beam.point1.y, beam.point1.z)
+        node2 = beam.point2.deformed_coordinates if deformedForm else (beam.point2.x, beam.point2.y, beam.point2.z)
         lines.append([node1, node2])
-        nodes.update([node1, node2])
+        nodes.append(beam.point1)
+        nodes.append(beam.point2)
         index.append(beam.point1.index)
         index.append(beam.point2.index)
 
@@ -160,6 +159,19 @@ def _get_beam_color(beam, color_palette, beamColor, idxColor, cells, nbRadiusBin
     else:
         colorBeam = "blue"
     return colorBeam, idxColor
+
+def get_boundary_condition_color(fixed_DOF: list[bool]) -> str:
+    """
+    Generate a color based on the fixed DOFs using a bitmask approach.
+    """
+    # Convert fixed_DOF to a bitmask integer
+    bitmask = sum(2**i for i, val in enumerate(fixed_DOF) if val)
+
+    # Create a color palette (reproducible)
+    base_colors = list(mcolors.TABLEAU_COLORS.values()) + list(mcolors.CSS4_COLORS.values())
+    color_index = bitmask % len(base_colors)
+
+    return base_colors[color_index]
 
 
 def visualize_lattice_3D_interactive(lattice, beamColor: str = "Material", voxelViz: bool = False,
@@ -270,8 +282,8 @@ def visualize_lattice_3D_interactive(lattice, beamColor: str = "Material", voxel
     else:
         # Vizualize the lattice as a voxel grid
         for cell in lattice.cells:
-            x, y, z = cell.coordinate_cell
-            dx, dy, dz = cell.cell_size
+            x, y, z = cell.coordinate
+            dx, dy, dz = cell.size
 
             if beamColor == "Material":
                 colorCell = color_list[cell.beams[0].material % len(color_list)]

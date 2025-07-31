@@ -141,7 +141,7 @@ class BeamModel:
     def define_material_model(self, lattice):
         """Define all material properties with preset data"""
         self._material = Material(self.domain)
-        self._material.set_material(lattice.materialName)
+        self._material.set_material(lattice.material_name)
 
     @timing.timeit
     def calculate_local_coordinate_system(self):

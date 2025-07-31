@@ -17,7 +17,7 @@ class Cell(object):
     Define Cell data for lattice structure
     """
 
-    def __init__(self, pos_cell: list, initial_cell_size: list, coordinate_cell: list, geom_types: list[str],
+    def __init__(self, pos: list, initial_size: list, coordinate: list, geom_types: list[str],
                  radii: list[float], grad_radius: list, grad_dim: list, grad_mat: list, uncertainty_node: float = 0.0,
                  verbose: int = 0):
         """
@@ -25,11 +25,11 @@ class Cell(object):
 
         Parameters:
         -----------
-        pos_cell: list
+        pos: list
             Position of the cell in the lattice
         initial_cell_size: list
             Initial size of the cell
-        coordinate_cell: list
+        coordinate: list
             Coordinates of the cell minimum corner in the lattice
         geom_types: list[str]
             Type of lattice geometry
@@ -50,9 +50,9 @@ class Cell(object):
         self.original_tags = None
         self.center_point = None
         self._beamMaterial = None
-        self.cell_size = None
-        self.pos_cell: list[int] = pos_cell
-        self.coordinate_cell: list[float] = coordinate_cell
+        self.size = None
+        self.pos: list[int] = pos
+        self.coordinate: list[float] = coordinate
         self.beams: Optional[list] = []
         self.index: Optional[int] = None
         self.geom_types: list[str] = geom_types
@@ -66,15 +66,15 @@ class Cell(object):
         self.neighbour_cells: Optional = []
 
         self.define_original_tags()
-        self.generate_cell_properties(initial_cell_size)
+        self.generate_cell_properties(initial_size)
 
     def __repr__(self) -> str:
-        return f"Cell(Coordinates:{self.coordinate_cell}, Size: {self.cell_size}, Index:{self.index})"
+        return f"Cell(Coordinates:{self.coordinate}, Size: {self.size}, Index:{self.index})"
 
     @property
     def volume(self):
         """ Calculate the volume of the cell."""
-        return self.cell_size[0] * self.cell_size[1] * self.cell_size[2]
+        return self.size[0] * self.size[1] * self.size[2]
 
     @property
     def relative_density(self) -> float:
@@ -108,12 +108,12 @@ class Cell(object):
         list
             List of the boundary box coordinates
         """
-        xMin = self.coordinate_cell[0]
-        xMax = self.coordinate_cell[0] + self.cell_size[0]
-        yMin = self.coordinate_cell[1]
-        yMax = self.coordinate_cell[1] + self.cell_size[1]
-        zMin = self.coordinate_cell[2]
-        zMax = self.coordinate_cell[2] + self.cell_size[2]
+        xMin = self.coordinate[0]
+        xMax = self.coordinate[0] + self.size[0]
+        yMin = self.coordinate[1]
+        yMax = self.coordinate[1] + self.size[1]
+        zMin = self.coordinate[2]
+        zMax = self.coordinate[2] + self.size[2]
         return [xMin, xMax, yMin, yMax, zMin, zMax]
 
     @property
@@ -126,8 +126,8 @@ class Cell(object):
         list of tuples
             List of (x, y, z) coordinates of the corner points.
         """
-        x0, y0, z0 = self.coordinate_cell
-        dx, dy, dz = self.cell_size
+        x0, y0, z0 = self.coordinate
+        dx, dy, dz = self.size
 
         corners = [
             (x0, y0, z0),
@@ -223,14 +223,14 @@ class Cell(object):
             if (x1, y1, z1) in pointDict:
                 point1 = pointDict[(x1, y1, z1)]
             else:
-                point1 = Point(x1 * self.cell_size[0] + self.coordinate_cell[0], y1 * self.cell_size[1] + self.coordinate_cell[1],
-                               z1 * self.cell_size[2] + self.coordinate_cell[2], self.uncertainty_node)
+                point1 = Point(x1 * self.size[0] + self.coordinate[0], y1 * self.size[1] + self.coordinate[1],
+                               z1 * self.size[2] + self.coordinate[2], self.uncertainty_node)
                 pointDict[(x1, y1, z1)] = point1
             if (x2, y2, z2) in pointDict:
                 point2 = pointDict[(x2, y2, z2)]
             else:
-                point2 = Point(x2 * self.cell_size[0] + self.coordinate_cell[0], y2 * self.cell_size[1] + self.coordinate_cell[1],
-                               z2 * self.cell_size[2] + self.coordinate_cell[2], self.uncertainty_node)
+                point2 = Point(x2 * self.size[0] + self.coordinate[0], y2 * self.size[1] + self.coordinate[1],
+                               z2 * self.size[2] + self.coordinate[2], self.uncertainty_node)
                 pointDict[(x2, y2, z2)] = point2
             beam = Beam(point1, point2, beamRadius, self._beamMaterial, beamType)
             self.beams.append(beam)
@@ -250,7 +250,7 @@ class Cell(object):
         materialType: int
             Material index of the beam
         """
-        self._beamMaterial = self.grad_mat[self.pos_cell[2]][self.pos_cell[1]][self.pos_cell[0]]
+        self._beamMaterial = self.grad_mat[self.pos[2]][self.pos[1]][self.pos[0]]
 
     def get_radius(self, base_radius: float) -> float:
         """
@@ -268,9 +268,9 @@ class Cell(object):
         actualBeamRadius: float
             Calculated beam radii
         """
-        beamRadius = (base_radius * self.grad_radius[self.pos_cell[0]][0] *
-                      self.grad_radius[self.pos_cell[1]][1] *
-                      self.grad_radius[self.pos_cell[2]][2])
+        beamRadius = (base_radius * self.grad_radius[self.pos[0]][0] *
+                      self.grad_radius[self.pos[1]][1] *
+                      self.grad_radius[self.pos[2]][2])
         return beamRadius
 
     def get_cell_size(self, initial_cell_size: list) -> None:
@@ -285,17 +285,17 @@ class Cell(object):
 
         Returns:
         ---------
-        cell_size : float
+        size : float
             Calculated beam radii
         """
-        self.cell_size = [initial_size * self.grad_dim[pos][i] for i, (initial_size, pos) in
-                          enumerate(zip(initial_cell_size, self.pos_cell))]
+        self.size = [initial_size * self.grad_dim[pos][i] for i, (initial_size, pos) in
+                     enumerate(zip(initial_cell_size, self.pos))]
 
     def get_cell_center(self) -> None:
         """
         Calculate the center point of the cell
         """
-        self.center_point = [self.coordinate_cell[i] + self.cell_size[i] / 2 for i in range(3)]
+        self.center_point = [self.coordinate[i] + self.size[i] / 2 for i in range(3)]
 
     def get_list_points(self) -> list:
         """
@@ -358,9 +358,9 @@ class Cell(object):
             "Ymax": boundaryBox[3],
             "Zmin": boundaryBox[4],
             "Zmax": boundaryBox[5],
-            "Xmid": self.coordinate_cell[0],
-            "Ymid": self.coordinate_cell[1],
-            "Zmid": self.coordinate_cell[2]
+            "Xmid": self.coordinate[0],
+            "Ymid": self.coordinate[1],
+            "Zmid": self.coordinate[2]
         }
 
         coord_index = {
@@ -726,9 +726,9 @@ class Cell(object):
         """
         Print the data of the cell for debugging purposes.
         """
-        print("Cell position: ", self.pos_cell)
-        print("Cell coordinates: ", self.coordinate_cell)
-        print("Cell size: ", self.cell_size)
+        print("Cell position: ", self.pos)
+        print("Cell coordinates: ", self.coordinate)
+        print("Cell size: ", self.size)
         print("Lattice type_beam: ", self.geom_types)
         print("Beam radii: ", self.radii)
         print("Beam material: ", self._beamMaterial)

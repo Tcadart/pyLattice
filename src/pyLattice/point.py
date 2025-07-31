@@ -43,6 +43,7 @@ class Point:
         self.fixed_DOF: List[bool] = [False] * 6  # Fixed DOF vector (False: free, True: fixed).
         self.global_free_DOF_index: List[Optional[float]] = [None] * 6  # Global free DOF index.
         self.node_mod: bool = False
+        self.magnification_factor: float = 50.0  # Magnification factor for visualization.
 
     def __eq__(self, other: object) -> bool:
         return isinstance(other, Point) and self.x == other.x and self.y == other.y and self.z == other.z
@@ -84,9 +85,9 @@ class Point:
         Returns:
             Tuple[float, float, float]: (x, y, z) coordinates including displacements.
         """
-        return (self.x + self.displacement_vector[0],
-                self.y + self.displacement_vector[1],
-                self.z + self.displacement_vector[2])
+        return (self.x + self.displacement_vector[0] * self.magnification_factor,
+                self.y + self.displacement_vector[1] * self.magnification_factor,
+                self.z + self.displacement_vector[2] * self.magnification_factor)
 
     def move_to(self, xNew: float, yNew: float, zNew: float) -> None:
         """
