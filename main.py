@@ -24,7 +24,7 @@ save_lattice_object(lattice, "Kelvin_helmet")
 
 # print(lattice.getRelativeDensity())
 # vizualizer.saveJSONToGrasshopper(lattice, "Beam3PointFlexion", multipleParts=1)
-vizualizer.visualize_lattice_3D(lattice, "radii", plotNodeIndex=False, plotting=False)
+vizualizer.visualize_lattice(lattice, "radii", plotNodeIndex=False, plotting=False)
 
 # lattice.generateMeshLattice(15, cutMeshAtBoundary=True, remeshLattice=False)
 # lattice.cutMeshLatticeAtBoundary()

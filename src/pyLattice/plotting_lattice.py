@@ -44,7 +44,7 @@ class LatticePlotting:
         self.maxAxis = max(limMax, self.maxAxis) if self.maxAxis is not None else limMax
         self.axisSet = True
 
-    def visualize_lattice_3D(self, lattice_object, beam_color_type: str = "Material",
+    def visualize_lattice(self, lattice_object, beam_color_type: str = "Material",
                              voxelViz: bool = False, deformedForm: bool = False, file_save_path: str = None,
                              plotCellIndex: bool = False, plotNodeIndex: bool = False, explode_voxel: float = 0.0,
                              plotting: bool = True, nbRadiusBins: int = 5,

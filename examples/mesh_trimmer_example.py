@@ -15,4 +15,4 @@ lattice_object = Lattice.from_json(name_lattice, mesh_trimmer)
 lattice_object.cut_beam_with_mesh_trimmer()
 
 vizualizer = LatticePlotting()
-vizualizer.visualize_lattice_3D(lattice_object, beam_color_type="radii")
+vizualizer.visualize_lattice(lattice_object, beam_color_type="radii")

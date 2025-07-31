@@ -323,7 +323,7 @@ class Lattice(object):
         Lattice
             The loaded lattice object.
         """
-        project_root = Path(__file__).resolve().parent.parent
+        project_root = Path(__file__).resolve().parent.parent.parent
         path = project_root / "saved_lattice_file" / file_name
         if path.suffix != ".pkl":
             path = path.with_suffix('.pkl')
@@ -2263,31 +2263,33 @@ class Lattice(object):
         self.objectif_data = objectifData
 
     @timing.timeit
-    def generate_mesh_lattice_Gmsh(self, cutMeshAtBoundary: bool = False, meshSize: float = 0.05,
-                                   nameMesh: str = "Lattice", runGmshApp: bool = False,
-                                   saveMesh: bool = False, saveSTL: bool = True, volume_computation: bool = False):
+    def generate_mesh_lattice_Gmsh(self, cut_mesh_at_boundary: bool = False, mesh_size: float = 0.05,
+                                   name_mesh: str = "Lattice",save_mesh: bool = False, save_STL: bool = True,
+                                   volume_computation: bool = False):
         """
         Generate a mesh representation of the lattice structure using GMSH.
 
         Parameters:
         -----------
-        cutMeshAtBoundary: bool
-            If True, cut the mesh at the bounding box of the lattice.
-        meshSize: float
+        cut_mesh_at_boundary: bool
+            If True, the mesh will be cut at the boundary of the lattice.
+        mesh_size: float
             Size of the mesh elements.
-        runGmshApp: bool
-            If True, run the GMSH application to visualize the mesh.
-        saveMesh: bool
-            If True, save the mesh to a file.
-        nameMesh: str
-            Name of the mesh file to save.
+        name_mesh: str
+            Name of the mesh to be generated.
+        save_mesh: bool
+            If True, the mesh will be saved to a file.
+        save_STL: bool
+            If True, the mesh will be saved in STL format.
+        volume_computation: bool
+            If True, the volume of the mesh will be computed and printed.
         """
         if self.enable_simulation_properties == 1:
             raise ValueError("mesh_file generation is not available for the current simulation method.")
 
         gmsh.initialize()
         gmsh.option.setNumber("General.Verbosity", 1)
-        gmsh.model.add(nameMesh)
+        gmsh.model.add(name_mesh)
         dim = 3  # Dimension of the mesh
 
         all_tags = []
@@ -2304,7 +2306,7 @@ class Lattice(object):
         beam_entities = [(dim, tag) for tag in all_tags]
         lattice = gmsh.model.occ.fragment(beam_entities, [])
 
-        if cutMeshAtBoundary:
+        if cut_mesh_at_boundary:
             # Bounding box definition
             x0, y0, z0 = self.x_min, self.y_min, self.z_min
             dx, dy, dz = self.x_max - x0, self.y_max - y0, self.z_max - z0
@@ -2315,26 +2317,22 @@ class Lattice(object):
 
         # Define mesh size
         points = gmsh.model.getEntities(dim=0)
-        gmsh.model.mesh.setSize(points, meshSize)
+        gmsh.model.mesh.setSize(points, mesh_size)
         gmsh.model.occ.synchronize()
 
         if volume_computation:
             self.get_volume_mesh()
 
-
         gmsh.model.mesh.generate(dim)
 
-        if runGmshApp:
-            gmsh.fltk.run()
-
-        project_root = Path(__file__).resolve().parent.parent
-        if saveMesh:
-            path = project_root / "mesh_file" / f"{nameMesh}.msh"
+        project_root = Path(__file__).resolve().parent.parent.parent
+        if save_mesh:
+            path = project_root / "mesh_file" / f"{name_mesh}.msh"
             gmsh.write(str(path))
             print("mesh_file saved at ", path)
 
-        if saveSTL:
-            path = project_root / "mesh_file" / f"{nameMesh}.stl"
+        if save_STL:
+            path = project_root / "mesh_file" / f"{name_mesh}.stl"
             gmsh.write(str(path))
             print("mesh_file saved at ", path)
 

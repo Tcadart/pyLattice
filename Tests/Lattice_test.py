@@ -51,7 +51,7 @@ def test_relative_density():
 def test_generate_mesh():
     latticeTest = lattice.Lattice(1, 1, 1,
                                   1, 1, 1, ["BCC"], [0.05])
-    latticeTest.generate_mesh_lattice_Gmsh()
+    latticeTest.generate_mesh_STL_lattice_Gmsh()
     assert latticeTest.mesh_lattice is not None
     assert latticeTest.mesh_lattice.faces.shape[0] > 0
 
