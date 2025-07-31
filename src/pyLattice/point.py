@@ -13,7 +13,7 @@ class Point:
 
     def __init__(self, x: float, y: float, z: float, node_uncertainty_SD: float = 0.0) -> None:
         """
-        Initialize a Point object.
+        Initialize a point object.
 
         Args:
             x (float): X-coordinate of the point.
@@ -50,11 +50,11 @@ class Point:
     def __hash__(self) -> int:
         return hash((self.x, self.y, self.z))
 
-    def __sub__(self, other: 'Point') -> List[float]:
+    def __sub__(self, other: 'point') -> List[float]:
         return [self.x - other.x, self.y - other.y, self.z - other.z]
 
     def __repr__(self) -> str:
-        return f"Point({self.x}, {self.y}, {self.z}, Index:{self.index})"
+        return f"point({self.x}, {self.y}, {self.z}, Index:{self.index})"
 
     @property
     def coordinates(self) -> Tuple[float, float, float]:
@@ -243,7 +243,7 @@ class Point:
             raise ValueError("Local tag must be a list.")
         self.local_tag = localTag
 
-    def is_identical_to(self, other: 'Point', cell_size: list[float]) -> bool:
+    def is_identical_to(self, other: 'point', cell_size: list[float]) -> bool:
         """
         Check if this point is identical to another point, modulo the cell size (periodicity).
 
@@ -284,7 +284,7 @@ class Point:
                 self.z == boundary_box_lattice[4] or
                 self.z == boundary_box_lattice[5])
 
-    def distance_to(self, other: 'Point') -> float:
+    def distance_to(self, other: 'point') -> float:
         """
         Calculate the distance to another point.
 

@@ -955,7 +955,7 @@ class Lattice(object):
         """
         return [self.x_min, self.x_max, self.y_min, self.y_max, self.z_min, self.z_max]
 
-    def get_connected_node(self, node: "Point") -> list["Point"]:
+    def get_connected_node(self, node: "point") -> list["point"]:
         """
         Get all nodes connected to the input node with a beam
 
@@ -994,7 +994,7 @@ class Lattice(object):
                     boundaryBeams.append(beam)
         return boundaryBeams
 
-    def find_boundary_nodes(self) -> list["Point"]:
+    def find_boundary_nodes(self) -> list["point"]:
         """
         Find boundary nodes
 
@@ -1399,7 +1399,7 @@ class Lattice(object):
                             elif type == "Force":
                                 node.applied_force[DOFi] = val
 
-    def find_point_on_lattice_surface(self, surfaceNames: list[str]) -> set["Point"]:
+    def find_point_on_lattice_surface(self, surfaceNames: list[str]) -> set["point"]:
         """
         Find points on the surface of the lattice
 
@@ -1410,7 +1410,7 @@ class Lattice(object):
 
         Returns:
         --------
-        pointSet: set of Point objects
+        pointSet: set of point objects
             Set of points found on the specified surfaces
         """
         valid_surfaces = {"Xmin", "Xmax", "Ymin", "Ymax", "Zmin", "Zmax"}
@@ -1441,7 +1441,7 @@ class Lattice(object):
         return pointSet
 
     def find_point_on_lattice_surface_complex(self, surfaceNamesCell: list[str], surfaceNamePoint: list[str]) \
-            -> set["Point"]:
+            -> set["point"]:
         """
         Find points on the surface of the lattice
 
@@ -1452,7 +1452,7 @@ class Lattice(object):
 
         Returns:
         --------
-        pointSet: set of Point objects
+        pointSet: set of point objects
             Set of points found on the specified surfaces
         """
         valid_surfaces = {"Xmin", "Xmax", "Ymin", "Ymax", "Zmin", "Zmax", "Xmid", "Ymid", "Zmid"}

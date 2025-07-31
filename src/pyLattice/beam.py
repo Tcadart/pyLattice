@@ -13,7 +13,7 @@ class Beam(object):
     Class Beam represents a beam element in lattice structures.
     """
 
-    def __init__(self, point1: 'Point', point2: 'Point', radius: float, material: int, type_beam: int) -> None:
+    def __init__(self, point1: 'point', point2: 'point', radius: float, material: int, type_beam: int) -> None:
         """
         Initialize a Beam object representing a beam element.
 
@@ -24,8 +24,8 @@ class Beam(object):
             material (int): Material identifier of the beam.
             type_beam (int): Type of the beam (0: normal, 1: modified, 2: boundary beam).
         """
-        self.point1: 'Point' = point1
-        self.point2: 'Point' = point2
+        self.point1: 'point' = point1
+        self.point2: 'point' = point2
         self.radius: float = radius
         self.material: int = material
         self.type_beam: int = type_beam
@@ -138,7 +138,7 @@ class Beam(object):
             u = self.point1 - self.point2
             v = other.point1 - other.point2
         else:
-            raise ValueError("Beams are not connected at any point")
+            raise ValueError("beams are not connected at any point")
 
         dot_product = sum(a * b for a, b in zip(u, v))
         u_norm = math.sqrt(sum(a * a for a in u))
@@ -149,7 +149,7 @@ class Beam(object):
         angle_deg = math.degrees(angle_rad)
         return angle_deg
 
-    def get_point_on_beam_at_distance(self, distance: float, start_point: int) -> "Point":
+    def get_point_on_beam_at_distance(self, distance: float, start_point: int) -> "point":
         """
         Calculate the coordinates of a point on the beam at a specific distance from an endpoint.
 
@@ -170,7 +170,7 @@ class Beam(object):
             start_point = self.point2
             end_point = self.point1
         else:
-            raise ValueError("Point must be 1 or 2.")
+            raise ValueError("point must be 1 or 2.")
 
         direction_ratios = [
             (end_point.x - start_point.x) / self.length,
@@ -190,7 +190,7 @@ class Beam(object):
 
         return point_mod
 
-    def is_point_on_beam(self, node: 'Point') -> bool:
+    def is_point_on_beam(self, node: 'point') -> bool:
         """
         Check if a given node lies on the beam.
 

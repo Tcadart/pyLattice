@@ -28,9 +28,9 @@ def attractor_lattice(lattice, PointAttractorList: list[float] = None, alpha: fl
 
         Parameters:
         -----------
-        point: Point object
-            Point to move
-        attractorPoint: Point object
+        point: point object
+            point to move
+        attractorPoint: point object
             Attractor point
         alpha_coeff: float
             Coefficient of attraction

@@ -1,0 +1,674 @@
+"""
+Lattice beam simulation with FenicsX
+
+Author: Thomas Cadart
+Date: 2025-02-07
+"""
+from typing import Tuple
+
+import numpy as np
+
+
+from dolfinx.fem import petsc
+from petsc4py import PETSc
+from ufl import (TestFunction, TrialFunction, split, VectorElement, MixedElement, as_vector, dot, grad, diag, Measure,
+                 dx, action)
+from dolfinx import fem, common, mesh
+from dolfinx.fem.petsc import LinearProblem
+
+class simulationUtilities:
+    """
+    Parent class with all utilities to compute simulation in FenicsX
+    """
+    def __init__(self, BeamModel):
+        self._dx = None
+        self._dx_shear = None
+        self._ds = None
+        self.moments = None
+        self.forces = None
+        self._Sig = None
+        self._Eps = None
+        self._du = None
+        self._u_ = None
+        self.BeamModel = BeamModel
+        self._COMM = self.BeamModel.COMM
+        self.domain = self.BeamModel.domain
+        self._t = self.BeamModel.t
+        self._a1 = self.BeamModel.a1
+        self._a2 = self.BeamModel.a2
+        self._V = None
+        self.objectiveData = []
+        self._bcs = []
+        self._k_form = None
+        self._l_form = None
+        self._element_mixed = None
+
+    def define_test_trial_function(self):
+        """
+        Define Test and Trial Function from function space
+        """
+        self._u_ = TestFunction(self._V)
+        self._du = TrialFunction(self._V)
+
+    def calculate_stress_strain(self):
+        """
+        Calculate stress and strain
+        """
+        self._Eps = self.generalized_strains(self._u_)
+        self._Sig = self.generalized_stress(self._du)
+
+    def calculate_stress_grad(self):
+        """
+        Calculate stress gradient
+        """
+        self._SigGrad = self.generalized_stress_grad(self._du)
+
+    def generalized_stress(self, u):
+        """
+        Calculate stress from a fem.Function
+
+        Parameters:
+        -----------
+        u: fem.Function
+
+        """
+        return dot(diag(self.BeamModel.material.properties_for_stress), self.generalized_strains(u))
+
+    def generalized_stress_grad(self, u):
+        """
+        Calculate stress gradient from a fem.Function
+
+        Parameters:
+        -----------
+        u: fem.Function
+        """
+        return dot(diag(self.BeamModel.material.properties_for_stress_gradient), self.generalized_strains(u))
+
+    def generalized_strains(self, u):
+        """
+        Calculate strain from a fem.Function
+
+        Parameters:
+        -----------
+        u: fem.Function
+
+        """
+        (w, theta) = split(u)
+        return as_vector([dot(self.tgrad(w), self._t),
+                          dot(self.tgrad(w), self._a1) - dot(theta, self._a2),
+                          dot(self.tgrad(w), self._a2) + dot(theta, self._a1),
+                          dot(self.tgrad(theta), self._t),
+                          dot(self.tgrad(theta), self._a1),
+                          dot(self.tgrad(theta), self._a2)])
+
+
+    def calculate_forces(self, u):
+        """
+        Extract force components
+        """
+        sig = self.generalized_stress(u)
+        self.forces = as_vector([sig[0], sig[1], sig[2]])
+
+    def calculate_moments(self, u):
+        """
+        Extract moments components
+        """
+        sig = self.generalized_stress(u)
+        self.moments = as_vector([sig[3], sig[4], sig[5]])
+
+    def tgrad(self, u):
+        """
+        Calculate tangential gradient
+        """
+        return dot(grad(u), self._t)
+
+    def define_measures(self):
+        """
+        Define measures with subdomain data
+        """
+        self._ds = Measure("ds", domain=self.domain, subdomain_data=self.BeamModel.facets)
+        self._dx_shear = dx(scheme="default", metadata={"quadrature_scheme": "default", "quadrature_degree": 1}, subdomain_data=self.BeamModel.markers)
+        self._dx = Measure("dx", domain=self.domain, subdomain_data=self.BeamModel.markers)
+
+    def define_mixed_function_space(self, elementType: Tuple[str, str]):
+        """
+        Define Mixed function space with ufl library
+
+        Parameters
+        ----------
+        elementType: Tuple[str, str] => (elementType,elementType)
+            Element type for each VectorElement of the function space
+        """
+        element_diplacement = VectorElement(elementType[0], self.domain.ufl_cell(), 1, dim=self.domain.geometry.dim)
+        element_moment = VectorElement(elementType[1], self.domain.ufl_cell(), 1, dim=self.domain.geometry.dim)
+        self._element_mixed = MixedElement([element_diplacement, element_moment])
+        self._V = fem.functionspace(self.domain, self._element_mixed)
+
+
+    def define_K_form(self):
+        """
+        Define K_form
+        """
+        self._k_form = (sum([self._Sig[i] * self._Eps[i] * self._dx for i in [0, 3, 4, 5]]) +
+                        (self._Sig[1] * self._Eps[1] + self._Sig[2] * self._Eps[2]) * self._dx_shear)
+
+    def define_K_form_grad(self):
+        """
+        Define K_formGrad
+        """
+        self._k_formGrad = (sum([self._SigGrad[i] * self._Eps[i] * self._dx for i in [0, 3, 4, 5]]) +
+                        (self._SigGrad[1] * self._Eps[1] + self._SigGrad[2] * self._Eps[2]) * self._dx_shear)
+
+    def define_L_form_null(self):
+        """
+        Define L_form as null
+        """
+        if self._l_form is None:
+            self._l_form = self._u_[0] * fem.Constant(self.domain, 0.0) * self._ds
+
+    def print_timers(self):
+        """
+        Print all accumulated timers with wall-clock time.
+        """
+        common.list_timings(self._COMM, [common.TimingType.wall])
+
+    def apply_force_at_node(self, node_tag: int, forceValue: float, dofIdx: int):
+        """
+        Apply a concentrated force at a specific node.
+
+        Parameters:
+        -----------
+        node_tag: int
+            Tag identifying the node.
+        forceValue: float
+            The value of the force.
+        dofIdx: int
+            The degree of freedom where the force is applied
+        """
+        self.apply_constraint_at_node(node_tag, forceValue, dofIdx, "Force")
+
+
+    def apply_displacement_at_node(self, node_tag: int, displacementValue: float, dofIdx: int):
+        """
+        Applying displacement at a node with a specific tag
+
+        Parameters:
+        ------------
+        node_tag: int
+            Tag identifying the node
+        displacementValue: float
+            Displacement value to apply at the node
+        dofIdx: int
+            Between 0 and 5: the degree of freedom where move is apply
+        """
+        self.apply_constraint_at_node(node_tag, displacementValue, dofIdx, "Displacement")
+
+    def apply_constraint_at_node(self, node_tag: int, value_constraint: float, dof_idx: int, type_constraint: str):
+        """
+        Apply a constraint at a specific node.
+
+        Parameters:
+        -----------
+        node_tag: int
+            Tag identifying the node.
+        valueConstraint: float
+            The value of the constraint.
+        dofIdx: int
+            The degree of freedom where the constraint is applied.
+        typeConstraint: string
+            Type of the constraint ("Displacement", "Force")
+        """
+        dictType = {"Displacement", "Force"}
+        if type_constraint not in dictType:
+            raise ValueError("Type of constraint must be 'Displacement' or 'Force'")
+
+        # Locate the node indices with the given tag
+        nodeIndices = self.BeamModel.facets.find(node_tag)
+
+        if len(nodeIndices) == 0:
+            raise ValueError("No nodes found with tag " + str(node_tag))
+
+        # Find the DOFs associated with the node
+        nodesLocatedDofs = fem.locate_dofs_topological(self._V, self.domain.topology.dim - 1, nodeIndices)
+
+        nodesLocatedDofs = nodesLocatedDofs[dof_idx]
+
+        if type_constraint == "Displacement":
+            # Define the displacement function and set the values
+            u_bc = fem.Function(self._V)
+            with u_bc.vector.localForm() as loc:
+                loc[nodesLocatedDofs] = value_constraint
+            # Apply the boundary condition
+            self._bcs.append(fem.dirichletbc(u_bc, nodesLocatedDofs))
+        elif type_constraint == "Force":
+            indicator = fem.Function(self._V)
+            with indicator.vector.localForm() as local_vec:
+                local_vec.set(0.0)
+                local_vec[nodesLocatedDofs] = 1.0  # Marquer uniquement les DOFs ciblés
+
+            forceVector = np.zeros(3)
+            forceVector[dof_idx] = value_constraint
+            force_expr = fem.Constant(self.domain, forceVector)
+
+            # Add nodal force contribution to the L-form
+            (w_, theta_) = split(self._u_)
+            if self._l_form is None:
+                self._l_form = dot(force_expr, as_vector([indicator[i] * w_[i] for i in range(3)])) * self._dx
+            else:
+                self._l_form += dot(force_expr, as_vector([indicator[i] * w_[i] for i in range(3)])) * self._dx
+
+    def apply_all_boundary_condition_on_lattice(self, cell_only=None):
+        """
+        Apply all boundary conditions on the lattice
+        """
+        for cell in self.BeamModel.lattice.cells:
+            if cell_only is not None and cell_only != cell:
+                continue
+            cell.getNodeOrderToSimulate()
+            for beam in cell.beams:
+                for node in [beam.point1, beam.point2]:
+                    if any(dof == 1 for dof in node.fixedDOF) or any(force != 0 for force in node.appliedForce):
+                        for i in range(6):
+                            if node.fixedDOF[i] == 1:
+                                self.apply_displacement_at_node(node.localTag[0], node.displacementValue[i], i)
+                            if node.appliedForce[i] != 0:
+                                self.apply_force_at_node(node.localTag[0], node.appliedForce[i], i)
+
+    def apply_all_boundary_condition_on_cell_without_distinction(self, cellToApply):
+        """
+        Apply all boundary conditions on a specific cell without distinction between fixed DOF and applied force
+        Args:
+            cellToApply: 
+
+        Returns:
+
+        """
+        for cell in self.BeamModel.lattice.cells:
+            if cell == cellToApply:
+                cell.getNodeOrderToSimulate()
+                for beam in cell.beams:
+                    for node in [beam.point1, beam.point2]:
+                        if node.indexBoundary is not None:
+                            for i in range(6):
+                                self.apply_displacement_at_node(node.localTag[0], node.displacementValue[i], i)
+
+
+    def apply_displacement_at_node_all_DOF(self, node_tag: int, displacementVector: list):
+        """
+        Applying displacement at a node with a specific tag
+
+        Parameters:
+        ------------
+        node_tag: int
+            Tag identifying the node
+        displacementVector: list of float
+            Displacement value to apply at the node
+        """
+        # Locate nodes with the given tag
+        nodeIndices = self.BeamModel.facets.find(node_tag)
+
+        if len(nodeIndices) != 0:
+            # Find the degrees of freedom associated with these nodes
+            nodesLocatedDofs = fem.locate_dofs_topological(self._V, self.domain.topology.dim - 1, nodeIndices)
+            # Define the displacement function and set the values
+            u_bc = fem.Function(self._V)
+            with u_bc.vector.localForm() as loc:
+                loc[nodesLocatedDofs] = displacementVector
+            # print(u_bc.x.array)
+            # Apply the boundary condition
+            self._bcs.append(fem.dirichletbc(u_bc, nodesLocatedDofs))
+
+
+    def apply_block_all_boundary_and_displacement_one_DOF(self, node_tag, dofIdx, movingValue):
+        """
+        Applying displacement at a DOF with a specific tag and block other dof at boundary cell
+
+        Parameters:
+        ------------
+        node_tag: array of int
+            Tag identifying the node
+        dofIdx: array of int
+            Between 0 and 5: the degree of freedom where move is apply
+        movingValue: array of float
+            Value of moving at the dof of the node
+
+        Return:
+        --------
+        displacementData: array of array
+            Input data
+        """
+
+        def remove_duplicates(node_tags, dofIdxs, movingValues):
+            """
+            Remove duplicate [node_tag, dofIdx] pairs.
+
+            Parameters:
+            ------------
+            node_tags: array of int
+                Tags identifying the nodes
+            dofIdxs: array of int
+                Degrees of freedom
+            movingValues: array of float
+                Values of moving at the dofs of the nodes
+
+            Returns:
+            --------
+            tuple of arrays
+                Filtered node_tags, dofIdxs, and movingValues with duplicates removed
+            """
+            seen_pairs = set()
+            unique_node_tags = []
+            unique_dofIdxs = []
+            unique_movingValues = []
+            for node_tag, dofIdx, movingValue in zip(node_tags, dofIdxs, movingValues):
+                if (node_tag, dofIdx) not in seen_pairs:
+                    seen_pairs.add((node_tag, dofIdx))
+                    unique_node_tags.append(node_tag)
+                    unique_dofIdxs.append(dofIdx)
+                    unique_movingValues.append(movingValue)
+
+            return np.array(unique_node_tags), np.array(unique_dofIdxs), np.array(unique_movingValues)
+
+        node_tags = np.array(node_tag)
+        dofIdxs = np.array(dofIdx)
+        movingValues = np.array(movingValue)
+
+        # Remove duplicate [node_tag, dofIdx] pairs
+        node_tags, dofIdxs, movingValues = remove_duplicates(node_tags, dofIdxs, movingValues)
+        # Find all boundary tags
+        self.find_boundary_tags()
+
+        if any(dofIdx > 5 or dofIdx < 0 for dofIdx in dofIdxs):
+            raise ValueError("Each DOF needs to be between 0 and 5")
+        displacement = []
+        for tags in self._boundaryTags:
+            if tags in node_tags:
+                # Find the indices of the matching tags
+                indices = np.where(node_tags == tags)[0]
+                displacementDof = np.zeros(6)
+                for idx in indices:
+                    displacementDof[dofIdxs[idx]] = movingValues[idx]
+                displacement.append(displacementDof)
+                for idx2 in range(6):
+                    self.apply_displacement_at_node(tags, displacementDof[idx2], idx2)
+            else:
+                displacement.append(np.zeros(6))
+                for idx in range(6):
+                    self.apply_displacement_at_node(tags, 0.0, idx)
+        return node_tags, dofIdxs, movingValues, displacement
+
+
+    def find_boundary_tags(self):
+        """
+        Find all tag with a node on the boundary of the unit cell
+        # To delete
+        """
+        #TODO connect with lattice tags
+        tags = []
+        tags.append(np.arange(8) + 1000)
+        tags.append(np.arange(6) + 10)
+        tags.append(np.arange(12) + 100)
+        tags = np.concatenate(tags)
+        self._boundaryTags = []
+        for tag in tags:
+            if len(self.BeamModel.facets.find(tag)) != 0:
+                self._boundaryTags.append(tag)
+        print("self._boundaryTags", self._boundaryTags)
+        return self._boundaryTags
+
+    def solve_problem(self):
+        """
+        Solve the problem with a linear solver
+        """
+        self.define_L_form_null()
+        self.u = fem.Function(self._V)
+        problem = LinearProblem(self._k_form, self._l_form, u=self.u, bcs=self._bcs,
+                                          petsc_options={"ksp_type": "preonly", "pc_type": "lu"})
+        problem.solve()
+
+
+    def calculate_reaction_force(self, node_tag:int):
+        """
+        Calculate reaction force on node_tag on macro coordinates basis
+        with strategy 2 : https://bleyerj.github.io/comet-fenicsx/tips/computing_reactions/computing_reactions.html
+
+        Parameters:
+        -----------
+        node_tag : integer
+            The node tag where reaction force is calculated
+        """
+        #TODO update decrepended function
+        
+        # residual = action(self._k_form_boundary, self._u_tot)
+        residual = action(self._k_form, self.u)
+        v_reac = fem.Function(self._V)
+        virtual_work_form = fem.form(action(residual, v_reac))
+
+        bcDof = fem.locate_dofs_topological(self._V.sub(0), self.domain.topology.dim - 1,
+                                            self.BeamModel.facets.find(node_tag)[0])
+
+        C = fem.Constant(self.domain,1.0)
+        bcx = fem.dirichletbc(C,np.array(bcDof[0]),self._V.sub(0).sub(0))
+
+        fem.set_bc(v_reac.vector, [bcx])
+        Rx = fem.assemble_scalar(virtual_work_form)
+
+        v_reac.vector.set(0.0)
+        bcy = fem.dirichletbc(C, np.array(bcDof[1]), self._V.sub(0).sub(1))
+        fem.set_bc(v_reac.vector, [bcy])
+        Ry = fem.assemble_scalar(virtual_work_form)
+
+        v_reac.vector.set(0.0)
+        bcz = fem.dirichletbc(C, np.array(bcDof[2]), self._V.sub(0).sub(2))
+        fem.set_bc(v_reac.vector, [bcz])
+        Rz = fem.assemble_scalar(virtual_work_form)
+        f = np.array([Rx,Ry,Rz])
+
+        node_idx = self.BeamModel.facets.find(node_tag)[0]
+        r = self.domain.geometry.x[node_idx] # Position vector
+
+        return f, r
+
+    def calculate_reaction_force_and_moment(self, node_tag:int):
+        """
+        Calculate reaction force on node_tag on macro coordinates basis
+        with strategy 2 : https://bleyerj.github.io/comet-fenicsx/tips/computing_reactions/computing_reactions.html
+
+        Parameters:
+        -----------
+        node_tag : integer
+            The node tag where reaction force is calculated
+        """
+        # residual = action(self._k_form_boundary, self._u_tot)
+        residual = action(self._k_form, self.u)
+        v_reac = fem.Function(self._V)
+        virtual_work_form = fem.form(action(residual, v_reac))
+
+        bcDof = fem.locate_dofs_topological(self._V, self.domain.topology.dim - 1,
+                                            self.BeamModel.facets.find(node_tag)[0])
+        C = fem.Constant(self.domain, 1.0)
+
+        a = 0
+        arrayOfReaction = []
+        for ddl in range(6): # 6 degrees of freedom
+            if ddl == 3:
+                a = 1
+            bc = fem.dirichletbc(C,np.array(bcDof[ddl]),self._V.sub(a).sub(ddl%3))
+
+            fem.set_bc(v_reac.vector, [bc])
+            arrayOfReaction.append(fem.assemble_scalar(virtual_work_form))
+            v_reac.vector.set(0.0)
+
+        node_idx = self.BeamModel.facets.find(node_tag)[0]
+        r = self.domain.geometry.x[node_idx] # Position vector
+
+        return arrayOfReaction, r
+
+    def calculate_reaction_force_and_moment_all_boundary_nodes(self, nodeInOrder: dict, fullNodes: bool = False):
+        """
+        Calculate reaction force on all boundary nodes
+        """
+        reactionForces = []
+        positions = []
+        for tag in nodeInOrder:
+            if len(self.BeamModel.facets.find(tag)) != 0:
+                force, position = self.calculate_reaction_force_and_moment(tag)
+                reactionForces.append(force)
+                positions.append(position)
+            elif fullNodes:
+                reactionForces.append(np.zeros(6))
+                positions.append(np.zeros(3))
+        return reactionForces, positions
+
+    def calculate_energy_cell(self, displacement: list):
+        """
+        Calculate the energy in the cell based on the displacement vector.
+        """
+        nodeInOrder = self.BeamModel.lattice.cells[0].getNodeOrderToSimulate()
+        RF, nodes = self.calculate_reaction_force_and_moment_all_boundary_nodes(nodeInOrder)
+        dataReactionForce = np.array(RF).flatten()
+        displacementVector = np.array(displacement).flatten()
+        Energy = 0.5 * np.dot(dataReactionForce, displacementVector)
+        return Energy
+
+    def calculate_strain_energy(self):
+        """
+        Compute the strain energy in the lattice cell.
+
+        Returns:
+        --------
+        W : float
+            Total strain energy stored in the cell.
+        """
+        residual = 0.5 * action(self._k_form, self.u)
+        virtual_work_form = fem.form(action(residual, self.u))
+        W = fem.assemble_scalar(virtual_work_form)
+        return W
+
+    def calculate_strain_energy_grad(self):
+        self.calculate_stress_grad()
+        self.define_K_form_grad()
+
+        residual = 0.5 * action(self._k_formGrad, self.u)
+        virtual_work_form = fem.form(action(residual, self.u))
+        WGrad = fem.assemble_scalar(virtual_work_form)
+        return WGrad
+
+
+    def construct_K(self):
+        """
+        Construct K matrix from variational form
+        """
+        k = fem.form(self._k_form)
+        self._K = petsc.assemble_matrix(k)
+        self._K.assemble()
+
+    def calculate_schur_complement_efficiently(self, node_tags):
+        """
+        Decompose K matrix for Schur complement
+
+        Parameters:
+        -----------
+        node_tags: array of int
+            Tags identifying the nodes on the boundary
+        """
+        # Collect all DOFs on the boundary
+        DofsBoundary = []
+        for node_tag in node_tags:
+            if node_tag is not None:
+                nodeIndices = self.BeamModel.facets.find(node_tag)
+                if nodeIndices is not None and nodeIndices.size > 0:
+                    nodesLocatedDofs = fem.locate_dofs_topological(
+                        self._V, self.domain.topology.dim - 1, nodeIndices)
+                    DofsBoundary.extend(nodesLocatedDofs)
+        DofsBoundary = np.array(DofsBoundary, dtype=np.int32)
+
+        if len(DofsBoundary) == 0:
+            raise ValueError("Aucun DOF de frontière trouvé pour les tags fournis.")
+
+        # Create IS objects for boundary and interior DOFs
+        is_boundary = PETSc.IS().createGeneral(DofsBoundary)
+        num_dofs = self._K.getSize()[0]
+        all_dofs = np.arange(num_dofs, dtype=np.int32)
+        DofsInterior = np.setdiff1d(all_dofs, DofsBoundary)
+        is_interior = PETSc.IS().createGeneral(DofsInterior)
+
+        if len(DofsInterior) == 0:
+            raise ValueError("Aucun DOF intérieur trouvé; vérifiez vos DOFs de frontière.")
+
+        # Extract the submatrices
+        K_II = self._K.createSubMatrix(is_interior, is_interior)
+        K_IB = self._K.createSubMatrix(is_interior, is_boundary)
+        K_BI = self._K.createSubMatrix(is_boundary, is_interior)
+        K_BB = self._K.createSubMatrix(is_boundary, is_boundary)
+
+        # Create a KSP object for solving K_II * U = K_IB
+        ksp = PETSc.KSP().create()
+        ksp.setOperators(K_II)
+        ksp.setType('preonly')
+        ksp.getPC().setType('lu')
+        ksp.setFromOptions()
+
+        # Solve K_II * U = K_IB
+        # Create a dense matrix to store the solution
+        num_interior = len(DofsInterior)
+        num_boundary = len(DofsBoundary)
+        U = PETSc.Mat().createDense([num_interior, num_boundary])
+        U.setUp()
+
+        # Solve the linear system for each column of U
+        K_IB_dense = K_IB.convert("dense")
+        ksp.matSolve(K_IB_dense, U)
+
+        # Compute Schur complement : S = K_BB - K_BI * U
+        temp = PETSc.Mat().createDense([num_boundary, num_boundary])
+        K_BI.matMult(U, temp)
+        S = K_BB.copy()
+        S.axpy(-1.0, temp)
+
+        S_dense = S.convert("dense")
+        SchurNumpy = S_dense.getDenseArray()
+
+        return SchurNumpy, DofsBoundary
+
+    def extract_stress_field(self):
+        """
+        Extract and interpolate the stress field in the structure after solving the problem.
+
+        Returns:
+        --------
+        stress_function: fem.Function
+            The stress field interpolated into the function space for visualization or post-processing.
+        """
+        # Ensure the solution exists
+        if not hasattr(self, 'u') or self.u is None:
+            raise RuntimeError("Solution 'self.u' is not defined. Solve the problem first.")
+
+        # Step 1: Calculate stress from the solved displacement and rotation
+        stress_expr = self.generalized_stress(self.u)
+
+        # Step 2: Define a function space for stress
+        element = VectorElement("DG", self.domain.ufl_cell(), 0, dim=6)  # Stress has 6 components
+        M_function = fem.functionspace(self.domain, element)
+
+        # Step 3: Create a function for stress and interpolate the calculated stress
+        stress_function = fem.Function(M_function)
+        stress_data = fem.Expression(stress_expr, M_function.element.interpolation_points())
+        stress_function.interpolate(stress_data)
+
+        stress_reshape = stress_function.vector.array.reshape((-1, 6))
+        print(f"Stress shape: {stress_reshape}")
+        max_stress = np.max(np.abs(stress_reshape), axis=0)
+        print(f"Max stress: {max_stress}")
+
+        return stress_function
+
+    def prepare_simulation(self):
+        """
+        Initialize the simulation requisites
+        """
+        self.define_mixed_function_space(('CG', 'CG'))
+        self.define_test_trial_function()
+        self.calculate_stress_strain()
+        self.define_measures()
+        self.define_K_form()

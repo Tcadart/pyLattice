@@ -455,7 +455,7 @@ class Cell(object):
 
         Parameters:
         -----------
-        nodeList: list of Point objects
+        nodeList: list of point objects
             List of nodes to get the displacement.
         numberRadiusNN: int
             Number of radii for the neural network
@@ -484,7 +484,7 @@ class Cell(object):
         Parameters:
         -----------
         nodeList: dict
-            Dictionary mapping node tags to Point objects.
+            Dictionary mapping node tags to point objects.
         reactionForce: list
             List of reaction force values corresponding to the nodes.
         """
@@ -732,7 +732,7 @@ class Cell(object):
         print("Lattice type_beam: ", self.geom_types)
         print("Beam radii: ", self.radii)
         print("Beam material: ", self._beamMaterial)
-        print("Beams in cell: ", self.beams)
+        print("beams in cell: ", self.beams)
         print("Cell center point: ", self.center_point)
         print("Cell index: ", self.index)
         print("Beam material: ", self._beamMaterial)

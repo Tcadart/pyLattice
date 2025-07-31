@@ -4,7 +4,7 @@
 #
 # from src.Cell import Cell
 # from src.Beam import Beam
-# from src.Point import Point
+# from src.point import point
 #
 #
 # @pytest.fixture
@@ -36,8 +36,8 @@
 # #
 # #
 # # def test_add_remove_beam(basic_cell):
-# #     p1 = Point(0, 0, 0)
-# #     p2 = Point(1, 0, 0)
+# #     p1 = point(0, 0, 0)
+# #     p2 = point(1, 0, 0)
 # #     b = Beam(p1, p2, 0.05, 0)
 # #     initial_count = len(basic_cell.beams)
 # #     basic_cell.addBeam(b)
