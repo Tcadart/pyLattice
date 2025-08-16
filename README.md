@@ -1,4 +1,7 @@
-# Lattice Structure Generator
+![pyLattice_logo](docs/pyLattice_logo.png)
+
+# pyLattice
+Design and simulation of truss lattice structures
 
 ## Overview
 

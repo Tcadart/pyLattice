@@ -1,0 +1,66 @@
+{
+  "geometry": {
+    "cell_size": {
+      "x": 1,
+      "y": 1,
+      "z": 1
+    },
+    "number_of_cells": {
+      "x": 10,
+      "y": 1,
+      "z": 6
+    },
+    "radii": [
+      0.05
+    ],
+    "geom_types": [
+      "BCC"
+    ]
+  },
+  "gradient": {
+    "radii": {
+      "rule": "linear",
+      "direction_x": true,
+      "direction_y": false,
+      "direction_z": true,
+      "parameter_x": 0.2,
+      "parameter_y": 0.0,
+      "parameter_z": 0.2
+    },
+    "cell_dimension": {
+      "rule": "linear",
+      "direction_x": false,
+      "direction_y": false,
+      "direction_z": true,
+      "parameter_x": 0.0,
+      "parameter_y": 0.0,
+      "parameter_z": 1.0
+    },
+    "material": {
+      "type": 0,
+      "direction": 0
+    }
+  },
+  "simulation_parameters": {
+    "enable" : false,
+    "material": "VeroClear",
+    "periodicity": false
+  },
+  "suplementary": {
+    "node_uncertainty": 0.0,
+    "erased_blocks": {
+        "block_0": {
+          "start_point": {
+            "x": 3.0,
+            "y": 0.0,
+            "z": 2.0
+          },
+          "dimensions_block": {
+            "x": 10.0,
+            "y": 3.0,
+            "z": 20.0
+          }
+        }
+    }
+  }
+}

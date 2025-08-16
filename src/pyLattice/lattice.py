@@ -2284,7 +2284,8 @@ class Lattice(object):
                                    name_mesh: str = "Lattice",save_mesh: bool = False, save_STL: bool = True,
                                    volume_computation: bool = False):
         """
-        Generate a mesh representation of the lattice structure using GMSH.
+        Generate a 2D mesh representation of the lattice structure using GMSH.
+        Generating 3D mesh for simulation is not currently supported, but will be in the future.
 
         Parameters:
         -----------
@@ -2340,7 +2341,7 @@ class Lattice(object):
         if volume_computation:
             self.get_volume_mesh()
 
-        gmsh.model.mesh.generate(dim)
+        gmsh.model.mesh.generate(2)
 
         project_root = Path(__file__).resolve().parent.parent.parent
         if save_mesh:
