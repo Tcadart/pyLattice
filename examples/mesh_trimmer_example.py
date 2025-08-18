@@ -1,8 +1,8 @@
 """
 Example of lattice trimmed with a mesh with class MeshTrimmer.
 """
-from pyLattice.plotting_lattice import LatticePlotting
-from pyLattice.lattice import Lattice
+from src.pyLattice.plotting_lattice import LatticePlotting
+from src.pyLattice.lattice import Lattice
 
 from mesh_file.mesh_trimmer import MeshTrimmer
 

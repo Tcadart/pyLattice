@@ -8,7 +8,7 @@ name_file = "hybrid_cell"
 
 lattice_object = Lattice.from_json(name_file)
 
-lattice_object.generate_mesh_lattice_Gmsh(volume_computation=True, cut_mesh_at_boundary=True)
+lattice_object.generate_mesh_lattice_Gmsh(volume_computation=True, cut_mesh_at_boundary=True, name_mesh=name_file)
 
 lattice_object.timing.summary()
 

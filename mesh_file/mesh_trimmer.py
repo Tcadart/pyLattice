@@ -6,7 +6,7 @@ from typing import cast, Tuple
 
 import matplotlib.pyplot as plt
 import numpy as np
-# import trimesh
+import trimesh
 from mpl_toolkits.mplot3d.art3d import Poly3DCollection
 
 from pyLattice.beam import Beam
@@ -189,7 +189,14 @@ class MeshTrimmer:
             return None
         ray_direction /= norm  # Norm
 
-        intersector = trimesh.ray.ray_pyembree.RayMeshIntersector(self.mesh)
+        try:
+            from trimesh.ray import ray_pyembree
+            intersector = trimesh.ray.ray_pyembree.RayMeshIntersector(self.mesh)
+        except Exception:
+            # Fallback si pyembree n'est pas dispo
+            # from trimesh.ray import ray_triangle
+            # intersector = ray_triangle.RayMeshIntersector(self.mesh)
+            raise ImportError("pyembree is required for ray-mesh intersection. ")
 
         locations, _, _ = intersector.intersects_location(
             ray_origins=[ray_origin],

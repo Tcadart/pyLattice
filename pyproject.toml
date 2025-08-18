@@ -8,7 +8,7 @@ version = "1.1.0"
 description = "Toolkit for lattice design and FE simulation"
 authors = [{name="Thomas Cadart", email="thomas.cadart@utbm.fr"}]
 license = {text = "MIT"}
-requires-python = ">=3.10"
+requires-python = ">=3.12,<3.13"
 dependencies = [
     "numpy>=1.26.4",
     "matplotlib>=3.8.0",
@@ -21,11 +21,16 @@ dependencies = [
 
 [project.optional-dependencies]
 simulation = [
-    "dolfinx==0.9.0",
-    "ufl==2024.2.0",
+    "dolfinx==0.9.0", # Needs to be install via conda-forge
+    "ufl==2024.2.0" ,
     "basix==0.9.0",
     "dolfinx_mpc",
     "petsc4py"
+]
+mesh_operations = [
+    "trimesh==4.7.4",
+    "rtree==1.0.1",
+    "pyembree"
 ]
 
 [tool.setuptools]

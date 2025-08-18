@@ -67,7 +67,7 @@ class Cell(object):
 
         self.define_original_tags()
         self.generate_cell_properties(initial_size)
-        if self.relative_density > 1:
+        if self.relative_density > 1 and self._verbose > 0:
             print(Fore.YELLOW + "WARNING: Approximated relative density of the cell is greater than 1. "
                                 "Beam radius and cell size is probably not well defined" + Style.RESET_ALL)
 
@@ -207,7 +207,7 @@ class Cell(object):
                                        2, 2, 2, 2, 2, 2,
                                        1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
 
-    def generate_beams(self, latticeType: int, beamRadius: float, beamType: int = 0) -> None:
+    def generate_beams(self, latticeType: str, beamRadius: float, beamType: int = 0) -> None:
         """
         Generate beams and nodes using a given lattice type_beam and parameters.
 
@@ -330,7 +330,7 @@ class Cell(object):
         """
         Adding beam to cell
         """
-        if isinstance(beam_to_add, Beam):
+        if beam_to_add.__class__.__name__ == "Beam":
             self.beams.append(beam_to_add)
         elif isinstance(beam_to_add, tuple):
             for beam in beam_to_add:
