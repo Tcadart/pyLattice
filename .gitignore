@@ -38,3 +38,4 @@ __pycache__
 *.msh
 *.egg-info/
 *.egg
+/simulation_results/*

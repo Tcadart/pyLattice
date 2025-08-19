@@ -14,6 +14,13 @@ def solve_FEM_FenicsX(lattice : "Lattice"):
     -----------
     lattice: Lattice object
         The lattice structure to be simulated.
+
+    Returns:
+    --------
+    xsol: numpy.ndarray
+        The solution vector containing displacements.
+    simulationModel: FullScaleLatticeSimulation
+        The simulation model containing the results of the simulation.
     """
     # Generate the lattice model and mesh
     LatticeModel = BeamModel(MPI.COMM_SELF, lattice=lattice)
@@ -33,7 +40,7 @@ def solve_FEM_FenicsX(lattice : "Lattice"):
 
     # Get results to return
     xsol, globalDisplacementIndex = lattice.get_global_displacement()
-    return xsol, globalDisplacementIndex
+    return xsol, simulationModel
 
 def get_homogenized_properties(lattice: "Lattice") -> np.ndarray:
     """
@@ -60,9 +67,6 @@ def get_homogenized_properties(lattice: "Lattice") -> np.ndarray:
 
     homogenization_analysis.print_homogenized_matrix()
     homogenization_analysis.print_errors()
-
-    # exportData = exportBeamData("Result/LatticeHomogenization", homogenization_analysis)
-    # exportData.exportDataHomogenization()
 
     mat_Sorthotropic = homogenization_analysis.get_S_orthotropic()
 

@@ -217,7 +217,7 @@ class MeshTrimmer:
         mesh_collection = Poly3DCollection(faces, facecolors='cyan', linewidths=0.1, edgecolors='k', alpha=0.7)
         ax.add_collection3d(mesh_collection)
 
-        limit = max(self.mesh.extents) / 3
+        limit = max(self.mesh.extents)
         center = self.mesh.centroid
 
         ax.set_xlim(center[0] - limit, center[0] + limit)

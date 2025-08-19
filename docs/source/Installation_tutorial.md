@@ -48,13 +48,14 @@ This will install the core dependencies:
 The simulation backend relies on [FEniCSx](https://fenicsproject.org/).
 These packages are not available on PyPI and must be installed via conda-forge:
 ```bash
-conda install -c conda-forge fenics-dolfinx
+conda install -c conda-forge fenics-dolfinx dolfinx_mpc
 ```
 This will install:
 - `dolfinx`
 - `ufl`
 - `basix`
 - `petsc4py`
+- `dolfinx_mpc`
 
 ⚠️ Do not attempt to install these packages with `pip`, as they require compiled binaries only distributed via `conda-forge`.
 
