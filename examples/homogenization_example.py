@@ -12,10 +12,10 @@ name_file = "hybrid_cell_homogenization"
 
 lattice_object = Lattice.from_json(name_file)
 
-mat_S_orthotropic = get_homogenized_properties(lattice_object)
+mat_S_orthotropic, homogenization_analysis = get_homogenized_properties(lattice_object)
 
 create_homogenization_figure(mat_S_orthotropic, save=True)
 
 # Export simulations to Paraview
-exportData = exportSimulationResults("Result/LatticeHomogenization", homogenization_analysis)
-exportData.exportDataHomogenization()
+exportData = exportSimulationResults(homogenization_analysis, name_file)
+exportData.export_data_homogenization()

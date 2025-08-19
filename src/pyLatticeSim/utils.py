@@ -122,7 +122,7 @@ def create_homogenization_figure(mat_S_orthotropic: np.ndarray, plot: bool = Tru
     ax2.set_label('Directional Stiffness [GPa]')
     if save:
         project_root = Path(__file__).resolve().parent.parent.parent
-        path = project_root / "figure_homogenization" / name_file
+        path = project_root / "simulation_results" / "figure_homogenization" / name_file
         if path.suffix != ".png":
             path = path.with_suffix('.png')
 

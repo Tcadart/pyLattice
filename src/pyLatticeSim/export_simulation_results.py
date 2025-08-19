@@ -133,12 +133,12 @@ class exportSimulationResults:
 
     def write_function(self, time: float = 0.0):
         """Append current fields at time t to the PVD series."""
-        print(f"Saving simulation results to: {self.pvd_path}")
         self._vtk.write_function(self.result_to_export, t=time)
         self.result_to_export = []  # clear after writing (optional)
 
     def close_file(self):
         """Close the PVD writer."""
+        print(f"Saving simulation results to: {self.pvd_path}")
         self._vtk.close()
 
     # ---------------- Composite exports ----------------
@@ -162,11 +162,11 @@ class exportSimulationResults:
         for case, simu_result in enumerate(self.simulation_model.saveDataToExport):
             # displacement/rotation from simu_result
             disp = simu_result.sub(0).collapse()
-            disp.name = f"Displacement_{case}"
+            disp.name = f"Displacement"
             self.result_to_export.append(disp)
 
             theta = simu_result.sub(1).collapse()
-            theta.name = f"Rotation_{case}"
+            theta.name = f"Rotation"
             self.result_to_export.append(theta)
 
             self.export_moments(simu_result, case=case)

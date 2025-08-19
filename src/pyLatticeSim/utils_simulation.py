@@ -42,7 +42,7 @@ def solve_FEM_FenicsX(lattice : "Lattice"):
     xsol, globalDisplacementIndex = lattice.get_global_displacement()
     return xsol, simulationModel
 
-def get_homogenized_properties(lattice: "Lattice") -> np.ndarray:
+def get_homogenized_properties(lattice: "Lattice"):
     """
     Perform homogenization analysis on a lattice structure.
 
@@ -50,6 +50,13 @@ def get_homogenized_properties(lattice: "Lattice") -> np.ndarray:
     -----------
     lattice: Lattice object
         The lattice structure to be homogenized.
+
+    Returns:
+    --------
+    mat_Sorthotropic: numpy.ndarray
+        The homogenized orthotropic stiffness matrix.
+    homogenization_analysis: HomogenizedCell
+        The homogenization analysis object containing results and methods.
     """
     if lattice.get_number_cells() > 1:
         raise ValueError("The lattice must contain only one cell for homogenization.")
@@ -70,5 +77,5 @@ def get_homogenized_properties(lattice: "Lattice") -> np.ndarray:
 
     mat_Sorthotropic = homogenization_analysis.get_S_orthotropic()
 
-    return mat_Sorthotropic
+    return mat_Sorthotropic, homogenization_analysis
 
