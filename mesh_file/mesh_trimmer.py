@@ -207,9 +207,16 @@ class MeshTrimmer:
             return cast(Tuple[float, float, float], tuple(locations[0]))
         return None
 
-    def plot_mesh(self):
+    def plot_mesh(self, zoom: float = 0.0, camera_position: Tuple[float, float] = None):
         """
         Visualize a mesh object in 3D.
+
+        Parameters
+        ----------
+        zoom : float, optional
+            Zoom factor for the mesh visualization. Default is 0.0 (no zoom).
+        camera_position : Tuple[float, float], optional
+            Camera position for the 3D plot, specified as (elevation, azimuth). Default is None (automatic view).
         """
         fig = plt.figure()
         ax = fig.add_subplot(111, projection='3d')
@@ -217,7 +224,7 @@ class MeshTrimmer:
         mesh_collection = Poly3DCollection(faces, facecolors='cyan', linewidths=0.1, edgecolors='k', alpha=0.7)
         ax.add_collection3d(mesh_collection)
 
-        limit = max(self.mesh.extents)
+        limit = max(self.mesh.extents) / zoom
         center = self.mesh.centroid
 
         ax.set_xlim(center[0] - limit, center[0] + limit)
@@ -229,4 +236,6 @@ class MeshTrimmer:
         # Remove background (axes panes and grid)
         ax.set_axis_off()
         ax.grid(False)
+        if camera_position is not None:
+            ax.view_init(elev=camera_position[0], azim=camera_position[1])
         plt.show()

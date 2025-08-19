@@ -14,8 +14,8 @@ lattice_object = Lattice.from_json(name_file)
 
 mat_S_orthotropic, homogenization_analysis = get_homogenized_properties(lattice_object)
 
-create_homogenization_figure(mat_S_orthotropic, save=True)
+create_homogenization_figure(mat_S_orthotropic, save=True, name_file=name_file, plot= False)
 
 # Export simulations to Paraview
-exportData = exportSimulationResults(homogenization_analysis, name_file)
-exportData.export_data_homogenization()
+# exportData = exportSimulationResults(homogenization_analysis, name_file)
+# exportData.export_data_homogenization()

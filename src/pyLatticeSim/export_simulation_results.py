@@ -129,7 +129,7 @@ class exportSimulationResults:
     def export_finalize(self, time: float = 0.0):
         """Write and close (single-shot)."""
         self._vtk.write_function(self.result_to_export, t=time)
-        self._vtk.close()
+        self.close_file()
 
     def write_function(self, time: float = 0.0):
         """Append current fields at time t to the PVD series."""

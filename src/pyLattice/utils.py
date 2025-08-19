@@ -359,7 +359,7 @@ def save_JSON_to_Grasshopper(lattice, nameLattice: str = "LatticeObject", multip
                 partNodesY.append(beam.point2.y)
                 partNodesZ.append(beam.point1.z)
                 partNodesZ.append(beam.point2.z)
-                partRadius.append(max(beam.radius, 0.015))
+                partRadius.append(beam.radius)
 
         obj = {
             "nodesX": partNodesX,

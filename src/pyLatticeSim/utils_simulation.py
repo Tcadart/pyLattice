@@ -27,7 +27,6 @@ def solve_FEM_FenicsX(lattice : "Lattice"):
 
     # Define the FE model and apply boundary conditions
     simulationModel = FullScaleLatticeSimulation(LatticeModel)
-    simulationModel.prepare_simulation()
     simulationModel.apply_displacement_all_nodes_with_lattice_data()
     simulationModel.apply_force_on_all_nodes_with_lattice_data()
     simulationModel.define_L_form_null()

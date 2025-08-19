@@ -1,43 +1,34 @@
-from lattice import *
-from utils import *
-from plotting_lattice import *
-from mesh_file import *
-from preset_lattice.settings import *
+"""
+Main
+"""
+from src.pyLattice.plotting_lattice import LatticePlotting
+from src.pyLattice.lattice import Lattice
 
-name_mesh = "bike-helmet_0_5"
+from mesh_file.mesh_trimmer import MeshTrimmer
+from src.pyLattice.utils import save_JSON_to_Grasshopper
+from pyLatticeSim.utils_simulation import solve_FEM_FenicsX
+from pyLatticeSim.export_simulation_results import exportSimulationResults
+
+
+name_mesh = "CutedBone"  # get from https://anatomytool.org/content/thunthu-3d-model-bones-lower-limb
 mesh_trimmer = MeshTrimmer(name_mesh)
-# mesh_trimmer.plot_mesh()
+mesh_trimmer.scale_mesh(1.5)
+# mesh_trimmer.plot_mesh(zoom = 3, camera_position=(8.7, -178.7))
+
+name_lattice = "Bone_cuted_hybrid"
+lattice_object = Lattice.from_json(name_lattice, mesh_trimmer)
+# lattice_object.cut_beam_with_mesh_trimmer()
+# lattice_object.print_statistics_lattice()
+
+sol, simulation_lattice = solve_FEM_FenicsX(lattice_object)
+
+# save_JSON_to_Grasshopper(lattice_object, name_lattice)
 
 vizualizer = LatticePlotting()
-lattice = Lattice(cell_size_X, cell_size_Y, cell_size_Z, number_cell_X, number_cell_Y, number_cell_Z, Lattice_Type,
-                  Radius, materialName, gradRadiusProperty, gradDimProperty, gradMatProperty, mesh_trimmer=mesh_trimmer)
+vizualizer.visualize_lattice(lattice_object, beam_color_type="radii", voxelViz=False, camera_position=(8.7, -178.7),
+                             enable_system_coordinates=False, deformedForm=True, enable_boundary_conditions=True)
 
-lattice.cut_beam_with_mesh_trimmer()
 
-save_lattice_object(lattice, "Kelvin_helmet")
-
-# lattice.are_cells_identical()
-
-# vizualizer.saveLatticeObject(lattice, "Beam3PointFlexion")
-# lattice.cutBeamsAtMeshIntersection()
-# lattice.printStatistics()
-
-# print(lattice.getRelativeDensity())
-# vizualizer.saveJSONToGrasshopper(lattice, "Beam3PointFlexion", multipleParts=1)
-vizualizer.visualize_lattice(lattice, "radii", plotNodeIndex=False, plotting=False)
-
-# lattice.generateMeshLattice(15, cutMeshAtBoundary=True, remeshLattice=False)
-# lattice.cutMeshLatticeAtBoundary()
-# lattice.generateMeshLatticeGmsh(cutMeshAtBoundary=True, meshSize=0.1, saveMesh=True, saveSTL=False, runGmshApp=False)
-
-# mesh_trimmer = mesh("Lattice.stl")
-#
-# vizualizer.visualizeMesh(mesh_trimmer)
-# vizualizer.visualizeMesh(lattice.mesh_lattice)
-# vizualizer.saveMeshLattice("testLatticeMesh", lattice.mesh_lattice)
-
-vizualizer.show()
-# fig.show()
-
-# Timing
-timing.summary()
+export_results = exportSimulationResults(simulation_lattice, name_lattice)
+export_results.export_displacement_rotation()
+export_results.export_finalize()

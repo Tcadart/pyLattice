@@ -1381,14 +1381,14 @@ class Lattice(object):
         """
         self.apply_constraints_nodes(surfaceNames, valueDisplacement, DOF, "Displacement")
 
-    def apply_constraints_nodes(self, surfaceNames: list[str], value: list[float], DOF: list[int],
-                                type: str = "Displacement", surfaceNamePoint: list[str] = None) -> None:
+    def apply_constraints_nodes(self, surfaces: list[str], value: list[float], DOF: list[int],
+                                type: str = "Displacement", surface_cells: list[str] = None) -> None:
         """
         Apply boundary conditions to the lattice
 
         Parameters:
         -----------
-        surfaceNames: list[str]
+        surfaces: list[str]
             List of surfaces to apply constraint (e.g., ["Xmin", "Xmax", "Ymin"])
         value: list of float
             Values to apply to the constraint
@@ -1396,12 +1396,13 @@ class Lattice(object):
             Degree of freedom to apply constraint (0: x, 1: y, 2: z, 3: Rx, 4: Ry, 5: Rz)
         type_beam: str
             Type of constraint (Displacement, Force)
-
+        surface_cells: list[str], optional
+            List of surfaces to find points on cells (e.g., ["Xmin", "Xmax", "Ymin"]). If None, uses surfaceNames.
         """
-        if surfaceNamePoint is None:
-            pointSet = self.find_point_on_lattice_surface(surfaceNames)
+        if surface_cells is None:
+            pointSet = self.find_point_on_lattice_surface(surfaces)
         else:
-            pointSet = self.find_point_on_lattice_surface_complex(surfaceNames, surfaceNamePoint)
+            pointSet = self.find_point_on_lattice_surface_complex(surfaces, surface_cells)
 
         indexBoundaryList = {point.index_boundary for point in pointSet}
 
@@ -2437,12 +2438,12 @@ class Lattice(object):
 
         DOF_map = {"X": 0, "Y": 1, "Z": 2, "RX": 3, "RY": 4, "RZ": 5}
         for key, dict_data in boundary_conditions_dict.items():
+            if key not in ["Force", "Displacement"]:
+                raise ValueError(f"Invalid boundary condition type: {key}. Must be 'Force' or 'Displacement'.")
             for name_condition, data in dict_data.items():
                 check_data_boundary_condition_validity(data)
                 numeric_DOFs = [DOF_map[dof] for dof in data["DOF"]]
-                if key == "Force":
-                    self.apply_force_surface(data["Surface"], data["Value"], numeric_DOFs)
-                elif key == "Displacement":
-                    self.apply_displacement_surface(data["Surface"], data["Value"], numeric_DOFs)
-                else:
-                    raise ValueError(f"Unknown boundary condition type: {key}")
+                surface_cells = data.get("SurfaceCells", None)
+                self.apply_constraints_nodes(data["Surface"], data["Value"], numeric_DOFs, key, surface_cells)
+
+

@@ -3,6 +3,8 @@ Visualization and saving of lattice structures from lattice objects.
 
 Created in 2025-01-16 by Cadart Thomas, University of technology Belfort-Montbéliard.
 """
+from typing import Tuple
+
 import numpy as np
 from matplotlib.lines import Line2D
 from matplotlib.patches import Patch
@@ -51,7 +53,8 @@ class LatticePlotting:
                              voxelViz: bool = False, deformedForm: bool = False, file_save_path: str = None,
                              plotCellIndex: bool = False, plotNodeIndex: bool = False, explode_voxel: float = 0.0,
                              plotting: bool = True, nbRadiusBins: int = 5,
-                             enable_system_coordinates: bool = True, enable_boundary_conditions: bool = False) -> None:
+                             enable_system_coordinates: bool = True, enable_boundary_conditions: bool = False,
+                             camera_position: Tuple[float, float] = None) -> None:
 
         """
         Visualizes the lattice in 3D using matplotlib.
@@ -75,6 +78,20 @@ class LatticePlotting:
             If provided, save the plot with this name_lattice.
         plotCellIndex: bool, optional (default: False)
             If True, plot cell indices.
+        plotNodeIndex: bool, optional (default: False)
+            If True, plot node indices.
+        explode_voxel: float, optional (default: 0.0)
+            If greater than 0, apply an explosion effect to the voxel visualization.
+        plotting: bool, optional (default: True)
+            If True, display the plot after creation.
+        nbRadiusBins: int, optional (default: 5)
+            Number of bins for the histogram of radii distribution.
+        enable_system_coordinates: bool, optional (default: True)
+            If True, plot the coordinate system axes.
+        enable_boundary_conditions: bool, optional (default: False)
+            If True, visualize boundary conditions on nodes.
+        camera_position: Tuple[float, float], optional
+            If provided, set the camera position for the 3D plot as (elevation, azimuth).
         """
         if self.initFig is False:
             self.init_figure()
@@ -164,6 +181,9 @@ class LatticePlotting:
                     colorCell = color_palette[cell.geom_types % len(color_palette)]
                 elif beam_color_type == "radii":
                     colorCell = cell.get_RGBcolor_depending_of_radius()
+                elif beam_color_type == "random":
+                    rng = np.random.default_rng()
+                    colorCell = rng.random(3,)
                 else:
                     colorCell = "green"  # Default color
 
@@ -192,6 +212,8 @@ class LatticePlotting:
 
             self.ax.legend(handles=legend_elements, title="Boundary Conditions", loc='upper right')
 
+        if camera_position is not None:
+            self.ax.view_init(elev=camera_position[0], azim=camera_position[1])
 
         # Save or show the plot
         if plotting:
