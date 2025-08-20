@@ -32,6 +32,12 @@
         "DOF": ["Y", "Z"],
         "Value": [0.005, -0.01],
         "SurfaceCells": ["Zmax", "Ymax"]
+      },
+      "Displacement_1": {
+        "Surface": ["Ymax", "Zmax"],
+        "DOF": ["X", "Y", "Z"],
+        "Value": [0.001, -0.002, -0.01],
+        "SurfaceCells": ["Zmax", "Ymax"]
       }
     }
   }

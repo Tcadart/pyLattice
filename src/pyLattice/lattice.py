@@ -883,17 +883,20 @@ class Lattice(object):
 
     def get_cell_occupancy_matrix(self):
         """
-        Generate a 3D boolean matrix indicating presence of a cell at each (i, j, k) position.
+        Build a 3D matrix storing Cell objects (or None) at each (i, j, k).
 
-        Returns:
-        --------
-        occupancy_matrix: np.ndarray of shape (num_cells_x, num_cells_y, num_cells_z)
-            True if a cell is present at the corresponding position, False otherwise.
+        Returns
+        -------
+        occupancy_matrix : np.ndarray, shape (num_cells_x, num_cells_y, num_cells_z), dtype=object
+            occupancy_matrix[i, j, k] is the Cell at that grid position, or None if empty.
         """
-        self.occupancy_matrix = np.empty((self.num_cells_x, self.num_cells_y, self.num_cells_z), dtype=object)
+        nx, ny, nz = self.num_cells_x, self.num_cells_y, self.num_cells_z
+        self.occupancy_matrix = np.empty((nx, ny, nz), dtype=object)
+        self.occupancy_matrix[:] = None
         for cell in self.cells:
-            i, j, k = cell.pos
+            i, j, k = cell.pos  # integer grid indices
             self.occupancy_matrix[i, j, k] = cell
+        return self.occupancy_matrix
 
     def get_cells_at_index(self, axis: str, index: int) -> list:
         """
@@ -1382,7 +1385,7 @@ class Lattice(object):
         self.apply_constraints_nodes(surfaceNames, valueDisplacement, DOF, "Displacement")
 
     def apply_constraints_nodes(self, surfaces: list[str], value: list[float], DOF: list[int],
-                                type: str = "Displacement", surface_cells: list[str] = None) -> None:
+                                type_constraint: str = "Displacement", surface_cells: list[str] = None) -> None:
         """
         Apply boundary conditions to the lattice
 
@@ -1399,10 +1402,7 @@ class Lattice(object):
         surface_cells: list[str], optional
             List of surfaces to find points on cells (e.g., ["Xmin", "Xmax", "Ymin"]). If None, uses surfaceNames.
         """
-        if surface_cells is None:
-            pointSet = self.find_point_on_lattice_surface(surfaces)
-        else:
-            pointSet = self.find_point_on_lattice_surface_complex(surfaces, surface_cells)
+        pointSet = self.find_point_on_lattice_surface(surfaces, surface_cells)
 
         indexBoundaryList = {point.index_boundary for point in pointSet}
 
@@ -1411,13 +1411,15 @@ class Lattice(object):
                 for node in [beam.point1, beam.point2]:
                     if node.index_boundary in indexBoundaryList:
                         for val, DOFi in zip(value, DOF):
-                            if type == "Displacement":
+                            if type_constraint == "Displacement":
                                 node.displacement_vector[DOFi] = val
                                 node.fix_DOF([DOFi])
-                            elif type == "Force":
+                            elif type_constraint == "Force":
                                 node.applied_force[DOFi] = val
+                            else:
+                                raise ValueError("Invalid type of constraint. Use 'Displacement' or 'Force'.")
 
-    def find_point_on_lattice_surface(self, surfaceNames: list[str]) -> set["point"]:
+    def find_point_on_lattice_surface(self, surfaceNames: list[str], surface_cells: list[str] = None) -> set["point"]:
         """
         Find points on the surface of the lattice
 
@@ -1425,48 +1427,8 @@ class Lattice(object):
         -----------
         surfaceNames: list[str]
             List of surfaces to find points on (e.g., ["Xmin", "Xmax", "Ymin"])
-
-        Returns:
-        --------
-        pointSet: set of point objects
-            Set of points found on the specified surfaces
-        """
-        valid_surfaces = {"Xmin", "Xmax", "Ymin", "Ymax", "Zmin", "Zmax"}
-
-        if not all(surface in valid_surfaces for surface in surfaceNames):
-            raise ValueError("Invalid surface name_lattice(s).")
-
-        cellLists = [set(self.get_cell_on_surface(surface)) for surface in surfaceNames]
-        cellList = set.intersection(*cellLists)  # Union of all cell indices from given surfaces
-
-        if self.cells[-1].index < max(cellList, default=-1):
-            raise ValueError("Invalid cell index, some cells do not exist.")
-
-        pointSet = None
-        for cell in self.cells:
-            if cell.index in cellList:
-                cellPointSets = [set(cell.get_point_on_surface(surface)) for surface in surfaceNames]
-                if cellPointSets:
-                    if pointSet is None:
-                        pointSet = set.intersection(*cellPointSets)
-                    else:
-                        pointSet.update(set.intersection(*cellPointSets))
-        pointSet = pointSet if pointSet is not None else set()
-
-        if pointSet == set():
-            raise ValueError("No points found on the specified surfaces.")
-
-        return pointSet
-
-    def find_point_on_lattice_surface_complex(self, surfaceNamesCell: list[str], surfaceNamePoint: list[str]) \
-            -> set["point"]:
-        """
-        Find points on the surface of the lattice
-
-        Parameters:
-        -----------
-        surfaceNames: list[str]
-            List of surfaces to find points on (e.g., ["Xmin", "Xmax", "Ymin"])
+        surface_cells: list[str], optional
+            List of surfaces to find points on cells (e.g., ["Xmin", "Xmax", "Ymin"]). If None, uses surfaceNames.
 
         Returns:
         --------
@@ -1475,25 +1437,22 @@ class Lattice(object):
         """
         valid_surfaces = {"Xmin", "Xmax", "Ymin", "Ymax", "Zmin", "Zmax", "Xmid", "Ymid", "Zmid"}
 
-        if not all(surface in valid_surfaces for surface in surfaceNamesCell):
+        if not all(surface in valid_surfaces for surface in surfaceNames):
             raise ValueError("Invalid surface name_lattice(s).")
 
-        cellLists = [set(self.get_cell_on_surface(surface)) for surface in surfaceNamesCell]
-        cellList = set.intersection(*cellLists)  # Union of all cell indices from given surfaces
+        cell_list = self.get_cells_on_surfaces(surfaceNames)
+        cell_indices = {c.index for c in cell_list}
 
-        if self.cells[-1].index < max(cellList, default=-1):
+        if self.cells[-1].index < max(cell_indices, default=-1):
             raise ValueError("Invalid cell index, some cells do not exist.")
 
-        pointSet = None
+        surface_on_cells = surface_cells if surface_cells is not None else surfaceNames
+        pointSet = set()
         for cell in self.cells:
-            if cell.index in cellList:
-                cellPointSets = [set(cell.get_point_on_surface(surface)) for surface in surfaceNamePoint]
+            if cell.index in cell_indices:
+                cellPointSets = [set(cell.get_point_on_surface(surface)) for surface in surface_on_cells]
                 if cellPointSets:
-                    if pointSet is None:
-                        pointSet = set.intersection(*cellPointSets)
-                    else:
-                        pointSet.update(set.intersection(*cellPointSets))
-        pointSet = pointSet if pointSet is not None else set()
+                    pointSet.update(set.intersection(*cellPointSets))
 
         if pointSet == set():
             raise ValueError("No points found on the specified surfaces.")
@@ -1885,6 +1844,57 @@ class Lattice(object):
                     break
 
         return cellTagList
+
+    def get_cells_on_surfaces(self, surfaces: list[str]) -> list:
+        """
+        Return the list of Cell objects matching ordered extrema constraints like ["Xmin"], ["Xmin","Zmax"], etc.
+        Filtering is iterative: e.g., first keep all cells at X minimum, then among those keep Z maximum.
+
+        Parameters
+        ----------
+        surfaces : list[str]
+            Each item is one of {"Xmin","Xmax","Ymin","Ymax","Zmin","Zmax"} (case-insensitive).
+
+        Returns
+        -------
+        list
+            List of Cell objects (possibly multiple if several share the same extreme index).
+        """
+        # Ensure occupancy matrix is available
+        if getattr(self, "occupancy_matrix", None) is None or self.occupancy_matrix.size == 0:
+            self.get_cell_occupancy_matrix()
+
+        # Start from all occupied positions (use existing cells to avoid None handling)
+        candidates = [tuple(cell.pos) for cell in self.cells]
+        if not candidates:
+            return []
+
+        axis_map = {"X": 0, "Y": 1, "Z": 2}
+
+        for token in surfaces:
+            t = token.strip().lower()
+            if not t:
+                continue
+            ax_char = t[0].upper()
+            if ax_char not in axis_map:
+                raise ValueError(f"Invalid axis in constraint '{token}', expected X/Y/Z with min/max.")
+            ax = axis_map[ax_char]
+
+            if "min" in t:
+                extreme = min(idx[ax] for idx in candidates)
+            elif "max" in t:
+                extreme = max(idx[ax] for idx in candidates)
+            else:
+                raise ValueError(f"Invalid extrema in constraint '{token}', expected 'min' or 'max'.")
+
+            candidates = [idx for idx in candidates if idx[ax] == extreme]
+            if not candidates:
+                return []
+
+        # Map positions back to Cell objects via the occupancy matrix (ignore any None just in case)
+        occ = self.occupancy_matrix
+        return [occ[i, j, k] for (i, j, k) in candidates if occ[i, j, k] is not None]
+
 
     def get_radius_temp(self) -> float:
         """
