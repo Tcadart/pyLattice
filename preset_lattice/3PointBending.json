@@ -6,7 +6,7 @@
         "z": 1
       },
     "number_of_cells": {
-      "x": 10,
+      "x": 2,
       "y": 5,
       "z": 5
     },
@@ -17,5 +17,25 @@
     "enable" : true,
     "material": "VeroClear",
     "periodicity": true
+  },
+  "boundary_conditions": {
+    "Displacement": {
+      "Fixed" : {
+        "Surface": ["Xmax"],
+        "DOF": ["X"],
+        "Value": [0]
+      },
+      "Displacement": {
+        "Surface": ["Xmax", "Zmax"],
+        "DOF": ["Z"],
+        "Value": [-0.01]
+      },
+      "SimpleSupport": {
+        "Surface": ["Xmin", "Zmin"],
+        "DOF": ["Y", "Z"],
+        "Value": [0, 0],
+        "SurfaceCells": ["Xmax", "Zmin"]
+      }
+    }
   }
 }

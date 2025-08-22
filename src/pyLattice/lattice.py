@@ -13,7 +13,6 @@ import pickle
 from statistics import mean
 from typing import TYPE_CHECKING
 
-import joblib
 import gmsh
 
 from .cell import *
@@ -257,7 +256,7 @@ class Lattice(object):
     def generate_lattice(self):
         """
         Generate cells in the lattice structure based on cell size, number of cells, geometry types, and radii.
-        Gradient informations and erased regions are also considered during cell generation.
+        Gradient information and erased regions are also considered during cell generation.
         """
         x_cell_start_init = 0
         y_cell_start_init = 0
@@ -525,29 +524,29 @@ class Lattice(object):
         tag_checks = [*[(tags, 'corner') for tags in self.corner_tags], *[(tags, 'edge') for tags in self.edge_tags],
                       *[(tags, 'face') for tags in self.face_tags]]
 
-        def is_periodic_connected(p, b_idx, tags_range):
+        def is_periodic_connected(p, b_idx, tags_range_list):
             """
             Check if the point p is periodic connected to the beam index b_idx
             """
             if not p.tag:
                 return False
             p_tag_set = set(p.tag)
-            if not p_tag_set.intersection(tags_range):
+            if not p_tag_set.intersection(tags_range_list):
                 return False
 
             bp1_tag = set(b_idx.point1.tag or [])
             bp2_tag = set(b_idx.point2.tag or [])
-            if not (bp1_tag.union(bp2_tag)).intersection(tags_range):
+            if not (bp1_tag.union(bp2_tag)).intersection(tags_range_list):
                 return False
 
             p_local = set(p.local_tag)
             bp1_local = set(b_idx.point1.local_tag or [])
             bp2_local = set(b_idx.point2.local_tag or [])
 
-            if tags_range == self.corner_tags:
-                return bool(p_local.intersection(tags_range) and (bp1_local.union(bp2_local)).intersection(tags_range))
+            if tags_range_list == self.corner_tags:
+                return bool(p_local.intersection(tags_range_list) and (bp1_local.union(bp2_local)).intersection(tags_range_list))
             else:
-                return bool(p_local.intersection(tags_range) and (bp1_local.union(bp2_local)).intersection(tags_range))
+                return bool(p_local.intersection(tags_range_list) and (bp1_local.union(bp2_local)).intersection(tags_range_list))
 
         for beamidx in beamList:
             if beam.point1 in [beamidx.point1, beamidx.point2]:
@@ -850,6 +849,8 @@ class Lattice(object):
                     bounds = cellInBoundaryBox[2:4]
                 elif axis == 'z':
                     bounds = cellInBoundaryBox[4:6]
+                else:
+                    raise ValueError("Axis must be 'x', 'y', or 'z'")
 
                 if bounds[0] < min_val:
                     min_val = bounds[0]
@@ -1098,7 +1099,7 @@ class Lattice(object):
 
     def get_number_beams(self) -> int:
         """
-        Get number of beams in the lattice
+        Get the number of beams in the lattice
 
         Returns:
         --------
@@ -1138,7 +1139,7 @@ class Lattice(object):
         surfaceNames: list[str]
             List of surfaces to find points on (e.g., ["Xmin", "Xmax", "Ymin"])
         surface_cells: list[str], optional
-            List of surfaces to find points on cells (e.g., ["Xmin", "Xmax", "Ymin"]). If None, uses surfaceNames.
+            List of surfaces to find points on cells (e.g., ["Xmin", "Xmax", "Ymin"]). If None, use surfaceNames.
 
         Returns:
         --------
@@ -1290,7 +1291,7 @@ class Lattice(object):
 
         for cell in self.cells:
             new_pos = list(cell.pos)
-            new_start_pos = list(cell.coordinate)
+            new_start_pos = np.array(cell.coordinate)
             mirrored_beams = []
 
             for beam in cell.beams:
@@ -1333,7 +1334,7 @@ class Lattice(object):
                     Beam(node_map[new_point1], node_map[new_point2], beam.radius, beam.material, beam.type_beam))
 
             # Create a new mirrored cell
-            new_cell = Cell(new_pos, cell.size, new_start_pos, cell.geom_types, cell.radii, cell.grad_radius,
+            new_cell = Cell(new_pos, cell.size, list(new_start_pos), cell.geom_types, cell.radii, cell.grad_radius,
                             cell.grad_dim, cell.grad_mat, cell.uncertainty_node, self._verbose)
 
             new_cell.beams = mirrored_beams

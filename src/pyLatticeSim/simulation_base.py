@@ -5,6 +5,7 @@ Author: Thomas Cadart
 Date: 2025-02-07
 """
 from typing import Tuple
+from colorama import Style, Fore
 
 import numpy as np
 
@@ -362,7 +363,9 @@ class SimulationBase:
         self.u = fem.Function(self._V)
         problem = LinearProblem(self._k_form, self._l_form, u=self.u, bcs=self._bcs,
                                           petsc_options={"ksp_type": "preonly", "pc_type": "lu"})
+        print("Solving linear problem...")
         problem.solve()
+        print(Fore.GREEN + "Problem solved" + Style.RESET_ALL)
 
     def calculate_reaction_force(self, node_tag: int, solution: fem.Function = None):
         """

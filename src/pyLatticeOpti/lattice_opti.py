@@ -24,6 +24,14 @@ class latticeOpti(LatticeSim):
         self.load_relative_density_model()
 
         self.objectif_data = None
+        self.initial_relative_density_constraint = None
+        self.initial_continuity_constraint = None
+        self.relative_density_poly = []
+        self.relative_density_poly_deriv = []
+        self.parameter_optimization = []
+        self.kriging_model_relative_density = None
+        self.initial_value_objective = None
+
 
     def get_relative_density_constraint(self, relativeDensityMax, geomScheme) -> float:
         """

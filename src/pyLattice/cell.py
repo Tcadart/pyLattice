@@ -10,9 +10,6 @@ from .beam import *
 from .geometries.geometries_utils import *
 from .utils import _validate_inputs_cell
 
-# from scipy.sparse import coo_matrix
-
-
 class Cell(object):
     """
     Define Cell data for lattice structure
@@ -70,6 +67,7 @@ class Cell(object):
         self.grad_dim: list = grad_dim
         self._verbose: int = _verbose
         self.neighbour_cells: Optional = []
+        self.schur_complement: list[list[float]] or None = None
 
         self.define_original_tags()
         self.generate_cell_properties(initial_size)
@@ -185,33 +183,36 @@ class Cell(object):
         radii: list[float]
             List of beam radii
         """
+        # TODO : change this with data in geometries_utils
         if len(self.radii) == 1:
-            if self.geom_types[0] == 0:
+            if self.geom_types[0] == 'BCC':
                 self.original_tags = [1000, 1001, 1002, 1003, 1004, 1005, 1006, 1007]
                 self.original_cell_geom = [0, 0, 0, 0, 0, 0, 0, 0]
-            elif self.geom_types[0] == 16:
+            elif self.geom_types[0] == 'Hybrid1':
                 self.original_tags = [100, 101, 102, 103, 104, 105, 106, 107, 108, 109, 110, 111]
                 self.original_cell_geom = [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
-            elif self.geom_types[0] == 19:
+            elif self.geom_types[0] == 'Hybrid4':
                 self.original_tags = [10, 11, 12, 13, 14, 15]
                 self.original_cell_geom = [2, 2, 2, 2, 2, 2]
             else:
-                pass
+                raise ValueError("Lattice type_beam not recognized")
         elif len(self.radii) == 2:
-            if self.geom_types[0] == 0 and self.geom_types[1] == 16:
+            if self.geom_types[0] == 'BCC' and self.geom_types[1] == 'Hybrid1':
                 self.original_tags = [1000, 1001, 1002, 1003, 1004, 1005, 1006, 1007,
                                       100, 101, 102, 103, 104, 105, 106, 107, 108, 109, 110, 111]
                 self.original_cell_geom = [0, 0, 0, 0, 0, 0, 0, 0,
                                            1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
             else:
                 raise ValueError("Lattice type_beam not recognized")
-        else:
+        elif len(self.radii) == 3:
             self.original_tags = [1000, 1001, 1002, 1003, 1004, 1005, 1006, 1007,
                                   10, 11, 12, 13, 14, 15,
                                   100, 101, 102, 103, 104, 105, 106, 107, 108, 109, 110, 111]
             self.original_cell_geom = [0, 0, 0, 0, 0, 0, 0, 0,
                                        2, 2, 2, 2, 2, 2,
                                        1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
+        else:
+            raise ValueError("Lattice type_beam not recognized")
 
     def generate_beams(self, latticeType: str, beamRadius: float, beamType: int = 0) -> None:
         """
@@ -423,7 +424,7 @@ class Cell(object):
 
         Parameters:
         -----------
-        nodeInOrder: dict
+        node_in_order: dict
             Dictionary of nodes in order
         original_cell_geom: list
             Original cell geometry
@@ -441,8 +442,7 @@ class Cell(object):
             idx += 1
         return tag_dictNN
 
-    def set_displacement_at_boundary_nodes(self, displacementArray: list, displacementIndex: list, printLevel=0) -> \
-            None:
+    def set_displacement_at_boundary_nodes(self, displacementArray: list, displacementIndex: list) -> None:
         """
         Set displacement at nodes.
 
@@ -453,7 +453,7 @@ class Cell(object):
         displacementIndex: array of int
             Boundary node index of each displacement value.
         """
-        if printLevel > 1:
+        if self._verbose > 1:
             print("Displacement array", displacementArray)
             print("Displacement index", displacementIndex)
             print("Non-zero displacements:", displacementArray[displacementArray != 0])
@@ -467,7 +467,7 @@ class Cell(object):
                             point.displacement_vector[i] = displacementArray[index + indexActual]
                             indexActual += 1
 
-    def get_displacement_at_nodes(self, nodeList: dict, numberRadiusNN: int) -> list:
+    def get_displacement_at_nodes(self, nodeList: dict) -> list:
         """
         Get the displacement at nodes.
 
@@ -475,24 +475,18 @@ class Cell(object):
         -----------
         nodeList: list of point objects
             List of nodes to get the displacement.
-        numberRadiusNN: int
-            Number of radii for the neural network
 
         Returns:
         --------
         list
             A flattened list of displacement values.
         """
-        nodeListNN = self.getNodesOrderNN(nodeList, numberRadiusNN)
 
         displacementList = []
-        nullDisplacement = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
         for key, node in nodeList.items():
             if node:
                 displacement = node.displacement_vector
                 displacementList.append(displacement)
-            elif nodeListNN[key] == 1:
-                displacementList.append(nullDisplacement)
         return displacementList
 
     def set_reaction_force_on_nodes(self, nodeList: dict, reactionForce: list) -> None:
@@ -507,20 +501,6 @@ class Cell(object):
             List of reaction force values corresponding to the nodes.
         """
         #TODO : Verify if used
-
-        # Vérification que la longueur des listes correspond
-        if len([v for v in nodeList.values() if v is not None]) != len(reactionForce):
-            print("Lenght nodeList ", len([v for v in nodeList.values() if v is not None])
-                  , "Lenght reactionForce ", len(reactionForce))
-            print("nodeList", nodeList)
-            print("reactionForce", reactionForce)
-            raise ValueError("Mismatch: nodeList and reactionForce must have the same length.")
-
-        # for beam in self.beams:
-        #     for point in [beam.point1, beam.point2]:
-        #         if point.index_boundary is not None:
-        #             index = list(nodeList.keys()).index(point.local_tag[0])
-        #             point.setReactionForce(reactionForce[index])
         idx = 0
         for node in nodeList:
             if nodeList[node]:
@@ -543,6 +523,7 @@ class Cell(object):
         nbFreeDOF: int
             Number of free degrees of freedom
         """
+        from scipy.sparse import coo_matrix
         data = []
         row, col = [], []
         listBndNodes = []
@@ -560,7 +541,7 @@ class Cell(object):
         shapeB = (nb_free_DOF, nbBndDOFloc)
         self.coupling_matrix_B = coo_matrix((data, (row, col)), shape=shapeB)
 
-    def build_preconditioner(self, SchurMatrix: "coo_matrix") -> "coo_matrix":
+    def build_local_preconditioner(self):
         """
         Build the preconditioner part for the cell
 
@@ -571,12 +552,12 @@ class Cell(object):
         """
         if self.coupling_matrix_B is None:
             raise ValueError("Coupling matrix has not been built yet. Please build it first.")
-        if self.coupling_matrix_B.shape[1] != SchurMatrix.shape[0]:
+        if self.coupling_matrix_B.shape[1] != self.schur_complement.shape[0]:
             print("Shape of B matrix", self.coupling_matrix_B.shape)
-            print("Shape of Schur matrix", SchurMatrix.shape)
+            print("Shape of Schur matrix", self.schur_complement.shape)
             raise ValueError("Incompatible dimensions between the coupling matrix and the Schur matrix.")
 
-        return self.coupling_matrix_B @ SchurMatrix @ self.coupling_matrix_B.transpose()
+        return self.coupling_matrix_B @ self.schur_complement @ self.coupling_matrix_B.transpose()
 
     def get_internal_energy(self) -> float:
         """

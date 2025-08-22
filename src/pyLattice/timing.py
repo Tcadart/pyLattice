@@ -54,4 +54,4 @@ class Timing:
                     print(f"  └─ {subname:<26} {self.call_counts[subname]:<10} {subtime:<12.6f}")
 
         total_elapsed = time.perf_counter() - self.start_time
-        print(Fore.LIGHTYELLOW_EX, f"\n🔧 Total script runtime: {total_elapsed:.4f} s" + Style.RESET_ALL)
+        print(Fore.LIGHTYELLOW_EX, f"\n🔧 Total lattice generation runtime: {total_elapsed:.4f} s" + Style.RESET_ALL)

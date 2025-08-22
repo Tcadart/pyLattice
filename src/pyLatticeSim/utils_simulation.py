@@ -1,13 +1,17 @@
 from mpi4py import MPI
+from typing import TYPE_CHECKING
 
 
 from .beam_model import *
 from .full_scale_lattice_simulation import *
-from pyLattice.lattice import Lattice
 from .homogenization_cell import HomogenizedCell
 from .schur_complement import SchurComplement
 
-def solve_FEM_FenicsX(lattice : "Lattice"):
+if TYPE_CHECKING:
+    from pyLatticeSim.lattice_sim import LatticeSim
+
+
+def solve_FEM_FenicsX(lattice : "LatticeSim"):
     """
     Solve the finite element method problem using FenicsX for a given lattice.
 
@@ -42,7 +46,7 @@ def solve_FEM_FenicsX(lattice : "Lattice"):
     xsol, globalDisplacementIndex = lattice.get_global_displacement()
     return xsol, simulationModel
 
-def get_homogenized_properties(lattice: "Lattice"):
+def get_homogenized_properties(lattice: "LatticeSim"):
     """
     Perform homogenization analysis on a lattice structure.
 
@@ -79,7 +83,7 @@ def get_homogenized_properties(lattice: "Lattice"):
 
     return mat_Sorthotropic, homogenization_analysis
 
-def get_schur_complement(lattice: "Lattice", cell_index: int = None):
+def get_schur_complement(lattice: "LatticeSim", cell_index: int = None):
     """
     Calculate the Schur complement of the stiffness matrix for a given lattice.
 
@@ -105,4 +109,5 @@ def get_schur_complement(lattice: "Lattice", cell_index: int = None):
     schur_complement, _ = schur_complement_analysis.calculate_schur_complement(tags_nodes_boundary)
 
     return schur_complement
+
 

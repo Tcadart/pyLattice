@@ -22,7 +22,6 @@ class HomogenizedCell(SimulationBase):
     def __init__(self, BeamModel):
         super().__init__(BeamModel)
         self._k_form_boundary = None
-        self.u = None
         self._orthotropyError = None
         self._symmetryError = None
         self.orthotropicMatrix = None
@@ -32,13 +31,6 @@ class HomogenizedCell(SimulationBase):
         self._mpc = None
         self._SigImposed = None
         self._EpsImposed = None
-        self.BeamModel = BeamModel
-        self._COMM = self.BeamModel.COMM
-        self.domain = self.BeamModel.domain
-        self._t = self.BeamModel.t
-        self._a1 = self.BeamModel.a1
-        self._a2 = self.BeamModel.a2
-        self._V = None
 
     def calculate_imposed_stress_strain(self, case: int):
         """

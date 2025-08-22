@@ -25,7 +25,8 @@ simulation = [
     "ufl==2024.2.0" ,
     "basix==0.9.0",
     "dolfinx_mpc",
-    "petsc4py"
+    "petsc4py",
+    "scipy==1.16.0"
 ]
 mesh_operations = [
     "trimesh==4.7.4",

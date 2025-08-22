@@ -1,8 +1,11 @@
 from typing import TYPE_CHECKING
 import numpy as np
+from scipy.sparse import coo_matrix
 
 from pyLattice.lattice import Lattice
 from pyLattice.utils import open_lattice_parameters
+from pyLatticeSim.utils_simulation import get_schur_complement
+
 
 if TYPE_CHECKING:
     from mesh_file.mesh_trimmer import MeshTrimmer
@@ -24,18 +27,10 @@ class LatticeSim(Lattice):
         self.define_simulation_parameters(name_file)
         assert self.material_name is not None, "Material name_lattice must be defined for simulation properties."
 
-
         self.free_DOF = None  # Free DOF gradient conjugate gradient method
         self.max_index_boundary = None
         self.global_displacement_index = None
-        self.initial_value_objective = None
-        self.initial_relative_density_constraint = None
-        self.initial_continuity_constraint = None
-        self.relative_density_poly = []
-        self.relative_density_poly_deriv = []
         self.n_DOF_per_node: int = 6  # Number of DOF per node (3 translation + 3 rotation)
-        self.parameter_optimization = []
-        self.kriging_model_relative_density = None
         self.penalization_coefficient: float = 1.5  # Fixed with previous optimization
 
         self.get_all_angles()
@@ -218,7 +213,7 @@ class LatticeSim(Lattice):
                     node.fix_DOF([i for i in range(6)])
                     idxNode += 1
 
-    def get_global_displacement(self, withFixed: bool = False, OnlyImposed: bool = False, printLevel=0) \
+    def get_global_displacement(self, withFixed: bool = False, OnlyImposed: bool = False) \
             -> tuple[list[float], list[int]]:
         """
         Get global displacement of the lattice
@@ -255,7 +250,7 @@ class LatticeSim(Lattice):
                         processed_nodes.add(node.index_boundary)
         if not OnlyImposed:
             self.global_displacement_index = globalDisplacementIndex
-        if printLevel > 2:
+        if self._verbose > 2:
             print("globalDisplacement: ", globalDisplacement)
             print("global_displacement_index: ", globalDisplacementIndex)
         return globalDisplacement, globalDisplacementIndex
@@ -307,7 +302,7 @@ class LatticeSim(Lattice):
                         nodeIndexProcessed.add(node.index)
         return globalReactionForce
 
-    def getGlobalReactionForceWithoutFixedDOF(self, globalReactionForce: dict, rightHandSide: bool = False) \
+    def get_global_reaction_force_without_fixed_DOF(self, globalReactionForce: dict, rightHandSide: bool = False) \
             -> np.ndarray:
         """
         Get global reaction force of free degree of freedom
@@ -401,48 +396,6 @@ class LatticeSim(Lattice):
         for cell in self.cells:
             cell.build_coupling_operator(self.free_DOF)
 
-    def build_LU_schur_complement(self, dictSchurComplement: dict = None):
-        """
-        Build LU decomposition of the Schur complement matrix for the lattice
-
-        Parameters:
-        -----------
-        schurComplementMatrix: coo_matrix
-            Schur complement matrix of the lattice
-        """
-        #TODO : Voir quoi faire avec ça
-        from ConjugateGradientMethod.Utils_Schur import loadSchurComplement, getSref_nearest
-        from scipy.sparse.linalg import splu, coo_matrix
-
-        if dictSchurComplement is None:
-            nameFileSchur = "ConjugateGradientMethod/schurComplement/Hybrid_" + str(
-                len(self.geom_types)) + ".npz"
-            dictSchurComplement = loadSchurComplement(nameFileSchur)
-
-        self.build_coupling_operator_cells()
-        globalSchurComplement = coo_matrix((self.free_DOF, self.free_DOF))
-        for cell in self.cells:
-            schurComplementMatrix = coo_matrix(getSref_nearest(cell.radii, SchurDict=dictSchurComplement,
-                                                               printing=False))
-            globalSchurComplement += cell.build_preconditioner(schurComplementMatrix)
-
-        if np.any(globalSchurComplement.sum(axis=1) == 0):
-            print("Attention : There are some rows with all zeros in the Schur complement matrix.")
-        cond_number = np.linalg.cond(globalSchurComplement.toarray())
-        print("Condition number of the Schur complement matrix: ", cond_number)
-
-        # Factorize preconditioner
-        LUSchurComplement = None
-        inverseSchurComplement = None
-        if cond_number > 1e15:
-            inverseSchurComplement = np.linalg.pinv(globalSchurComplement.toarray())
-            # inverseSchurComplement = None
-            print("Using pseudo-inverse of the Schur complement matrix.")
-        else:
-            globalSchurComplement = globalSchurComplement.tocsc()
-            LUSchurComplement = splu(globalSchurComplement)
-            print("Using LU decomposition of the Schur complement matrix.")
-        return LUSchurComplement, inverseSchurComplement
 
     def get_radius_temp(self) -> float:
         """
@@ -538,5 +491,29 @@ class LatticeSim(Lattice):
                 numeric_DOFs = [DOF_map[dof] for dof in data["DOF"]]
                 surface_cells = data.get("SurfaceCells", None)
                 self.apply_constraints_nodes(data["Surface"], data["Value"], numeric_DOFs, key, surface_cells)
+
+    def calculate_schur_complement_cells(self):
+        """
+        Calculate the Schur complement for each cell in the lattice.
+        Save the result in the cell.schur_complement attribute.
+        """
+        schur_complement_calculated: dict = {}
+
+        for cell in self.cells:
+            geom_key = tuple(cell.geom_types) if isinstance(cell.geom_types, list) else cell.geom_types
+            radius_key = tuple(round(float(r), 8) for r in cell.radii)
+
+            if geom_key not in schur_complement_calculated:
+                schur_complement_calculated[geom_key] = {}
+
+            if radius_key not in schur_complement_calculated[geom_key]:
+                schur_complement_cell = get_schur_complement(self, cell.index)
+                schur_complement_calculated[geom_key][radius_key] = schur_complement_cell
+                if self._verbose > 1:
+                    print(f"Schur complement calculated for geometry {geom_key} with radii {radius_key}.")
+            else:
+                schur_complement_cell = schur_complement_calculated[geom_key][radius_key]
+
+            cell.schur_complement = schur_complement_cell
 
 
