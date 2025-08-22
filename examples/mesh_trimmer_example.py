@@ -11,7 +11,7 @@ mesh_trimmer = MeshTrimmer(name_mesh)
 mesh_trimmer.plot_mesh(zoom = 3)
 
 name_lattice = "BCC_trimmed_example"
-lattice_object = Lattice.from_json(name_lattice, mesh_trimmer)
+lattice_object = Lattice(name_lattice, mesh_trimmer)
 lattice_object.cut_beam_with_mesh_trimmer()
 
 vizualizer = LatticePlotting()

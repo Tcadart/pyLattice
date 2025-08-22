@@ -2,7 +2,7 @@
 Simple example of simulation of a beam in flexion using pyLatticeSim.
 """
 
-from pyLattice.lattice import Lattice
+from pyLatticeSim.lattice_sim import LatticeSim
 from pyLattice.plotting_lattice import LatticePlotting
 from pyLatticeSim.utils_simulation import solve_FEM_FenicsX
 from pyLatticeSim.export_simulation_results import exportSimulationResults
@@ -10,7 +10,7 @@ from pyLatticeSim.export_simulation_results import exportSimulationResults
 
 name_file = "simulation_beam_flexion"
 
-lattice_object = Lattice.from_json(name_file)
+lattice_object = LatticeSim(name_file)
 
 sol, simulation_lattice = solve_FEM_FenicsX(lattice_object)
 

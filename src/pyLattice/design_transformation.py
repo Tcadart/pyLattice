@@ -59,7 +59,7 @@ def attractor_lattice(lattice, PointAttractorList: list[float] = None, alpha: fl
         for beam in cell.beams:
             movePointAttracted(beam.point1, pointAttractor, alpha, inverse)
             movePointAttracted(beam.point2, pointAttractor, alpha, inverse)
-    lattice.get_lattice_dimensions()
+    lattice.define_lattice_dimensions()
 
 
 def curveLattice(lattice, center_x: float, center_y: float, center_z: float,
@@ -89,7 +89,7 @@ def curveLattice(lattice, center_x: float, center_y: float, center_z: float,
                 dz = z - center_z
                 new_z = z - curvature_strength * (dx ** 2 + dy ** 2 + dz ** 2)
                 node.move_to(x, y, new_z)
-    lattice.get_lattice_dimensions()
+    lattice.define_lattice_dimensions()
 
 
 def cylindrical_transform(lattice, radius: float) -> None:
@@ -113,7 +113,7 @@ def cylindrical_transform(lattice, radius: float) -> None:
                 new_x = radius * math.cos(theta)
                 new_y = radius * math.sin(theta)
                 node.move_to(new_x, new_y, z)
-    lattice.get_lattice_dimensions()
+    lattice.define_lattice_dimensions()
     lattice.delete_duplicated_beams()
 
 
@@ -147,7 +147,7 @@ def moveToCylinderForm(lattice, radius: float) -> None:
                 x, y, z = node.x, node.y, node.z
                 new_z = z - formula(x)
                 node.move_to(x, y, new_z)
-    lattice.get_lattice_dimensions()
+    lattice.define_lattice_dimensions()
 
 
 def fitToSurface(lattice, equation: callable, mode: str = "z", params: dict = None):
@@ -189,4 +189,4 @@ def fitToSurface(lattice, equation: callable, mode: str = "z", params: dict = No
                         raise ValueError(f"Mode '{mode}' non supporté.")
 
     # Update lattice limits after adjustment
-    lattice.get_lattice_dimensions()
+    lattice.define_lattice_dimensions()

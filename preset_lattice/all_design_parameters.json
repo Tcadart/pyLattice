@@ -41,11 +41,6 @@
       "direction": 0
     }
   },
-  "simulation_parameters": {
-    "enable" : true,
-    "material": "VeroClear",
-    "periodicity": false
-  },
   "suplementary": {
     "node_uncertainty": 0.0,
     "erased_blocks": {

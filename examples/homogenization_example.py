@@ -2,7 +2,7 @@
 Simple homogenization example of a hybrid cell
 """
 
-from pyLattice.lattice import Lattice
+from pyLatticeSim.lattice_sim import LatticeSim
 from pyLatticeSim.utils import create_homogenization_figure
 from pyLatticeSim.utils_simulation import get_homogenized_properties
 from pyLatticeSim.export_simulation_results import exportSimulationResults
@@ -10,7 +10,7 @@ from pyLatticeSim.export_simulation_results import exportSimulationResults
 
 name_file = "hybrid_cell_simulation"
 
-lattice_object = Lattice.from_json(name_file)
+lattice_object = LatticeSim(name_file)
 
 mat_S_orthotropic, homogenization_analysis = get_homogenized_properties(lattice_object)
 

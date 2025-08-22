@@ -11,14 +11,32 @@ from typing import Tuple
 
 import numpy as np
 import matplotlib.colors as mcolors
-# import plotly.graph_objects as go
-# import trimesh
 
+def open_lattice_parameters(file_name: str):
+    """
+    Open a JSON file containing lattice parameters.
+
+    Parameters:
+    -----------
+    file_name: str
+        Name of the JSON file containing lattice parameters.
+    """
+    project_root = Path(__file__).resolve().parents[2]
+    json_path = project_root / "preset_lattice" / file_name
+    if json_path.suffix != ".json":
+        json_path = json_path.with_suffix('.json')
+
+    try:
+        with open(json_path, 'r') as file:
+            lattice_parameters = json.load(file)
+    except FileNotFoundError:
+        raise FileNotFoundError(f"The file {json_path} does not exist.")
+    return lattice_parameters
 
 def _validate_inputs_lattice(cell_size_x, cell_size_y, cell_size_z,
                      num_cells_x, num_cells_y, num_cells_z,
-                     geom_types, radii, material_name, grad_radius_property, grad_dim_property, grad_mat_property,
-                     uncertainty_node, enable_periodicity, eraser_blocks):
+                     geom_types, radii, grad_radius_property, grad_dim_property, grad_mat_property,
+                     uncertainty_node, eraser_blocks):
     # Check cell sizes
     assert isinstance(cell_size_x, (int, float)) and cell_size_x > 0, "cell_size_x must be a positive number"
     assert isinstance(cell_size_y, (int, float)) and cell_size_y > 0, "cell_size_y must be a positive number"
@@ -38,9 +56,6 @@ def _validate_inputs_lattice(cell_size_x, cell_size_y, cell_size_z,
     assert all(isinstance(r, float) for r in radii), "All radii values must be floats"
     assert len(radii) == len(geom_types), "The number of radii must be equal to the number of lattice types"
 
-    # Check material name_lattice
-    assert isinstance(material_name, str), "material_name must be a string"
-
     # Check gradient properties
     if grad_radius_property is not None:
         assert isinstance(grad_radius_property, list), "gradRadiusProperty must be a list"
@@ -55,8 +70,6 @@ def _validate_inputs_lattice(cell_size_x, cell_size_y, cell_size_z,
 
     # Check optional parameters
     assert isinstance(uncertainty_node, float), "uncertainty_node must be a float"
-
-    assert isinstance(enable_periodicity, int), "enable_periodicity must be an integer"
 
     if eraser_blocks is not None:
         for erasedPart in eraser_blocks:
