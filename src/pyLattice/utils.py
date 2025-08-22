@@ -15,7 +15,7 @@ import matplotlib.colors as mcolors
 # import trimesh
 
 
-def _validate_inputs(cell_size_x, cell_size_y, cell_size_z,
+def _validate_inputs_lattice(cell_size_x, cell_size_y, cell_size_z,
                      num_cells_x, num_cells_y, num_cells_z,
                      geom_types, radii, material_name, grad_radius_property, grad_dim_property, grad_mat_property,
                      uncertainty_node, enable_periodicity, eraser_blocks):
@@ -62,6 +62,50 @@ def _validate_inputs(cell_size_x, cell_size_y, cell_size_z,
         for erasedPart in eraser_blocks:
             assert len(erasedPart) == 6 and all(
                 isinstance(x, float) for x in erasedPart), "eraser_blocks must be a list of 6 floats"
+
+def _validate_inputs_cell(
+        pos: list,
+        initial_size: list,
+        coordinate: list,
+        geom_types: list[str],
+        radii: list[float],
+        grad_radius: list,
+        grad_dim: list,
+        grad_mat: list,
+        uncertainty_node: float,
+        _verbose: int,
+):
+    """Validate inputs for the class constructor."""
+
+    if not isinstance(pos, list) or len(pos) != 3:
+        raise TypeError(f"'pos' must be a list of length 3, got {pos}")
+
+    if not isinstance(initial_size, list) or len(initial_size) != 3:
+        raise TypeError(f"'initial_size' must be a list of length 3, got {initial_size}")
+
+    if not isinstance(coordinate, list) or len(coordinate) != 3:
+        raise TypeError(f"'coordinate' must be a list of length 3, got {coordinate}")
+
+    if not isinstance(geom_types, list) or not all(isinstance(x, str) for x in geom_types):
+        raise TypeError(f"'geom_types' must be a list of str, got {geom_types}")
+
+    if not isinstance(radii, list) or not all(isinstance(x, (float, int)) for x in radii):
+        raise TypeError(f"'radii' must be a list of float, got {radii}")
+
+    if grad_radius is not None and not isinstance(grad_radius, list):
+        raise TypeError(f"'grad_radius' must be a list or None, got {grad_radius}")
+
+    if grad_dim is not None and not isinstance(grad_dim, list):
+        raise TypeError(f"'grad_dim' must be a list or None, got {grad_dim}")
+
+    if grad_mat is not None and not isinstance(grad_mat, list):
+        raise TypeError(f"'grad_mat' must be a list or None, got {grad_mat}")
+
+    if not isinstance(uncertainty_node, (float, int)):
+        raise TypeError(f"'uncertainty_node' must be a float, got {uncertainty_node}")
+
+    if not isinstance(_verbose, int):
+        raise TypeError(f"'_verbose' must be an int, got {_verbose}")
 
 
 def function_penalization_Lzone(radiusAngleData: Tuple[float, float]) -> float:

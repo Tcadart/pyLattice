@@ -5,6 +5,7 @@ from .beam_model import *
 from .full_scale_lattice_simulation import *
 from pyLattice.lattice import Lattice
 from .homogenization_cell import HomogenizedCell
+from .schur_complement import SchurComplement
 
 def solve_FEM_FenicsX(lattice : "Lattice"):
     """
@@ -77,4 +78,31 @@ def get_homogenized_properties(lattice: "Lattice"):
     mat_Sorthotropic = homogenization_analysis.get_S_orthotropic()
 
     return mat_Sorthotropic, homogenization_analysis
+
+def get_schur_complement(lattice: "Lattice", cell_index: int = None):
+    """
+    Calculate the Schur complement of the stiffness matrix for a given lattice.
+
+    Parameters:
+    -----------
+    lattice: Lattice object
+        The lattice structure to be analyzed.
+    cell_index: int, optional
+        The index of the cell to be used for the Schur complement calculation.
+        If None, the first cell is used.
+    """
+    if cell_index is None and lattice.get_number_cells() > 1:
+        raise ValueError("The lattice must contain only one cell for Schur complement calculation or specify a cell_index.")
+
+    cell_model = BeamModel(MPI.COMM_SELF, lattice=lattice, cell_index=cell_index)
+
+    # Initialization simulation
+    schur_complement_analysis = SchurComplement(cell_model)
+
+    tags_nodes_boundary = lattice.cells[0].get_node_order_to_simulate() if cell_index is None else (
+                            lattice.cells[cell_index].get_node_order_to_simulate())
+
+    schur_complement, _ = schur_complement_analysis.calculate_schur_complement(tags_nodes_boundary)
+
+    return schur_complement
 

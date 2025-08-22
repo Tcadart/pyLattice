@@ -8,7 +8,7 @@ from pyLatticeSim.utils_simulation import get_homogenized_properties
 from pyLatticeSim.export_simulation_results import exportSimulationResults
 
 
-name_file = "hybrid_cell_homogenization"
+name_file = "hybrid_cell_simulation"
 
 lattice_object = Lattice.from_json(name_file)
 

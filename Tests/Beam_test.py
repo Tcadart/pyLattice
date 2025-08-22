@@ -3,10 +3,8 @@ import os
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../")))
 
-import pytest
-
-from src.point import Point
-from src.beam import Beam
+from src.pyLattice.point import Point
+from src.pyLattice.beam import Beam
 
 
 def test_beam_length():
@@ -26,5 +24,5 @@ def test_beam_equality():
     point4 = Point(1, 0, 0)
     beam2 = Beam(point3, point4, 0.05, 1, 0)
 
-    assert beam1.is_identical_to(beam2)
+    assert beam1.is_identical_to(beam2, [1,1,1])
 

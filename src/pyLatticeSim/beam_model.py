@@ -21,7 +21,7 @@ class BeamModel:
     COMM : MPI communicator
         MPI communicator for parallel computing
     """
-    def __init__(self, COMM, lattice=None, cellIndex=None):
+    def __init__(self, COMM, lattice=None, cell_index=None):
         self.COMM = COMM
         self.facets = None
         self.markers = None
@@ -38,7 +38,7 @@ class BeamModel:
         self.a2 = None
 
         if lattice is not None:
-            self.define_model(lattice, cellIndex)
+            self.define_model(lattice, cell_index)
 
     @property
     def material(self):

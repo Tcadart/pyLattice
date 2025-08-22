@@ -8,6 +8,7 @@ from colorama import Fore, Style
 
 from .beam import *
 from .geometries.geometries_utils import *
+from .utils import _validate_inputs_cell
 
 # from scipy.sparse import coo_matrix
 
@@ -18,8 +19,8 @@ class Cell(object):
     """
 
     def __init__(self, pos: list, initial_size: list, coordinate: list, geom_types: list[str],
-                 radii: list[float], grad_radius: list, grad_dim: list, grad_mat: list, uncertainty_node: float = 0.0,
-                 verbose: int = 0):
+                 radii: list[float], grad_radius: list or None, grad_dim: list or None, grad_mat: list or None,
+                 uncertainty_node: float = 0.0, _verbose: int = 0):
         """
         Initialize a Cell with its dimensions and position
 
@@ -46,6 +47,11 @@ class Cell(object):
         _verbose: bool
             If True, prints additional information during initialization. Defaults to False.
         """
+
+        _validate_inputs_cell(pos, initial_size, coordinate, geom_types,
+                         radii, grad_radius, grad_dim, grad_mat,
+                         uncertainty_node, _verbose)
+
         self.original_cell_geom = None
         self.original_tags = None
         self.center_point = None
@@ -62,7 +68,7 @@ class Cell(object):
         self.grad_radius: list = grad_radius
         self.grad_mat: list = grad_mat
         self.grad_dim: list = grad_dim
-        self._verbose: int = verbose
+        self._verbose: int = _verbose
         self.neighbour_cells: Optional = []
 
         self.define_original_tags()
@@ -253,7 +259,10 @@ class Cell(object):
         materialType: int
             Material index of the beam
         """
-        self._beamMaterial = self.grad_mat[self.pos[2]][self.pos[1]][self.pos[0]]
+        if self.grad_mat is None:
+            self._beamMaterial = 0
+        else:
+            self._beamMaterial = self.grad_mat[self.pos[2]][self.pos[1]][self.pos[0]]
 
     def get_radius(self, base_radius: float) -> float:
         """
@@ -271,10 +280,13 @@ class Cell(object):
         actualBeamRadius: float
             Calculated beam radii
         """
-        beamRadius = (base_radius * self.grad_radius[self.pos[0]][0] *
-                      self.grad_radius[self.pos[1]][1] *
-                      self.grad_radius[self.pos[2]][2])
-        return beamRadius
+        if self.grad_radius is None:
+            return base_radius
+        else:
+            beamRadius = (base_radius * self.grad_radius[self.pos[0]][0] *
+                          self.grad_radius[self.pos[1]][1] *
+                          self.grad_radius[self.pos[2]][2])
+            return beamRadius
 
     def get_cell_size(self, initial_cell_size: list) -> None:
         """
@@ -291,8 +303,11 @@ class Cell(object):
         size : float
             Calculated beam radii
         """
-        self.size = [initial_size * self.grad_dim[pos][i] for i, (initial_size, pos) in
-                     enumerate(zip(initial_cell_size, self.pos))]
+        if self.grad_dim is None:
+            self.size = initial_cell_size
+        else:
+            self.size = [initial_size * self.grad_dim[pos][i] for i, (initial_size, pos) in
+                         enumerate(zip(initial_cell_size, self.pos))]
 
     def get_cell_center(self) -> None:
         """
@@ -393,7 +408,7 @@ class Cell(object):
         tag_dict = {tag: None for tag in self.original_tags}
 
         for beam in self.beams:
-            if beam.radii > 0:
+            if beam.radius > 0:
                 for point in [beam.point1, beam.point2]:
                     if point.index_boundary is not None:
                         tag = point.local_tag

@@ -411,6 +411,9 @@ class HomogenizedCell(SimulationBase):
         return matSorthotropic
 
     def print_orthotropic_form(self):
+        """
+        Print orthotropic form of homogenization matrix
+        """
         print('Ex ', self.orthotropicMatrix[0, 0])
         print('Ey ', self.orthotropicMatrix[1, 1])
         print('Ez ', self.orthotropicMatrix[2, 2])

@@ -11,15 +11,18 @@ Created in 2023 by Cadart Thomas, University of technology Belfort Montbéliard.
 import os
 import pickle
 from statistics import mean
+from typing import TYPE_CHECKING
 
 import joblib
 import gmsh
 
 from .cell import *
 from .timing import *
-from .utils import _validate_inputs
+from .utils import _validate_inputs_lattice
 from .gradient_properties import get_grad_settings, grad_material_setting, grad_settings_constant
-from mesh_file.mesh_trimmer import MeshTrimmer
+
+if TYPE_CHECKING:
+    from mesh_file.mesh_trimmer import MeshTrimmer
 
 timing = Timing()
 
@@ -88,9 +91,9 @@ class Lattice(object):
         _verbose: boolean
             If True, print statistics and information during the lattice generation process
         """
-        _validate_inputs(cell_size_x, cell_size_y, cell_size_z, num_cells_x, num_cells_y, num_cells_z, geom_types,
-                         radii, material_name, grad_radius_property, grad_dim_property, grad_mat_property,
-                         uncertainty_node, enable_periodicity, eraser_blocks)
+        _validate_inputs_lattice(cell_size_x, cell_size_y, cell_size_z, num_cells_x, num_cells_y, num_cells_z,
+                                 geom_types, radii, material_name, grad_radius_property, grad_dim_property,
+                                 grad_mat_property, uncertainty_node, enable_periodicity, eraser_blocks)
 
         self.name_lattice: str = "Lattice"
         self.x_min, self.y_min, self.z_min = None, None, None
