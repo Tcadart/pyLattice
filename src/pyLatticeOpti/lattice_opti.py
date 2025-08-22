@@ -187,19 +187,6 @@ class latticeOpti(LatticeSim):
                 self.relative_density_poly.append(poly)
                 self.relative_density_poly_deriv.append(poly.deriv())
 
-    def unnormalize_r(self, r_norm):
-        """
-        Denormalize optimization parameters
-
-        Parameters:
-        -----------
-        r_norm: float
-            Normalized optimization parameter
-        """
-        #TODO : To delete
-        r_min, r_max = 0.01, 0.1
-        return r_min + (r_max - r_min) * r_norm  # Dé-normalisation
-
     def set_optimization_parameters(self, optimizationParameters: list[float], geomScheme: list[bool]) -> None:
         """
         Set optimization parameters for the lattice
@@ -325,5 +312,4 @@ class latticeOpti(LatticeSim):
         objectif_data: dict
             Dictionary containing objective data
         """
-        #TODO : Voir la gestion des objectifs
         self.objectif_data = objectifData

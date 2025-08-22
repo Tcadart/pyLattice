@@ -91,22 +91,12 @@ class Material:
         return as_vector([self._ESgrad, self._GS1grad, self._GS2grad, self._GJgrad, self._EI1grad, self._EI2grad])
 
     @timingMaterial.timeit
-    def set_material(self, material_name: str):
+    def set_material(self, lattice_material: "MatProperties"):
         """
         Define material properties for linear behavior based on material_name.
         """
-        #TODO : get material from lattice
-        materials = {
-            "Basis1": (70e3, 0.0),
-            "Ti-6Al-4V": (104e3, 0.35),
-            "Normalized": (1.0, 0.3),
-            "VeroClear": (1e3, 0.3)
-        }
-
-        if material_name not in materials:
-            raise ValueError(f"Unknown material name: {material_name}")
-
-        self._E, self._nu = materials[material_name]
+        self._E = lattice_material.young_modulus
+        self._nu = lattice_material.poisson_ratio
         self._E = Constant(self.domain, self._E)
         self._nu = Constant(self.domain, self._nu)
         G_value = self._E.value / (2 * (1 + self._nu.value))

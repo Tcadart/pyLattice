@@ -1,22 +1,32 @@
 import json
 import os
+from pathlib import Path
 
 
 class MatProperties:
     """
     A class to represent the properties of a material loaded from a file.
     """
+    project_root = Path(__file__).resolve().parents[2]
+    MATERIALS_DIR = project_root / "src" / "pyLattice" / "materials" # Directory containing material files
 
-    MATERIALS_DIR = "src/materials/"  # Directory containing material files
-
-    def __init__(self, material_file):
+    def __init__(self, name_material: str):
         """
         Initialize the MatProperties object by loading data from a file.
 
-        :param material_file: Filename of the material JSON (str)
+        Parameters:
+        name_material (str): The name of the material file (without extension) to load.
         """
+        self.name_material = None
+        self.density = None
+        self.young_modulus = None
+        self.poisson_ratio = None
+        self.plastic = None
+
+        material_file = f"{name_material}.json"
         self.file_path = os.path.join(self.MATERIALS_DIR, material_file)
-        self.name, self.density, self.elastic, self.plastic = self.load_material()
+
+        self.load_material()
 
     def load_material(self):
         """
@@ -30,9 +40,10 @@ class MatProperties:
         with open(self.file_path, "r") as file:
             data = json.load(file)
 
-        return (
-            data["name_lattice"],
-            data["density"],
-            data["elastic"],
-            data["plastic"]
-        )
+        self.name_material = data.get("name", None)
+        self.density = data.get("density", None)
+        self.young_modulus = data.get("Young_modulus", None)
+        self.poisson_ratio = data.get("Poisson_ratio", None)
+        self.plastic = data.get("plastic", None)
+
+

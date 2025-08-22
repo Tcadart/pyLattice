@@ -68,6 +68,7 @@ class Cell(object):
         self._verbose: int = _verbose
         self.neighbour_cells: Optional = []
         self.schur_complement: list[list[float]] or None = None
+        self.node_in_order_simulation = None
 
         self.define_original_tags()
         self.generate_cell_properties(initial_size)
@@ -402,7 +403,7 @@ class Cell(object):
             if getattr(point, axis) == surface_value
         })
 
-    def get_node_order_to_simulate(self) -> dict:
+    def define_node_order_to_simulate(self):
         """
         Get the order of nodes to simulate in the cell
         """
@@ -416,31 +417,25 @@ class Cell(object):
                         if tag:  # Ensure tags is not an empty list
                             if tag[0] in self.original_tags:
                                 tag_dict[tag[0]] = point
-        return tag_dict
+        self.node_in_order_simulation = tag_dict
 
-    def getNodesOrderNN(self, nodeInOrder: dict, numberRadiusNN) -> dict:
+    def set_reaction_force_on_nodes(self, reactionForce: list) -> None:
         """
-        Get the nodes order for the neural network
+        Set reaction force on each node.
 
         Parameters:
         -----------
-        node_in_order: dict
-            Dictionary of nodes in order
-        original_cell_geom: list
-            Original cell geometry
+        reactionForce: list
+            List of reaction force values corresponding to the nodes.
         """
-        # TODO : Check utility
-        tag_dictNN = nodeInOrder.copy()
+        if self.node_in_order_simulation is None:
+            raise ValueError("Node order to simulate has not been defined. Please define it first.")
+
         idx = 0
-        for i, key in nodeInOrder.items():
-            if key:
-                tag_dictNN[i] = 1
-            # elif self.original_cell_geom[idx] < numberRadiusNN:
-            #     tag_dictNN[i] = 1
-            else:
-                tag_dictNN[i] = 0
-            idx += 1
-        return tag_dictNN
+        for node in self.node_in_order_simulation:
+            if self.node_in_order_simulation[node]:
+                self.node_in_order_simulation[node].set_reaction_force(reactionForce[idx])
+                idx += 1
 
     def set_displacement_at_boundary_nodes(self, displacementArray: list, displacementIndex: list) -> None:
         """
@@ -488,24 +483,6 @@ class Cell(object):
                 displacement = node.displacement_vector
                 displacementList.append(displacement)
         return displacementList
-
-    def set_reaction_force_on_nodes(self, nodeList: dict, reactionForce: list) -> None:
-        """
-        Set reaction force on each node.
-
-        Parameters:
-        -----------
-        nodeList: dict
-            Dictionary mapping node tags to point objects.
-        reactionForce: list
-            List of reaction force values corresponding to the nodes.
-        """
-        #TODO : Verify if used
-        idx = 0
-        for node in nodeList:
-            if nodeList[node]:
-                nodeList[node].set_reaction_force(reactionForce[idx])
-                idx += 1
 
     def get_number_boundary_nodes(self) -> int:
         """

@@ -109,38 +109,6 @@ class LatticeSim(Lattice):
                             else:
                                 raise ValueError("Invalid type of constraint. Use 'Displacement' or 'Force'.")
 
-    def apply_boundary_conditions_node(self, nodeList: list[int], valueDisplacement: list[float],
-                                       DOF: list[int]) -> None:
-        """
-        Apply boundary conditions to the lattice
-
-        Parameters:
-        -----------
-        nodeList: list of int
-            List of node index to apply boundary conditions
-        valueDisplacement: float
-            Displacement value to apply to the boundary conditions
-        DOF: int
-            Degree of freedom to fix (0: x, 1: y, 2: z, 3: Rx, 4: Ry, 5: Rz)
-        """
-        #TODO: Check if used
-        if self.get_number_nodes() < max(nodeList):
-            raise ValueError("Invalid node index, node do not exist.")
-
-        indexBoundaryList = []
-        for node in nodeList:
-            if node < 0 or node >= self.get_number_nodes():
-                raise ValueError("Node index out of range.")
-            indexBoundaryList.append(node)
-
-        for cell in self.cells:
-            for beam in cell.beams:
-                for node in [beam.point1, beam.point2]:
-                    if node.index in indexBoundaryList:
-                        for val, DOFi in zip(valueDisplacement, DOF):
-                            node.displacement_vector[DOFi] = val
-                            node.fix_DOF([DOFi])
-
     def apply_force_surface(self, surfaceName: list[str], valueForce: list[float], DOF: list[int]) -> None:
         """
         Apply force to the lattice
@@ -194,24 +162,6 @@ class LatticeSim(Lattice):
                 for node in [beam.point1, beam.point2]:
                     if node.index in nodeList:
                         node.fix_DOF(dofFixed)
-
-    def set_displacement_with_vector(self, displacementMatrix: list[float]) -> None:
-        """
-        Set displacement on the lattice with vector
-
-        Parameters:
-        -----------
-        displacementMatrix: list of float of dim n_nodes*n_dofperNode
-            Displacement matrix to apply to the lattice
-        """
-        for cell in self.cells:
-            nodeInOrder = cell.get_node_order_to_simulate()
-            idxNode = 0
-            for idx, node in enumerate(nodeInOrder.values()):
-                if node is not None:
-                    node.displacement_vector = displacementMatrix[idxNode]
-                    node.fix_DOF([i for i in range(6)])
-                    idxNode += 1
 
     def get_global_displacement(self, withFixed: bool = False, OnlyImposed: bool = False) \
             -> tuple[list[float], list[int]]:

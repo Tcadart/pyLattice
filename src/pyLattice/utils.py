@@ -438,27 +438,6 @@ def save_JSON_to_Grasshopper(lattice, nameLattice: str = "LatticeObject", multip
         print(f"Saved lattice part {partIdx + 1} to {file_pathJSON}")
 
 
-def save_mesh_lattice(outputPath: str, meshObject = None):
-    """
-    Save the mesh to a file.
-
-    Parameters
-    ----------
-    outputPath : str
-        Path where the mesh should be saved.
-    meshObject : mesh, optional
-        mesh_file object to save. If None, uses the default mesh object.
-    """
-    #TODO : PATH
-    if not outputPath.endswith('.stl'):
-        outputPath += '.stl'
-    if not outputPath.startswith('mesh_file/'):
-        outputPath = 'mesh_file/' + outputPath
-
-    meshObject.export(outputPath)
-    print(f"mesh_file Lattice saved to {outputPath}")
-
-
 def plot_coordinate_system(ax):
     """
     Plot a 3D coordinate system with arrows representing the X, Y, and Z axes.

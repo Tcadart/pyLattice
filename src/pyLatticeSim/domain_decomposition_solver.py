@@ -26,7 +26,6 @@ class DomainDecompositionSolver(LatticeSim):
         self.enable_preconditioner = None
         self.numberIterationMax = 0
         self._parameters_define = False
-        self.node_in_order = None
         self.preconditioner = None
         self.iteration = 0
         self.residuals = []
@@ -135,22 +134,23 @@ class DomainDecompositionSolver(LatticeSim):
             # Set Displacement on nodes (Global to Local)
             cell.set_displacement_at_boundary_nodes(global_displacement, self.global_displacement_index)
 
-            dataReactionForce = self.solve_sub_problem(cell)
+            reaction_force_cell = self.solve_sub_problem(cell)
 
             # Update the RF local in the cell
-            cell.set_reaction_force_on_nodes(self.node_in_order, dataReactionForce)
+            cell.set_reaction_force_on_nodes(reaction_force_cell)
         return datasetDataCell
 
     def solve_sub_problem(self, cell):
         """
         Solve the subproblem on a cell to get the reaction force
         """
-        self.node_in_order = cell.get_node_order_to_simulate()
+        if cell.node_in_order_simulation is None:
+            node_in_order = cell.define_node_order_to_simulate()
         if self._verbose > 1:
-            print("self.node_in_order", self.node_in_order)
+            print("self.node_in_order", cell.node_in_order_simulation)
 
         # Check displacement null
-        displacement_cell = cell.get_displacement_at_nodes(self.node_in_order)
+        displacement_cell = cell.get_displacement_at_nodes(cell.node_in_order_simulation)
         if np.sum(displacement_cell) != 0:
             # Solve the local problem
             displacement = np.array(displacement_cell).flatten()

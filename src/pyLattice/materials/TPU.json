@@ -1,6 +1,7 @@
 {
     "name": "TPU1",
     "density": 1,
-    "elastic": [20000.0, 0.30],
+    "Young_modulus": 20000.0,
+    "Poisson_ratio": 0.3,
     "plastic": 0
 }

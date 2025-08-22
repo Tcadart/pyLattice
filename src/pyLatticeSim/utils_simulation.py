@@ -103,8 +103,13 @@ def get_schur_complement(lattice: "LatticeSim", cell_index: int = None):
     # Initialization simulation
     schur_complement_analysis = SchurComplement(cell_model)
 
-    tags_nodes_boundary = lattice.cells[0].get_node_order_to_simulate() if cell_index is None else (
-                            lattice.cells[cell_index].get_node_order_to_simulate())
+    if cell_index is None:
+        lattice.cells[0].define_node_order_to_simulate()
+    else:
+        lattice.cells[cell_index].define_node_order_to_simulate()
+
+    tags_nodes_boundary = lattice.cells[0].node_in_order_simulation if cell_index is None else (
+        lattice.cells[cell_index].node_in_order_simulation)
 
     schur_complement, _ = schur_complement_analysis.calculate_schur_complement(tags_nodes_boundary)
 

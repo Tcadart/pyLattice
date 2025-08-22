@@ -9,6 +9,8 @@ from ufl import as_vector, sqrt, dot, cross
 
 from .lattice_generation import *
 from .material_definition import Material
+from src.pyLattice.materials import MatProperties
+
 from .utils_timing import *
 timing = Timing()
 
@@ -141,7 +143,8 @@ class BeamModel:
     def define_material_model(self, lattice):
         """Define all material properties with preset data"""
         self._material = Material(self.domain)
-        self._material.set_material(lattice.material_name)
+        lattice_material = MatProperties(lattice.material_name)
+        self._material.set_material(lattice_material)
 
     @timing.timeit
     def calculate_local_coordinate_system(self):

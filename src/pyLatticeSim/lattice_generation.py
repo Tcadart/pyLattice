@@ -26,11 +26,11 @@ class latticeGeneration:
         self.COMM = COMM
 
     @timingLG.timeit
-    def find_mesh_size(self, mesh_element_lenght): # TODO - This function is not functioning properly
+    def find_mesh_size(self, mesh_element_lenght: float = 0.05):
         """
         Determine mesh size
         """
-        self._mesh_size = 0.05
+        self._mesh_size = mesh_element_lenght
 
     @timingLG.timeit
     def mesh_lattice_cells(self, cell_index, mesh_element_lenght:float = 0.05, save_mesh:bool = True):
