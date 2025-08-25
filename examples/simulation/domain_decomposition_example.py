@@ -2,7 +2,6 @@
 Example of a domain decomposition simulation using pyLatticeSim.
 """
 
-from pyLatticeSim.lattice_sim import LatticeSim
 from pyLatticeSim.domain_decomposition_solver import DomainDecompositionSolver
 from pyLattice.plotting_lattice import LatticePlotting
 

@@ -103,6 +103,13 @@ class LatticePlotting:
                 return base_colors[:n]
             return base_colors + list(mcolors.CSS4_COLORS.values())[:n - len(base_colors)]
 
+        domain_decomposition_plotting = False
+        try:
+            if lattice_object.domain_decomposition_solver:
+                domain_decomposition_plotting = True
+        except AttributeError:
+            pass
+
         cells = lattice_object.cells
         latticeDimDict = lattice_object.lattice_dimension_dict
 
@@ -112,7 +119,7 @@ class LatticePlotting:
         idxColor = []
         legend_map = {}  # {nb_fixed: color}
 
-        if not voxelViz:
+        if not voxelViz and not domain_decomposition_plotting:
             beamDraw = set()
             lines = []
             colors = []
@@ -156,8 +163,6 @@ class LatticePlotting:
                                             self.ax.scatter(node.x, node.y, node.z, facecolor='none', edgecolor = 'k',
                                                             s=70, label="Initial Position")
 
-
-
                         beamDraw.add(beam)
 
                 if plotCellIndex:
@@ -169,7 +174,7 @@ class LatticePlotting:
             self.ax.add_collection3d(line_collection)
             self.ax.scatter(nodeX, nodeY, nodeZ, c='black', s=5)
 
-        else:  # Voxel visualization
+        elif voxelViz and not domain_decomposition_plotting:  # Voxel visualization
             for cell in cells:
                 x, y, z = cell.coordinate
                 dx, dy, dz = cell.size
@@ -192,6 +197,92 @@ class LatticePlotting:
                 z_offset = explode_voxel * (z - latticeDimDict["z_min"]) / dz
                 self.ax.bar3d(x + x_offset, y + y_offset, z + z_offset,
                               dx, dy, dz, color=colorCell, alpha=0.5, shade=True, edgecolor='k')
+        elif domain_decomposition_plotting:
+            beamDraw = set()
+            nodeX, nodeY, nodeZ = [], [], []
+            nodeDraw = set()
+            corners_by_cell = {}
+
+            for cell in cells:
+                for beam in cell.beams:
+                    if beam.radius != 0.0 and beam not in beamDraw:
+                        colorBeam, idxColor = _get_beam_color(beam, color_palette, beam_color_type, idxColor, cells,
+                                                              nbRadiusBins)
+
+                        # Add line and node data
+                        beam_lines, beam_nodes, beam_indices, = _prepare_lattice_plot_data(beam, deformedForm)
+
+                        for i, node in enumerate(beam_nodes):
+                            # collect corner nodes for deformed cell-edge plotting
+                            if cell.index not in corners_by_cell:
+                                corners_by_cell[cell.index] = {}
+                            for code in (1000, 1001, 1002, 1003, 1004, 1005, 1006, 1007):
+                                if code in getattr(node, "local_tag", []):
+                                    corners_by_cell[cell.index][code] = node
+                            if node not in nodeDraw:
+                                if node.index_boundary is not None:
+                                    nodeDraw.add(node)
+                                    nodeX.append(node.x if not deformedForm else node.deformed_coordinates[0])
+                                    nodeY.append(node.y if not deformedForm else node.deformed_coordinates[1])
+                                    nodeZ.append(node.z if not deformedForm else node.deformed_coordinates[2])
+                                    if plotNodeIndex:
+                                        self.ax.text(nodeX[-1], nodeY[-1], nodeZ[-1], str(beam_indices[i]), fontsize=5,
+                                                     color='gray')
+                                    if enable_boundary_conditions:
+                                        if any(node.fixed_DOF):
+                                            bc_color = get_boundary_condition_color(node.fixed_DOF)
+                                            nb_fixed = sum(node.fixed_DOF)
+                                            legend_map.setdefault(nb_fixed, bc_color)
+
+                                            self.ax.scatter(nodeX[-1], nodeY[-1], nodeZ[-1], c=bc_color, s=70)
+                                            # Apply boundary condition labels
+                                            for i, (is_fixed, d_val) in enumerate(
+                                                    zip(node.fixed_DOF, node.displacement_vector)):
+                                                if is_fixed and abs(d_val) > 1e-10:
+                                                    self.ax.text(nodeX[-1] + cell.size[0] / 4, nodeY[-1],
+                                                                 nodeZ[-1] + cell.size[2] / 4,
+                                                                 f"u{i}={d_val:.2e}", fontsize=10, color=bc_color)
+                                            if deformedForm:
+                                                # plot initial position of nodes of boundary conditions
+                                                self.ax.scatter(node.x, node.y, node.z, facecolor='none', edgecolor='k',
+                                                                s=70, label="Initial Position")
+
+
+                if plotCellIndex:
+                    self.ax.text(cell.center_point[0], cell.center_point[1], cell.center_point[2], str(cell.index),
+                                 color='black', fontsize=10)
+
+            # Plot lines and nodes
+            # Build deformed (or undeformed) bounding-box edges from corner-tagged nodes
+            def _pcoord(pt):
+                return pt.deformed_coordinates if deformedForm else (pt.x, pt.y, pt.z)
+
+            # vertex order matching corner codes:
+            # bottom: 1000(x0,y0,z0), 1001(x1,y0,z0), 1003(x1,y1,z0), 1002(x0,y1,z0)
+            # top:    1004(x0,y0,z1), 1005(x1,y0,z1), 1007(x1,y1,z1), 1006(x0,y1,z1)
+            edge_pairs_codes = [
+                (1000, 1001), (1001, 1003), (1003, 1002), (1002, 1000),  # bottom
+                (1004, 1005), (1005, 1007), (1007, 1006), (1006, 1004),  # top
+                (1000, 1004), (1001, 1005), (1003, 1007), (1002, 1006),  # verticals
+            ]
+
+            box_segments = []
+            for c in cells:
+                corners = corners_by_cell.get(c.index, {})
+                # only add edges where both corners were identified
+                for a, b in edge_pairs_codes:
+                    if a in corners and b in corners:
+                        p0 = _pcoord(corners[a])
+                        p1 = _pcoord(corners[b])
+                        box_segments.append([p0, p1])
+
+            if box_segments:
+                self.ax.add_collection3d(
+                    Line3DCollection(box_segments, colors='k', linewidths=1.0, linestyles='-')
+                )
+
+            self.ax.scatter(nodeX, nodeY, nodeZ, c='black', s=5)
+
 
         if self.axisSet is False:
             self._set_min_max_axis(latticeDimDict)

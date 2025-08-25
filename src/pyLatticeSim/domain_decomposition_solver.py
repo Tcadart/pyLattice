@@ -20,6 +20,7 @@ class DomainDecompositionSolver(LatticeSim):
 
     def __init__(self, name_file: str, mesh_trimmer: "MeshTrimmer" = None, verbose: int = 0):
         super().__init__(name_file, mesh_trimmer, verbose)
+        self.domain_decomposition_solver = True
 
         self.calculate_schur_complement_cells()
 
@@ -99,6 +100,9 @@ class DomainDecompositionSolver(LatticeSim):
                 print(Fore.GREEN + "Conjugate Gradient converged."+ Style.RESET_ALL)
             else:
                 print(Fore.RED + "Conjugate Gradient did not converge."+ Style.RESET_ALL)
+
+        # Reset boundary conditions
+        self.set_boundary_conditions()
         return xsol, info, self.global_displacement_index, b
 
     def calculate_reaction_force_global(self, globalDisplacement, rightHandSide:bool = False):

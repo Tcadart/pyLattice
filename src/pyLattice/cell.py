@@ -125,6 +125,26 @@ class Cell(object):
         return [xMin, xMax, yMin, yMax, zMin, zMax]
 
     @property
+    def boundary_edges(self) -> list[tuple[tuple[float, float, float], tuple[float, float, float]]]:
+        """
+        Return the 12 edge segments of the cell's axis-aligned bounding box
+        as pairs of 3D points ((x,y,z), (x,y,z)).
+        """
+        x0, x1, y0, y1, z0, z1 = self.boundary_box
+        # 8 vertices
+        v = [
+            (x0, y0, z0), (x1, y0, z0), (x1, y1, z0), (x0, y1, z0),
+            (x0, y0, z1), (x1, y0, z1), (x1, y1, z1), (x0, y1, z1),
+        ]
+        # 12 edges (by vertex indices)
+        idx = [
+            (0, 1), (1, 2), (2, 3), (3, 0),  # bottom rectangle
+            (4, 5), (5, 6), (6, 7), (7, 4),  # top rectangle
+            (0, 4), (1, 5), (2, 6), (3, 7),  # vertical edges
+        ]
+        return [(v[i], v[j]) for i, j in idx]
+
+    @property
     def corner_coordinates(self) -> list:
         """
         Get the corner coordinates of the cell.
