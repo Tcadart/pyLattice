@@ -1,17 +1,32 @@
 """
 Superclass of lattice for optimization purposes
 """
+import os
 from statistics import mean
 from typing import TYPE_CHECKING
 
+import joblib
 import numpy as np
+from scipy.optimize import NonlinearConstraint, Bounds, minimize
+from colorama import Fore, Style
+from matplotlib import pyplot as plt
+import matplotlib
+
+from pyLattice.cell import Cell
+from pyLattice.utils import open_lattice_parameters
+
+matplotlib.use('TkAgg')
+
 
 from pyLatticeSim.lattice_sim import LatticeSim
 
 if TYPE_CHECKING:
     from mesh_file.mesh_trimmer import MeshTrimmer
 
-class latticeOpti(LatticeSim):
+from pyLattice.timing import *
+timingOpti = Timing()
+
+class LatticeOpti(LatticeSim):
     """
     Superclass of lattice for optimization purposes
     """
@@ -21,30 +36,165 @@ class latticeOpti(LatticeSim):
         self._simulation_flag = True
         self._optimization_flag = True
 
-        self.load_relative_density_model()
-
+        self.solution = None
+        self.objective = None
+        self.initial_parameters = None
+        self.bounds = None
+        self.constraints = []
+        self.callback_function = None
+        self.max_iteration = 1000
         self.objectif_data = None
+        self.objective_function = None
+        self.position_objective = None
+        self.objective_type = None
+        self.number_parameters = None
+        self.enable_normalization = False
+        self.optimization_parameters = None
+        self.constraints_dict = {}
+        self.kriging_model_relative_density = None
+        self.min_radius = 0.01
+        self.max_radius = 0.1
+
+
+
         self.initial_relative_density_constraint = None
         self.initial_continuity_constraint = None
         self.relative_density_poly = []
         self.relative_density_poly_deriv = []
         self.parameter_optimization = []
-        self.kriging_model_relative_density = None
         self.initial_value_objective = None
 
+        self._get_optimization_parameters(name_file)
+        self._set_number_parameters_optimization()
 
-    def get_relative_density_constraint(self, relativeDensityMax, geomScheme) -> float:
+        self.load_relative_density_model() # TODO modifier le comportement
+
+
+
+    def optimize_lattice(self):
+        """
+        Runs the optimization process using SLSQP.
+        """
+        self.solution = minimize(
+            fun=self.objective,
+            # jac=self.gradient,
+            x0=self.initial_parameters,
+            method='SLSQP',
+            bounds=self.bounds,
+            constraints=self.constraints,
+            callback=self.callback_function,
+            options={
+                'maxiter': self.max_iteration,
+                'ftol': 1e-3,
+                # 'gtol': 1e-2,
+                'disp': True,
+                'eps': 1e-2
+            }
+        )
+        plt.show()
+        if self.solution.success:
+            print("\n✅ Optimization succeeded!")
+            print("Optimal parameters:", self.solution.x)
+        else:
+            print("\n⚠️ Optimization failed!")
+            print(self.solution.message)
+
+    def _get_optimization_parameters(self, name_file: str) -> None:
+        """
+        Define optimization parameters from the input file
+
+        Parameters:
+        -----------
+        name_file: str
+            Name of the input file
+        """
+        lattice_parameters = open_lattice_parameters(name_file)
+
+        optimization_informations = lattice_parameters.get("optimization_informations", {})
+        self.objective_function = optimization_informations.get("objective_function", None)
+        self.objective_type = optimization_informations.get("objective_type", None)
+        self.position_objective = optimization_informations.get("position_objective", None)
+        self.constraints_dict = optimization_informations.get("constraints", {})
+        self.optimization_parameters = optimization_informations.get("optimization_parameters", None)
+        if self.optimization_parameters is None:
+            raise ValueError("No optimization parameters defined.")
+
+    def define_optimization_parameters(self, enable_normalization: bool = False):
+        """
+        Define optimization parameters
+        """
+        self.enable_normalization = enable_normalization
+
+    def _initialize_optimization_solver(self, Radius):
+        """
+        Initialize the solver.
+        """
+        if self.enable_normalization:
+            borneMin = 0
+            borneMax = 1
+        else:
+            borneMin = 0.01
+            borneMax = 0.1
+        self.bounds = Bounds(lb=[borneMin] * self.number_parameters, ub=[borneMax] * self.number_parameters)
+
+        if self.optimization_parameters["type"] == "unit_cell":
+            self.initial_parameters = np.tile(Radius, self.number_parameters // len(Radius))
+        elif self.optimization_parameters["type"] == "linear":
+            self.initial_parameters = [1.0] * (len(self.optimization_parameters.get("direction", [])) + 1)
+        else:
+            raise ValueError("Invalid optimization parameters type.")
+
+    def _add_constraint_density(self):
+        """
+        Add the density constraint to the list of constraints.
+        """
+        if "relative_density" not in self.constraints_dict:
+            return
+        self.relative_density_objective = self.constraints_dict.get("relative_density", {}).get("value", None)
+        density_nl_constraint = NonlinearConstraint(
+            fun=self.density_constraint,
+            lb=-np.inf,
+            ub=0,
+            jac=self.density_constraint_gradient
+        )
+        self.constraints.append(density_nl_constraint)
+
+    def density_constraint(self, r):
+        """
+        Density constraint function
+
+        Parameters:
+        r: list of float
+            List of optimization parameters
+
+        """
+        self.set_optimization_parameters(r)
+        densConstraint = self.get_relative_density_constraint()
+        # if self.densConstraintInitial is None:
+        #     self.densConstraintInitial = densConstraint
+        # densConstraint = densConstraint/self.densConstraintInitial
+        return densConstraint
+
+    def density_constraint_gradient(self, r):
+        self.set_optimization_parameters(r)
+        gradDensConstraint = self.get_relative_density_gradient_kriging()
+        # gradDensConstraint = gradDensConstraint/self.densConstraintInitial
+        return gradDensConstraint
+
+
+    def get_relative_density_constraint(self) -> float:
         """
         Get relative density of the lattice
         """
-        relativeDensity = self.get_relative_density(geomScheme)
-        print("Relative density: ", relativeDensity)
-        error = relativeDensity - relativeDensityMax
-        print("Relative density maximum: ", relativeDensityMax)
-        print("Relative density error: ", error)
+        relativeDensity = self.get_relative_density()
+        error = relativeDensity - self.relative_density_objective
+        if self._verbose > 0:
+            print("Relative density: ", relativeDensity)
+            print("Relative density maximum: ", self.relative_density_objective)
+            print("Relative density error: ", error)
         return error
 
-    def get_relative_density(self, geom_scheme=None) -> float:
+    def get_relative_density(self) -> float:
         """
         Get mean relative density of all cells in lattice
 
@@ -57,7 +207,7 @@ class latticeOpti(LatticeSim):
         for cell in self.cells:
             if self._simulation_flag:
                 if self.kriging_model_relative_density is not None:
-                    cellRelDens.append(cell.get_relative_density_kriging(self.kriging_model_relative_density, geom_scheme))
+                    cellRelDens.append(cell.get_relative_density_kriging(self.kriging_model_relative_density))
             else:
                 cellRelDens.append(cell.relative_density)
         meanRelDens = mean(cellRelDens)
@@ -187,7 +337,7 @@ class latticeOpti(LatticeSim):
                 self.relative_density_poly.append(poly)
                 self.relative_density_poly_deriv.append(poly.deriv())
 
-    def set_optimization_parameters(self, optimizationParameters: list[float], geomScheme: list[bool]) -> None:
+    def set_optimization_parameters(self, optimization_parameters_actual: list[float]) -> None:
         """
         Set optimization parameters for the lattice
 
@@ -198,32 +348,47 @@ class latticeOpti(LatticeSim):
         geomScheme: list of bool
             List of N boolean values indicating the scheme of geometry to optimize
         """
-        if len(optimizationParameters) != self.get_number_parameters_optimization(geomScheme):
+        if len(optimization_parameters_actual) != self.number_parameters:
             raise ValueError("Invalid number of optimization parameters.")
 
-        if geomScheme is None:
-            numberOfParametersPerCell = len(self.geom_types)
-        else:
-            numberOfParametersPerCell = sum(geomScheme)
 
-        for cell in self.cells:
-            startIdx = cell.index * numberOfParametersPerCell
-            endIdx = (cell.index + 1) * numberOfParametersPerCell
-            radius = optimizationParameters[startIdx:endIdx]
+        if self.optimization_parameters["type"] == "unit_cell":
+            number_parameters_per_cell = len(self.geom_types)
+            for cell in self.cells:
+                startIdx = cell.index * number_parameters_per_cell
+                endIdx = (cell.index + 1) * number_parameters_per_cell
+                radius = optimization_parameters_actual[startIdx:endIdx]
+                cell.change_beam_radius(radius, self.grad_radius)
+        elif self.optimization_parameters["type"] == "linear":
+            dirs = self.optimization_parameters.get("direction", [])
+            if not dirs:
+                raise ValueError("No directions provided for linear optimization.")
 
-            if len(radius) != len(cell.radii):
-                # Reconstruct the full radii vector based on geomScheme
-                full_radius = []
-                i = 0  # index for radii (optimization vector)
-                for keep, old in zip(geomScheme, cell.radii):
-                    if keep:
-                        full_radius.append(radius[i])
-                        i += 1
-                    else:
-                        full_radius.append(old)
-                radius = full_radius
+            valid_dirs = {"x", "y", "z"}
+            if any(d not in valid_dirs for d in dirs):
+                raise ValueError(f"Invalid direction in {dirs}; valid are 'x', 'y', 'z'.")
 
-            cell.change_beam_radius(radius, self.grad_radius)
+            expected = len(dirs) + 1  # one coeff per listed direction + intercept d
+            if len(optimization_parameters_actual) != expected:
+                raise ValueError(
+                    f"Invalid number of optimization parameters for linear optimization. "
+                    f"Expected {expected} (one per {dirs} + intercept)."
+                )
+
+            # Build coefficients a, b, c mapped to x, y, z (missing ones = 0), and intercept d
+            coeffs = {"x": 0.0, "y": 0.0, "z": 0.0}
+            for i, dkey in enumerate(dirs):
+                coeffs[dkey] = float(optimization_parameters_actual[i])
+            d_intercept = float(optimization_parameters_actual[-1])
+
+            # Evaluate f(x,y,z) = a*x + b*y + c*z + d at each cell center and set radius
+            for cell in self.cells:
+                cx, cy, cz = cell.center_point
+                value = coeffs["x"] * cx + coeffs["y"] * cy + coeffs["z"] * cz + d_intercept
+                value = max(self.min_radius, min(self.max_radius, value))  # Clamp to min max
+                # Apply same scalar to all geom types for this cell
+                radius_vec = [float(value)] * len(self.geom_types)
+                cell.change_beam_radius(radius_vec, self.grad_radius)
 
     def calculate_objective(self, typeObjective: str) -> float:
         """
@@ -264,24 +429,22 @@ class latticeOpti(LatticeSim):
             pass
         return objective
 
-    def get_number_parameters_optimization(self, geomScheme) -> int:
+    def _set_number_parameters_optimization(self):
         """
-        Get number of parameters for optimization
-
-        Returns:
-        --------
-        numParameters: int
-            Number of parameters for optimization
+        Set number of parameters for optimization
         """
-        numParameters = 0
-        for cell in self.cells:
-            if geomScheme is None:
+        if self.optimization_parameters["type"] == "unit_cell":
+            numParameters = 0
+            for cell in self.cells:
                 numParameters += len(cell.radii)
-            else:
-                numParameters += sum(geomScheme)
-        return numParameters
+            self.number_parameters = numParameters
+        elif self.optimization_parameters["type"] == "linear":
+            self.number_parameters = 2 * len(self.optimization_parameters["direction"])
+        else:
+            raise ValueError("Invalid optimization parameters type.")
 
-    @timing.timeit
+
+    @timingOpti.timeit
     def load_relative_density_model(self, model_path="Lattice/saved_lattice_file/RelativeDensityKrigingModel.pkl"):
         """
         Load the relative density model from a file

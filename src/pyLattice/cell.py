@@ -601,14 +601,11 @@ class Cell(object):
             beamRadius.append(self.get_radius(rad))
 
         for beam in self.beams:
-            if beam.beam_mod:
-                beam.radii = beamRadius[beam.type_beam] * beam.penalization_coefficient
-            else:
-                beam.radii = beamRadius[beam.type_beam]
+            beam.change_beam_radius(beamRadius[beam.type_beam])
 
         self.radii = newRadius
 
-    def get_relative_density_kriging(self, krigingModel, geomScheme=None) -> float:
+    def get_relative_density_kriging(self, krigingModel) -> float:
         """
         Get the relative density of the cell using kriging model
 
@@ -618,13 +615,8 @@ class Cell(object):
             Kriging model to use for prediction
         """
         radii = np.zeros(3)
-        if geomScheme is not None:
-            true_indices = [i for i, val in enumerate(geomScheme) if val]
-            for idx, val in zip(true_indices, self.radii):
-                radii[idx] = val
-        else:
-            for idx, rad in enumerate(self.radii):
-                radii[idx] = rad
+        for idx, rad in enumerate(self.radii):
+            radii[idx] = rad
         radii = np.array(radii).reshape(-1, 3)
         relativeDensity = krigingModel.predict(radii)[0]
         return relativeDensity

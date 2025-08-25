@@ -250,6 +250,20 @@ class Beam(object):
         self.initial_radius = self.radius
         self.radius *= self.penalization_coefficient
 
+    def change_beam_radius(self, new_radius: float):
+        """
+        Change the radius of the beam.
+
+        Args:
+            new_radius (float): The new radius to set for the beam.
+        """
+        if new_radius <= 0:
+            raise ValueError("Radius must be a positive value.")
+        if self.beam_mod:
+            self.radius = new_radius * self.penalization_coefficient
+        else:
+            self.radius = new_radius
+
     def is_identical_to(self, other: "Beam", cell_size: list) -> bool:
         """
         Check if this beam is identical to another beam.
