@@ -581,7 +581,7 @@ class Cell(object):
                     allBoundaryDisplacementData.append(point.displacement_vector)
         return allBoundaryDisplacementData
 
-    def change_beam_radius(self, newRadius: list) -> None:
+    def change_beam_radius(self, new_radius: list) -> None:
         """
         ATTENTION: BEAM MOD IS NOT WORKING
         Change beam radii in the cell
@@ -593,19 +593,20 @@ class Cell(object):
         hybridData: list
             Hybrid data type_beam
         """
-        print(Fore.RED + "WARNING: Beam modification is not implemented yet. " + Style.RESET_ALL)
-        assert len(newRadius) == len(self.radii), ("Length of new radii vector and already cell radii vector needs "
+        if self._verbose > 1:
+            print(Fore.RED + "WARNING: Beam modification is not implemented yet. " + Style.RESET_ALL)
+        assert len(new_radius) == len(self.radii), ("Length of new radii vector and already cell radii vector needs "
                                                     "to be equal ")
         beamRadius = []
-        for rad in newRadius:
+        for rad in new_radius:
             beamRadius.append(self.get_radius(rad))
 
         for beam in self.beams:
             beam.change_beam_radius(beamRadius[beam.type_beam])
 
-        self.radii = newRadius
+        self.radii = new_radius
 
-    def get_relative_density_kriging(self, krigingModel) -> float:
+    def get_relative_density_kriging(self, kriging_model, geometries_types) -> float:
         """
         Get the relative density of the cell using kriging model
 
@@ -614,12 +615,22 @@ class Cell(object):
         krigingModel: Kriging
             Kriging model to use for prediction
         """
-        radii = np.zeros(3)
-        for idx, rad in enumerate(self.radii):
-            radii[idx] = rad
-        radii = np.array(radii).reshape(-1, 3)
-        relativeDensity = krigingModel.predict(radii)[0]
-        return relativeDensity
+        if len(self.radii) != len(geometries_types):
+            if not all(g in geometries_types for g in self.geom_types):
+                print("geometry types in cell", self.geom_types, " Not in the trained kriging model", geometries_types)
+                raise ValueError("Incompatible geometry types between the cell and the kriging model.")
+            radii = np.zeros(len(geometries_types))
+            for idx, g_type in enumerate(self.geom_types):
+                geom_index = geometries_types.index(g_type)
+                radii[geom_index] = self.radii[idx]
+            radii = np.array(radii).reshape(-1, 3)
+            relative_density = kriging_model.predict(radii)[0]
+        elif self.geom_types == geometries_types:
+                radii = np.array(self.radii).reshape(-1, 3)
+                relative_density = kriging_model.predict(radii)[0]
+        else:
+            raise ValueError("Incompatible geometry types between the cell and the kriging model.")
+        return relative_density
 
     def get_relative_density_gradient(self, relativeDensityPolyDeriv) -> float:
         """
@@ -640,7 +651,7 @@ class Cell(object):
             deriv += polyDeriv(self.radii[idx])
         return deriv
 
-    def get_relative_density_gradient_kriging(self, gpr, geomScheme=None) -> np.ndarray:
+    def get_relative_density_gradient_kriging(self, model, geometries_types) -> np.ndarray:
         """
         Retourne le gradient de la fonction volume par rapport aux rayons (dérivée partielle).
 
@@ -657,21 +668,18 @@ class Cell(object):
             Gradient du volume par rapport aux rayons (shape: (n_samples, 3)).
         """
         epsilon = 1e-3
-        radii = np.zeros(3)
-        if geomScheme is not None:
-            true_indices = [i for i, val in enumerate(geomScheme) if val]
-            for idx, val in zip(true_indices, self.radii):
-                radii[idx] = val
-        else:
-            for idx, rad in enumerate(self.radii):
-                radii[idx] = rad
-        radii = np.array(radii).reshape(-1, 3)
-        grad = np.zeros(3)
+        grad = np.zeros(len(self.radii))
 
-        for idx, rad in enumerate(grad):
-            perturbed_radii = radii.copy()
-            perturbed_radii[0][idx] += epsilon
-            grad[idx] = (gpr.predict(perturbed_radii) - gpr.predict(radii)) / epsilon
+        for idx, rad in enumerate(self.radii):
+            if self.geom_types[idx] not in geometries_types:
+                print("geometry types in cell", self.geom_types, " Not in the trained kriging model", geometries_types)
+                raise ValueError("Incompatible geometry types between the cell and the kriging model.")
+            perturbed_radii = np.zeros(len(geometries_types))
+            radii = np.zeros(len(geometries_types))
+            geom_index = geometries_types.index(self.geom_types[idx])
+            perturbed_radii[geom_index] = rad + epsilon
+            radii[geom_index] = rad
+            grad[idx] = (model.predict([perturbed_radii]) - model.predict([radii])) / epsilon
         return grad
 
     def get_number_nodes_at_boundary(self):

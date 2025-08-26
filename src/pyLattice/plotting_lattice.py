@@ -118,6 +118,9 @@ class LatticePlotting:
         color_palette = generate_colors(max_elements)
         idxColor = []
         legend_map = {}  # {nb_fixed: color}
+        legend_map_beams = {}  # {label: color}
+        total_beam_labels = set()
+        beam_color_type_lower = beam_color_type.lower()
 
         if not voxelViz and not domain_decomposition_plotting:
             beamDraw = set()
@@ -135,7 +138,42 @@ class LatticePlotting:
                         # Add line and node data
                         beam_lines, beam_nodes, beam_indices, = _prepare_lattice_plot_data(beam, deformedForm)
                         lines.extend(beam_lines)
-                        colors.extend([colorBeam] * len(beam_lines))  # One color per line
+                        label = None
+                        color_for_plot = colorBeam
+
+                        if beam_color_type_lower == "radii":
+                            r_val = float(np.atleast_1d(getattr(beam, "radius", 0.0))[0])
+                            label = f"r={r_val:g}"
+
+                        elif beam_color_type_lower == "material":
+                            label = f"Material {int(getattr(beam, 'material', 0))}"
+
+                        elif beam_color_type_lower == "type":
+                            label = f"Type {int(getattr(beam, 'type_beam', getattr(beam, 'geom_types', 0)))}"
+
+                        elif beam_color_type_lower == "radiusbin":
+                            # Construire l’étiquette de classe à partir des bornes idxColor (bin edges)
+                            edges = idxColor  # contient les bornes (longueur = nbRadiusBins+1)
+                            r_val = float(np.atleast_1d(getattr(beam, "radius", 0.0))[0])
+                            bi = np.digitize([r_val], edges, right=False)[0] - 1
+                            bi = max(0, min(len(edges) - 2, bi))
+                            left, right = edges[bi], edges[bi + 1]
+                            # Intervalle gauche-inclusif, droite-exclusive sauf dernier
+                            right_bracket = ']' if bi == len(edges) - 2 else ')'
+                            label = f"[{left:.3g}, {right:.3g}{right_bracket}"
+
+                        if label is not None:
+                            total_beam_labels.add(label)
+                            # Pour 'radii' (catégories potentiellement >10), on ne garde que les 10 premières dans la légende
+                            if beam_color_type_lower in ("material", "type"):
+                                legend_map_beams.setdefault(label, color_for_plot)
+                            elif beam_color_type_lower == "radii":
+                                if label not in legend_map_beams and len(legend_map_beams) < 10:
+                                    legend_map_beams[label] = color_for_plot
+                            elif beam_color_type_lower == "radiusbin":
+                                legend_map_beams.setdefault(label, color_for_plot)
+
+                        colors.extend([color_for_plot] * len(beam_lines))
 
                         for i, node in enumerate(beam_nodes):
                             if node not in nodeDraw:
@@ -292,16 +330,42 @@ class LatticePlotting:
         if enable_system_coordinates:
             plot_coordinate_system(self.ax)
 
-        if enable_boundary_conditions and legend_map:
-            legend_elements = [Patch(facecolor=color, label=f"{n} DOF")
-                               for n, color in sorted(legend_map.items())]
+        legend_elements_all = []
 
-            legend_elements.append(
+        if legend_map_beams:
+            def _left_edge(lbl: str) -> float:
+                try:
+                    return float(lbl.split(",")[0].strip("[").strip())
+                except Exception:
+                    return 0.0
+
+            if beam_color_type_lower == "radiusbin":
+                items = sorted(legend_map_beams.items(), key=lambda kv: _left_edge(kv[0]))
+            else:
+                items = sorted(legend_map_beams.items(), key=lambda kv: kv[0])
+
+            legend_elements_all.extend(
+                [Line2D([0], [0], lw=2, color=col, label=lab) for lab, col in items]
+            )
+
+            # Pour 'radii' si >10 catégories, indiquer le surplus
+            if beam_color_type_lower == "radii" and len(total_beam_labels) > len(legend_map_beams):
+                legend_elements_all.append(
+                    Line2D([0], [0], lw=2, linestyle='--',
+                           label=f"+{len(total_beam_labels) - len(legend_map_beams)} other")
+                )
+
+        if enable_boundary_conditions and legend_map:
+            bc_elems = [Patch(facecolor=color, label=f"{n} DOF")
+                        for n, color in sorted(legend_map.items())]
+            bc_elems.append(
                 Line2D([0], [0], marker='o', color='k', label="Initial Position",
                        markerfacecolor='none', markersize=8, linestyle='None')
             )
+            legend_elements_all.extend(bc_elems)
 
-            self.ax.legend(handles=legend_elements, title="Boundary Conditions", loc='upper right')
+        if legend_elements_all:
+            self.ax.legend(handles=legend_elements_all, title="Legend", loc='upper right')
 
         if camera_position is not None:
             self.ax.view_init(elev=camera_position[0], azim=camera_position[1])

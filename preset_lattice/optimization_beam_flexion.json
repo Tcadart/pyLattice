@@ -30,13 +30,6 @@
         "DOF": ["Z"],
         "Value": [-0.01]
       }
-    },
-    "Force": {
-        "Force": {
-            "Surface": ["Xmax", "Zmin"],
-            "DOF": ["Y"],
-            "Value": [0.025]
-        }
     }
   },
   "optimization_informations": {
@@ -48,13 +41,14 @@
     },
     "constraints": {
       "relative_density": {
-        "value": 0.05
+        "value": 0.03
       }
     },
     "optimization_parameters": {
       "type": "linear",
       "direction": ["x"]
     },
-    "enable_parameter_normalization": true
+    "enable_parameter_normalization": true,
+    "simulation_type": "FEM"
   }
 }

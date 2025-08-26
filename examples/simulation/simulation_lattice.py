@@ -10,13 +10,13 @@ from pyLatticeSim.export_simulation_results import exportSimulationResults
 
 name_file = "simulation_beam_flexion"
 
-lattice_object = LatticeSim(name_file)
+lattice_Sim_object = LatticeSim(name_file)
 
-sol, simulation_lattice = solve_FEM_FenicsX(lattice_object)
+sol, simulation_lattice = solve_FEM_FenicsX(lattice_Sim_object)
 
 # Visualization with matplotlib
 vizualizer = LatticePlotting()
-vizualizer.visualize_lattice(lattice_object, beam_color_type="radii",
+vizualizer.visualize_lattice(lattice_Sim_object, beam_color_type="radii",
                              enable_boundary_conditions=True,
                              deformedForm=True)
 

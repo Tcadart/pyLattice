@@ -33,6 +33,9 @@ mesh_operations = [
     "rtree==1.0.1",
     "pyembree"
 ]
+optimization = [
+    "scikit-learn==1.7.1"
+]
 
 [tool.setuptools]
 package-dir = {"" = "src"}

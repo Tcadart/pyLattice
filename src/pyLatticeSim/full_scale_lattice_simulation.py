@@ -79,6 +79,19 @@ class FullScaleLatticeSimulation(SimulationBase):
                     else:
                         print(f"⚠️ Missing rotation for {pos}")
 
+    def set_reaction_force_on_lattice_with_FEM_results(self):
+        """
+        Set reaction force on boundary condition nodes with FEM results.
+        """
+        for cell in self.BeamModel.lattice.cells:
+            for beam in cell.beams:
+                for node in [beam.point1, beam.point2]:
+                    if 1 in node.fixed_DOF:
+                        RF = self.calculate_reaction_force_and_moment_at_position(
+                            np.array([node.x, node.y, node.z]))
+                        node.set_reaction_force(RF)
+
+
     def apply_force_on_all_nodes_with_lattice_data(self):
         """
         Applying force at all nodes with lattice data.

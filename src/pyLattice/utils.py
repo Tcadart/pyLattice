@@ -182,40 +182,51 @@ def _prepare_lattice_plot_data(beam, deformedForm: bool = False):
 
 
 def _get_beam_color(beam, color_palette, beamColor, idxColor, cells, nbRadiusBins):
-    # Assign colors based on the selected scheme
     beamColor = beamColor.lower()
+
+    def _to_scalar_radius(r):
+        arr = np.atleast_1d(r)
+        return float(arr[0])
+
     if beamColor == "material":
-        colorBeam = color_palette[beam.material % len(color_palette)]
+        mat = int(getattr(beam, "material", 0))
+        colorBeam = color_palette[mat % len(color_palette)]
+
     elif beamColor == "type":
-        colorBeam = color_palette[beam.type_beam % len(color_palette)]
+        t = int(getattr(beam, "type_beam", getattr(beam, "geom_types", 0)))
+        colorBeam = color_palette[t % len(color_palette)]
+
     elif beamColor == "radii":
-        if beam.radius not in idxColor:
-            idxColor.append(beam.radius)
-        colorBeam = color_palette[idxColor.index(beam.radius) % len(color_palette)]
+        r = _to_scalar_radius(getattr(beam, "radius", 0.0))
+        if r not in idxColor:
+            idxColor.append(r)
+        colorBeam = color_palette[idxColor.index(r) % len(color_palette)]
+
     elif beamColor == "radiusbin":
-        dimRadius = len(cells[0].radii)
-        # Ensure radii are extracted properly depending on the dimension
+        # Construire les bords des classes (bin edges) paresseusement dans idxColor
         if not idxColor:
-            all_radii = sorted({
-                b.radii[dimRadius] if hasattr(b.radii, '__len__') else b.radii
-                for c in cells for b in c.beams if
-                (b.radii[dimRadius] if hasattr(b.radii, '__len__') else b.radii) > 0
-            })
+            all_radii = [
+                _to_scalar_radius(getattr(b, "radius", 0.0))
+                for c in cells for b in c.beams
+                if _to_scalar_radius(getattr(b, "radius", 0.0)) > 0.0
+            ]
             if not all_radii:
-                idxColor = [0.0]
+                idxColor = [0.0, 1.0]
             else:
                 min_r, max_r = min(all_radii), max(all_radii)
-                bin_edges = np.linspace(min_r, max_r, nbRadiusBins + 1)
-                idxColor = bin_edges
+                # nbRadiusBins classes => nbRadiusBins+1 bornes
+                idxColor = list(np.linspace(min_r, max_r, nbRadiusBins + 1))
 
-        # Get the beam radii at the specified dimension
-        radius_value = beam.radius[dimRadius] if hasattr(beam.radius,
-                                                         '__len__') else beam.radius
-        bin_idx = np.digitize(radius_value, idxColor, right=True) - 1
+        r = _to_scalar_radius(getattr(beam, "radius", 0.0))
+        bin_idx = np.digitize([r], idxColor, right=False)[0] - 1
+        bin_idx = max(0, min(len(idxColor) - 2, bin_idx))
         colorBeam = color_palette[bin_idx % len(color_palette)]
+
     else:
         colorBeam = "blue"
+
     return colorBeam, idxColor
+
 
 def get_boundary_condition_color(fixed_DOF: list[bool]) -> str:
     """

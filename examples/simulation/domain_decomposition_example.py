@@ -2,13 +2,13 @@
 Example of a domain decomposition simulation using pyLatticeSim.
 """
 
-from pyLatticeSim.domain_decomposition_solver import DomainDecompositionSolver
+from pyLatticeSim.lattice_sim import LatticeSim
 from pyLattice.plotting_lattice import LatticePlotting
 
 
 name_file = "3PointBending"
 
-solver_DDM = DomainDecompositionSolver(name_file, verbose=1)
+solver_DDM = LatticeSim(name_file, verbose=1, enable_domain_decomposition_solver=True)
 
 enable_precondioner = True
 number_iteration_max = 100

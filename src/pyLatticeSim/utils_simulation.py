@@ -41,6 +41,7 @@ def solve_FEM_FenicsX(lattice : "LatticeSim"):
 
     # Assign results to lattice object
     simulationModel.set_result_diplacement_on_lattice_object()
+    simulationModel.set_reaction_force_on_lattice_with_FEM_results()
 
     # Get results to return
     xsol, globalDisplacementIndex = lattice.get_global_displacement()

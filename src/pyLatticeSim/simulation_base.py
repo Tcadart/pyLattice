@@ -424,6 +424,60 @@ class SimulationBase:
 
         return f, r
 
+    def calculate_reaction_force_and_moment_at_position(self, position: np.ndarray, solution: "fem.Function" = None,
+                                                        tol: float = 1e-8):
+        """
+        Same as calculate_reaction_force_and_moment but selects the node by spatial position (x,y,z).
+        Avoids locate_dofs_geometrical on subspaces by collapsing subspaces to get dof coords, then
+        mapping back to the original subspace indices.
+        """
+        if solution is None:
+            solution = self.u
+
+        px, py, pz = map(float, position)
+
+        # Residual and virtual work form
+        residual = action(self._k_form, solution)
+        v_reac = fem.Function(self._V)
+        virtual_work_form = fem.form(action(residual, v_reac))
+
+        C = fem.Constant(self.domain, 1.0)
+        reaction_forces = []
+
+        def _component_dofs_from_position(sub: int, comp: int) -> np.ndarray:
+            # Collapse subspace to access dof coordinates
+            Vc, collapse_map = self._V.sub(sub).sub(comp).collapse()
+            # Coordinates of dofs on collapsed space
+            dof_coords = Vc.tabulate_dof_coordinates().reshape(-1, self.domain.geometry.dim)
+            mask = (
+                    np.isclose(dof_coords[:, 0], px, atol=tol)
+                    & np.isclose(dof_coords[:, 1], py, atol=tol)
+                    & np.isclose(dof_coords[:, 2], pz, atol=tol)
+            )
+            idx_collapsed = np.flatnonzero(mask)
+            if idx_collapsed.size == 0:
+                raise RuntimeError(f"No DOF found for sub={sub}, comp={comp} near point {position} with tol={tol}.")
+            # Map back to indices in the (non-collapsed) subspace
+            dofs_subspace = [collapse_map[idx] for idx in idx_collapsed]
+            return np.asarray(dofs_subspace, dtype=np.int32)
+
+        for i in range(6):
+            comp = i % 3
+            sub = 0 if i < 3 else 1  # 0: force dofs (u), 1: moment dofs (rotation)
+
+            dofs = _component_dofs_from_position(sub, comp)
+            bc = fem.dirichletbc(C, dofs, self._V.sub(sub).sub(comp))
+
+            v_local = v_reac.x.array
+            bc.set(v_local)
+            v_reac.x.array[:] = v_local
+            R = fem.assemble_scalar(virtual_work_form)
+            reaction_forces.append(R)
+
+            v_reac.x.array[:] = 0.0  # reset for next component
+
+        return reaction_forces
+
     def calculate_reaction_force_and_moment(self, node_tag: int):
         """
         Calculate reaction force and moment at a node on the macro coordinate basis
