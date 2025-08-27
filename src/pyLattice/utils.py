@@ -121,19 +121,21 @@ def _validate_inputs_cell(
         raise TypeError(f"'_verbose' must be an int, got {_verbose}")
 
 
-def function_penalization_Lzone(radiusAngleData: Tuple[float, float]) -> float:
+def function_penalization_Lzone(radius: float, angle: float) -> float:
     """
-    Calculate the penalization length based on radii and angle data.
+    Calculate the penalization length based on radii and angle.
 
-    Args:
-        radiusAngleData (Tuple[float, float]): (radii, angle).
+    Parameters:
+    -----------
+    radius: float
+        Radius of the beam.
+    angle: float
+        Angle in degrees.
 
     Returns:
+    -----------
         float: Length of the penalization zone.
     """
-    if radiusAngleData is None or len(radiusAngleData) != 2:
-        raise ValueError("radiusAngleData must be a tuple of (radii, angle).")
-    radius, angle = radiusAngleData
     # Case beam quasi-aligned, avoid division by zero
     if angle > 170:
         return 0.0000001

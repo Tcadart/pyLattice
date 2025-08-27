@@ -44,6 +44,7 @@ class Point:
         self.global_free_DOF_index: List[Optional[float]] = [None] * 6  # Global free DOF index.
         self.node_mod: bool = False
         self.magnification_factor: float = 50.0  # Magnification factor for visualization.
+        self.connected_beams: List = []  # List of beams connected to the point.
 
     def __eq__(self, other: object) -> bool:
         return isinstance(other, Point) and self.x == other.x and self.y == other.y and self.z == other.z

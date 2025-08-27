@@ -66,7 +66,7 @@ class Cell(object):
         self.grad_mat: list = grad_mat
         self.grad_dim: list = grad_dim
         self._verbose: int = _verbose
-        self.neighbour_cells: Optional = []
+        self.neighbour_cells: dict = {}
         self.schur_complement: list[list[float]] or None = None
         self.node_in_order_simulation = None
 
@@ -706,17 +706,39 @@ class Cell(object):
         """
         return tuple(r / 0.1 for r in self.radii)
 
-    def add_cell_neighbour(self, neighbour_cell: "Cell") -> None:
+    def add_cell_neighbour(self, direction: str, sign: str, neighbour_cell: "Cell") -> None:
         """
-        Add a neighbour cell to the current cell if it's not already present.
+        Add a neighbour cell in a structured dict format.
 
-        Parameters:
-        -----------
-        neighbourCell: Cell
+        Parameters
+        ----------
+        direction : str
+            One of "x", "y", "z"
+        sign : str
+            Either "positif" or "negatif"
+        neighbour_cell : Cell
             Neighbour cell to add
         """
-        if neighbour_cell not in self.neighbour_cells:
-            self.neighbour_cells.append(neighbour_cell)
+        if direction not in self.neighbour_cells:
+            self.neighbour_cells[direction] = {}
+
+        if sign not in self.neighbour_cells[direction]:
+            self.neighbour_cells[direction][sign] = neighbour_cell
+
+    def get_all_cell_neighbours(self) -> list["Cell"]:
+        """
+        Get all neighbour cells in a flat list.
+
+        Returns
+        -------
+        list of Cell
+            List of all neighbour cells
+        """
+        neighbours = []
+        for direction in self.neighbour_cells:
+            for sign in self.neighbour_cells[direction]:
+                neighbours.append(self.neighbour_cells[direction][sign])
+        return neighbours
 
     def print_data(self):
         """

@@ -30,8 +30,8 @@ class Beam(object):
         self.material: int = material
         self.type_beam: int = type_beam
         self.index: Optional[int] = None
-        self.angle1: Optional[Tuple[float, float]] = None  # Tuple of (radii, angle) for the first endpoint
-        self.angle2: Optional[Tuple[float, float]] = None  # Tuple of (radii, angle) for the second endpoint
+        self.angle_point_1: dict = {"radius": None, "angle": None, "L_zone": None}
+        self.angle_point_2: dict = {"radius": None, "angle": None, "L_zone": None}
         self.length: float = self.get_length()
         self.volume: float = self.get_volume(sectionType="circular")
         self.beam_mod: bool = False
@@ -84,7 +84,14 @@ class Beam(object):
 
     def get_angle_between_beams(self, other: 'Beam', periodicity: bool) -> float:
         """
-        Calculates angle between 2 beams
+        Calculates the angle between two beams
+
+        Parameters:
+        ----------
+        other : Beam
+            The other beam to calculate the angle with.
+        periodicity : bool
+            If True, considers periodic boundary conditions.
 
         Return:
         --------
@@ -219,17 +226,29 @@ class Beam(object):
         else:
             return False
 
-    def set_angle(self, AngleData: Tuple[float, float, float, float]) -> None:
+    def set_angle(self, radius: float, angle: float, point: "Point") -> None:
         """
-        Assign angle data to the beam.
+        Assign angle and radius data to one of the beam's endpoints.
 
-        Args:
-            AngleData (Tuple[float, float, float, float]): Angle data as (radius1, angle1, radius2, angle2).
+        Parameters:
+        ----------
+        radius : float
+            Radius at the point.
+        angle : float
+            Angle at the point in degrees.
+        point : Point
+            The point (endpoint) of the beam to which the data is assigned.
         """
-        if len(AngleData) != 4:
-            raise ValueError("AngleData must contain exactly 4 values: (radius1, angle1, radius2, angle2).")
-        self.angle1 = AngleData[0:2]
-        self.angle2 = AngleData[2:4]
+        if point == self.point1:
+            self.angle_point_1["radius"] = radius
+            self.angle_point_1["angle"] = angle
+            self.angle_point_1["L_zone"] = function_penalization_Lzone(radius, angle)
+        elif point == self.point2:
+            self.angle_point_2["radius"] = radius
+            self.angle_point_2["angle"] = angle
+            self.angle_point_2["L_zone"] = function_penalization_Lzone(radius, angle)
+        else:
+            raise ValueError("The specified point is not an endpoint of the beam.")
 
     def get_length_mod(self) -> Tuple[float, float]:
         """
@@ -238,8 +257,8 @@ class Beam(object):
         Returns:
             Tuple[float, float]: Length modifications for point1 and point2.
         """
-        L1 = function_penalization_Lzone(self.angle1)
-        L2 = function_penalization_Lzone(self.angle2)
+        L1 = self.angle_point_1["L_zone"]
+        L2 = self.angle_point_2["L_zone"]
         return L1, L2
 
     def set_beam_mod(self):

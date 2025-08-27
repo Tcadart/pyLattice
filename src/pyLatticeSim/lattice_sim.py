@@ -38,7 +38,8 @@ class LatticeSim(Lattice):
         self.n_DOF_per_node: int = 6  # Number of DOF per node (3 translation + 3 rotation)
         self.penalization_coefficient: float = 1.5  # Fixed with previous optimization
 
-        self.get_all_angles()
+        self.define_connected_beams_for_all_nodes()
+        self.define_angles_between_beams()
         self.set_beam_node_mod()
         # Define global indexation
         self.define_node_index_boundary()

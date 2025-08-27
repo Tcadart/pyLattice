@@ -76,6 +76,10 @@ class Lattice(object):
         # Generate global structure
         self.extract_parameters_from_json(name_file)
         self.generate_lattice()
+
+        if self.symmetry_lattice is not None:
+            self.apply_symmetry()
+
         self.define_size_lattice()
 
         # Generate important data for the lattice structure
@@ -84,11 +88,9 @@ class Lattice(object):
         self.define_beam_node_index()
         self.define_cell_index()
         self.define_cell_neighbours()
+        self.define_connected_beams_for_all_nodes()
         self.set_point_local_tag()
         self.apply_tag_all_point()
-
-        if self.symmetry_lattice is not None:
-            self.apply_symmetry()
 
         if self._verbose > 0:
             self.are_cells_identical()
@@ -413,66 +415,159 @@ class Lattice(object):
                     cellIndexed[cell] = nextCellIndex
                     nextCellIndex += 1
 
-    @timing.timeit
     def define_cell_neighbours(self) -> None:
         """
-        Define neighbours for each cell in the lattice, with periodic boundaries if enabled.
+        Neighbour assignment using integer grid indices + optional periodic wrap.
         """
-        cell_dict = {tuple(cell.pos): cell for cell in self.cells}
+        # Build integer grid indices from positions
+        xmin, xmax, ymin, ymax, zmin, zmax = self.get_lattice_boundary_box()
+        inv_dx = 1.0 / self.cell_size_x
+        inv_dy = 1.0 / self.cell_size_y
+        inv_dz = 1.0 / self.cell_size_z
 
-        neighbor_offsets = [
-            (-self.cell_size_x, 0, 0), (self.cell_size_x, 0, 0),
-            (0, -self.cell_size_y, 0), (0, self.cell_size_y, 0),
-            (0, 0, -self.cell_size_z), (0, 0, self.cell_size_z)
+        def to_idx(p):
+            """
+            Convert position to integer grid index.
+            """
+            # round to be robust to tiny float noise
+            return (
+                int(round((p[0] - xmin) * inv_dx)),
+                int(round((p[1] - ymin) * inv_dy)),
+                int(round((p[2] - zmin) * inv_dz)),
+            )
+
+        idx_to_cell = {}
+        for c in self.cells:
+            idx_to_cell[to_idx(c.pos)] = c
+
+        # Grid extents for wrapping / bounds
+        xs = sorted({i for (i, _, _) in idx_to_cell})
+        ys = sorted({j for (_, j, _) in idx_to_cell})
+        zs = sorted({k for (_, _, k) in idx_to_cell})
+        ix0, nx = xs[0], len(xs)
+        iy0, ny = ys[0], len(ys)
+        iz0, nz = zs[0], len(zs)
+
+        # Offsets and their (axis, sign) labels
+        neighbor_steps = [
+            ((-1, 0, 0), ("x", "negatif")),
+            ((+1, 0, 0), ("x", "positif")),
+            ((0, -1, 0), ("y", "negatif")),
+            ((0, +1, 0), ("y", "positif")),
+            ((0, 0, -1), ("z", "negatif")),
+            ((0, 0, +1), ("z", "positif")),
         ]
-        localBoundaryBox = False
-        if self.occupancy_matrix is None and self.enable_periodicity and self.eraser_blocks is not None:
-            self.get_cell_occupancy_matrix()
-            localBoundaryBox = True
 
-        for cell in self.cells:
-            cell.neighbour_cells = []
-            boundaryBox = self.get_relative_boundary_box(cell) if localBoundaryBox else self.get_lattice_boundary_box()
+        # Assign neighbours
+        for c in self.cells:
+            # reset dict container
+            c.neighbour_cells = {}
 
-            for offset in neighbor_offsets:
-                raw_pos = (
-                    cell.pos[0] + offset[0],
-                    cell.pos[1] + offset[1],
-                    cell.pos[2] + offset[2]
-                )
+            ix, iy, iz = to_idx(c.pos)
+            for (dx, dy, dz), (axis, sign) in neighbor_steps:
+                nix, niy, niz = ix + dx, iy + dy, iz + dz
 
                 if self.enable_periodicity:
-                    # enable_periodicity X
-                    if raw_pos[0] < boundaryBox[0]:
-                        neighbor_x = boundaryBox[1] + offset[0]
-                    elif raw_pos[0] >= boundaryBox[1]:
-                        neighbor_x = boundaryBox[0]
-                    else:
-                        neighbor_x = raw_pos[0]
-                    # enable_periodicity Y
-                    if raw_pos[1] < boundaryBox[2]:
-                        neighbor_y = boundaryBox[3] + offset[1]
-                    elif raw_pos[1] >= boundaryBox[3]:
-                        neighbor_y = boundaryBox[2]
-                    else:
-                        neighbor_y = raw_pos[1]
-                    # enable_periodicity Z
-                    if raw_pos[2] < boundaryBox[4]:
-                        neighbor_z = boundaryBox[5] + offset[2]
-                    elif raw_pos[2] >= boundaryBox[5]:
-                        neighbor_z = boundaryBox[4]
-                    else:
-                        neighbor_z = raw_pos[2]
-
-                    neighbor_pos = (neighbor_x, neighbor_y, neighbor_z)
+                    # periodic wrap (relative to min index of each axis)
+                    if nx > 0:
+                        nix = ix0 + ((nix - ix0) % nx)
+                    if ny > 0:
+                        niy = iy0 + ((niy - iy0) % ny)
+                    if nz > 0:
+                        niz = iz0 + ((niz - iz0) % nz)
                 else:
-                    if not (boundaryBox[0] <= raw_pos[0] <= boundaryBox[1] and
-                            boundaryBox[2] <= raw_pos[1] <= boundaryBox[3] and
-                            boundaryBox[4] <= raw_pos[2] <= boundaryBox[5]):
+                    # hard bounds (skip if outside)
+                    if not (ix0 <= nix < ix0 + nx and iy0 <= niy < iy0 + ny and iz0 <= niz < iz0 + nz):
                         continue
-                    neighbor_pos = raw_pos
-                if neighbor_pos in cell_dict:
-                    cell.add_cell_neighbour(cell_dict[neighbor_pos])
+
+                neigh = idx_to_cell.get((nix, niy, niz))
+                if neigh is not None:
+                    c.add_cell_neighbour(axis, sign, neigh)
+
+    @timing.timeit
+    def define_connected_beams_for_all_nodes(self, merge_tol: float = 1e-9) -> None:
+        """
+        Populate `Point.connected_beams` for all nodes.
+        Optionally merges connectivity for coincident/periodic nodes via a spatial hash.
+
+        Parameters
+        ----------
+        merge_tol : float
+            Quantization used to bucket nearly-identical coordinates (and periodic wraps).
+        """
+        # Reset connected_beams
+        for cell in self.cells:
+            for beam in cell.beams:
+                for p in (beam.point1, beam.point2):
+                    p.connected_beams.clear()
+
+        # Single pass: attach each beam to its two endpoints
+        for cell in self.cells:
+            for beam in cell.beams:
+                a, b = beam.point1, beam.point2
+                if beam not in a.connected_beams:
+                    a.connected_beams.append(beam)
+                if beam not in b.connected_beams:
+                    b.connected_beams.append(beam)
+
+        #  Optional stitching of coincident & periodic nodes via spatial hashing
+        # Build spatial buckets
+        xmin, xmax, ymin, ymax, zmin, zmax = self.get_lattice_boundary_box()
+
+        def qkey(x, y, z):
+            """Quantized key for spatial hashing."""
+            return round(x / merge_tol), round(y / merge_tol), round(z / merge_tol)
+
+        buckets = {}  # geometric buckets (exact/coincident)
+        periodic_buckets = {}  # buckets after wrapping (only if periodicity enabled)
+
+        def add_to_bucket(d, p):
+            """ Add point to geometric bucket."""
+            k = qkey(p.x, p.y, p.z)
+            d.setdefault(k, []).append(p)
+
+        def add_to_periodic_bucket(d, p):
+            """ Add point to periodic bucket (wrap max-face to min-face)."""
+            wx = xmin if abs(p.x - xmax) <= merge_tol else p.x
+            wy = ymin if abs(p.y - ymax) <= merge_tol else p.y
+            wz = zmin if abs(p.z - zmax) <= merge_tol else p.z
+            k = qkey(wx, wy, wz)
+            d.setdefault(k, []).append(p)
+
+        # Collect all points once
+        all_points = set()
+        for cell in self.cells:
+            for beam in cell.beams:
+                all_points.add(beam.point1)
+                all_points.add(beam.point2)
+
+        # Fill buckets
+        for p in all_points:
+            add_to_bucket(buckets, p)
+            if getattr(self, "enable_periodicity", False):
+                add_to_periodic_bucket(periodic_buckets, p)
+
+
+        def merge_bucket_connectivity(b):
+            """ Merge connectivity for all points in each bucket."""
+            for pts in b.values():
+                if len(pts) <= 1:
+                    continue
+                # union of beams connected to all points in the bucket
+                merged = []
+                seen = set()
+                for pt in pts:
+                    for bm in pt.connected_beams:
+                        if id(bm) not in seen:
+                            seen.add(id(bm))
+                            merged.append(bm)
+                # assign back
+                for pt in pts:
+                    pt.connected_beams = merged.copy()
+
+        merge_bucket_connectivity(buckets)
+        if getattr(self, "enable_periodicity", False):
+            merge_bucket_connectivity(periodic_buckets)
 
     @timing.timeit
     def get_list_angle_beam(self, beam: "Beam", pointbeams: list["Beam"]) -> tuple[list[float], list[float]]:
@@ -565,54 +660,92 @@ class Lattice(object):
 
         return list(point1beams), list(point2beams)
 
-    @timing.timeit
-    def get_all_angles(self) -> None:
-        """
-        Calculates angles between beams in the lattice.
+    # @timing.timeit
+    # def define_angles_between_beams(self) -> None:
+    #     """
+    #     Calculates angles between beams in the lattice.
+    #
+    #     Return:
+    #     ---------
+    #     angle:
+    #         data structure => ((beam_index, Angle mininmum point 1, minRad1, Angle mininmum point 2, minRad2))
+    #     """
+    #
+    #     @timing.timeit
+    #     def find_min_angle(angles, radii):
+    #         """
+    #         Find the Minimum angle between beams and radii connection to this particular beam
+    #         """
+    #         LValuesMax = 0
+    #         LRadius = None
+    #         LAngle = None
+    #         for radius, angle in zip(radii, angles):
+    #             L = function_penalization_Lzone(radius, angle)
+    #             if L > LValuesMax:
+    #                 LValuesMax = L
+    #                 LRadius = radius
+    #                 LAngle = angle
+    #         return LAngle, LRadius
+    #
+    #     # Create the list of beam objects for each cell with neighbors cells
+    #     for cell in self.cells:
+    #         beamList = []
+    #         cellListNeighbours = cell.get_all_cell_neighbours()
+    #         cellListNeighbours.append(cell)  # Include the cell itself
+    #         for neighbour in cellListNeighbours:
+    #             for beam in neighbour.beams:
+    #                 if beam not in beamList:
+    #                     beamList.append(beam)
+    #         angleList = {}
+    #         for beam in cell.beams:
+    #             # Determine beams on nodes
+    #             point1beams, point2beams = self.get_connected_beams(beamList, beam)
+    #             # Determine angles for all beams connected at the node
+    #             non_zero_anglebeam1, non_zero_radiusbeam1 = self.get_list_angle_beam(beam, point1beams)
+    #             non_zero_anglebeam2, non_zero_radiusbeam2 = self.get_list_angle_beam(beam, point2beams)
+    #             # Find the lowest angle
+    #             LAngle1, LRadius1 = find_min_angle(non_zero_anglebeam1, non_zero_radiusbeam1)
+    #             LAngle2, LRadius2 = find_min_angle(non_zero_anglebeam2, non_zero_radiusbeam2)
+    #             beam.set_angle(LRadius1, LAngle1, beam.point1)
+    #             beam.set_angle(LRadius2, LAngle2, beam.point2)
 
-        Return:
-        ---------
-        angle:
-            data structure => ((beam_index, Angle mininmum point 1, minRad1, Angle mininmum point 2, minRad2))
+    @timing.timeit
+    def define_angles_between_beams(self) -> None:
+        """
+        Compute, for each beam, the penalization-optimal angle at its two endpoints
+        using node-level connectivity (Point.connected_beams). Assumes
+        `define_connected_beams_for_all_nodes()` has been called.
         """
 
         @timing.timeit
-        def find_min_angle(angles, radii):
-            """
-            Find the Minimum angle between beams and radii connection to this particular beam
-            """
-            LValuesMax = 0
-            LRadius = None
-            LAngle = None
-            for radius, angle in zip(radii, angles):
-                L = function_penalization_Lzone((radius, angle))
-                if L > LValuesMax:
-                    LValuesMax = L
-                    LRadius = radius
-                    LAngle = angle
-            return LAngle, LRadius
+        def _best_by_penalization(angles: list[float], radii: list[float]) -> tuple[float, float]:
+            """Return (angle, radius) that maximizes L = function_penalization_Lzone((radius, angle))."""
+            if not angles:
+                return 0.0, 0.0
+            Lmax, best = -1.0, (0.0, 0.0)
+            for r, a in zip(radii, angles):
+                L = function_penalization_Lzone(r, a)
+                if L > Lmax:
+                    Lmax, best = L, (a, r)
+            return best
 
-        # Create the list of beam objects for each cell with neighbors cells
+        # Compute angles using local node neighborhoods only
         for cell in self.cells:
-            beamList = []
-            cellListNeighbours = cell.neighbour_cells
-            cellListNeighbours.append(cell)  # Include the cell itself
-            for neighbour in cellListNeighbours:
-                for beam in neighbour.beams:
-                    if beam not in beamList:
-                        beamList.append(beam)
-            angleList = {}
-            for beam in cell.beams:
-                # Determine beams on nodes
-                point1beams, point2beams = self.get_connected_beams(beamList, beam)
-                # Determine angles for all beams connected at the node
-                non_zero_anglebeam1, non_zero_radiusbeam1 = self.get_list_angle_beam(beam, point1beams)
-                non_zero_anglebeam2, non_zero_radiusbeam2 = self.get_list_angle_beam(beam, point2beams)
-                # Find the lowest angle
-                LAngle1, LRadius1 = find_min_angle(non_zero_anglebeam1, non_zero_radiusbeam1)
-                LAngle2, LRadius2 = find_min_angle(non_zero_anglebeam2, non_zero_radiusbeam2)
-                angleList[beam.index] = (LRadius1, round(LAngle1, 2), LRadius2, round(LAngle2, 2))
-                beam.set_angle(angleList[beam.index])
+            for b in cell.beams:
+                for p in (b.point1, b.point2):
+                    a1_list, r1_list = [], []
+                    for nb in p.connected_beams:
+                        if nb is b:
+                            continue
+                        try:
+                            ang = b.get_angle_between_beams(nb, self.enable_periodicity)
+                        except ValueError:
+                            continue
+                        if ang > 1e-12:
+                            a1_list.append(ang)
+                            r1_list.append(nb.radius)
+                    ang1, rad1 = _best_by_penalization(a1_list, r1_list)
+                    b.set_angle(rad1, ang1, p)
 
     @timing.timeit
     def define_lattice_dimensions(self) -> dict:

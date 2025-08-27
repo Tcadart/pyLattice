@@ -489,7 +489,7 @@ class LatticeOpti(LatticeSim):
         radiusContinuityDifference = []
         for cell in self.cells:
             radiusCell = cell.radii
-            for neighbours in cell.neighbour_cells:
+            for neighbours in cell.get_all_cell_neighbours():
                 for rad in range(len(radiusCell)):
                     radiusContinuityDifference.append((radiusCell[rad] - neighbours.radii[rad]) ** 2 - delta ** 2)
         return radiusContinuityDifference
@@ -510,7 +510,7 @@ class LatticeOpti(LatticeSim):
 
         for cell in self.cells:
             radiusCell = cell.radii
-            for neighbour in cell.neighbour_cells:
+            for neighbour in cell.get_all_cell_neighbours():
                 radiusNeighbour = neighbour.radii
                 for rad in range(len(radiusCell)):
                     i = cell.index * len(radiusCell) + rad
