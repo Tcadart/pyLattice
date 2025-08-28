@@ -652,36 +652,65 @@ class Lattice(object):
         return [self.x_min, self.x_max, self.y_min, self.y_max, self.z_min, self.z_max]
 
     @timing.timeit
-    def set_beam_node_mod(self) -> None:
+    def set_penalized_beams(self) -> None:
         """
-        Modifies beam and node data to model lattice structures for simulation with rigidity penalization at node
+        Modifies beam and node data to model lattice structures for simulation with rigidity penalization at node.
+        If L_zone at one end is 0 (or <= 0), we do not create a penalized segment at that end.
+        If both are 0, the beam is left unchanged.
         """
         for cell in self.cells:
             beamsToRemove = []
-            beamToAdd = []
+            beamsToAdd = []
 
-            for beam in cell.beams:
-                lengthMod = beam.get_length_mod()
-                pointExt1 = beam.get_point_on_beam_at_distance(lengthMod[0], 1)
-                pointExt1.node_mod = True
-                pointExt2 = beam.get_point_on_beam_at_distance(lengthMod[1], 2)
-                pointExt2.node_mod = True
+            for beam in list(cell.beams):
+                L1 = beam.angle_point_1.get("L_zone", 0)
+                L2 = beam.angle_point_2.get("L_zone", 0)
 
-                b1 = Beam(beam.point1, pointExt1, beam.radius, beam.material, beam.type_beam)
-                b1.set_beam_mod()
-                b2 = Beam(pointExt1, pointExt2, beam.radius, beam.material, beam.type_beam)
-                b3 = Beam(pointExt2, beam.point2, beam.radius, beam.material, beam.type_beam)
-                b3.set_beam_mod()
+                # No modification if both are zero or negative
+                if L1 <= 0 and L2 <= 0:
+                    continue
 
-                beamToAdd.append((b1, b2, b3))
+                new_segments = []
 
+                # Start from original endpoints
+                start = beam.point1
+                end = beam.point2
+
+                # Left/end-1 modification
+                if L1 > 0:
+                    pointExt1 = beam.get_point_on_beam_at_distance(L1, 1)
+                    pointExt1.node_mod = True
+                    b1 = Beam(start, pointExt1, beam.radius, beam.material, beam.type_beam)
+                    b1.set_beam_mod()
+                    new_segments.append(b1)
+                    start = pointExt1  # middle starts here
+
+                # Right/end-2 modification
+                if L2 > 0:
+                    pointExt2 = beam.get_point_on_beam_at_distance(L2, 2)
+                    pointExt2.node_mod = True
+                    mid_end = pointExt2
+                else:
+                    mid_end = end
+
+                # Middle (unmodified) segment
+                b_mid = Beam(start, mid_end, beam.radius, beam.material, beam.type_beam)
+                new_segments.append(b_mid)
+
+                # Final penalized segment at end-2 if needed
+                if L2 > 0:
+                    b3 = Beam(mid_end, end, beam.radius, beam.material, beam.type_beam)
+                    b3.set_beam_mod()
+                    new_segments.append(b3)
+
+                beamsToAdd.append(tuple(new_segments))
                 beamsToRemove.append(beam)
 
-            for addingBeam in beamToAdd:
-                cell.add_beam(addingBeam)
+            for segs in beamsToAdd:
+                cell.add_beam(segs)
 
-            for beam in beamsToRemove:
-                cell.remove_beam(beam)
+            for b in beamsToRemove:
+                cell.remove_beam(b)
 
         # Update index
         self.define_beam_node_index()

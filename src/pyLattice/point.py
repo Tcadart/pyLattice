@@ -34,7 +34,7 @@ class Point:
         self.y: float = float(y) + random.gauss(0, node_uncertainty_SD)
         self.z: float = float(z) + random.gauss(0, node_uncertainty_SD)
         self.index: Optional[int] = None  # Global index of the point
-        self.tag: Optional[int] = None  # Global boundary tag
+        self.tag: Optional[int] = None  # Global boundary tag #TODO change tagging method
         self.local_tag: List[int] = []  # Cell local boundary tag
         self.index_boundary: Optional[int] = None  # Global index for boundary cell
         self.displacement_vector: List[float] = [0.0] * 6  # Displacement vector of 6 DOF (Degrees of Freedom).

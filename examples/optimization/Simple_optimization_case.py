@@ -8,5 +8,4 @@ name_file = "optimization_beam_flexion"
 
 lattice_object = LatticeOpti(name_file, verbose=1, convergence_plotting = True)
 
-lattice_object.define_optimization_parameters(enable_normalization=True)
 lattice_object.optimize_lattice()

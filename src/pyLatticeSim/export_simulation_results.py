@@ -245,6 +245,7 @@ class exportSimulationResults:
         need_finalize = False
         if not gmsh.isInitialized():
             gmsh.initialize()
+            gmsh.option.setNumber("General.Verbosity", 0)
             need_finalize = True
         try:
             gmsh.model.add("homogenization_surface")
@@ -279,6 +280,7 @@ class exportSimulationResults:
 
 
     # ---------------- 3D beam visualization utilities ----------------
+    # TODO : update this methods
 
     def export_vizualisation_3D(self, save_directory: str | Path, number_point_ext: int = 8, mesh_radius_int: int = 3):
         """

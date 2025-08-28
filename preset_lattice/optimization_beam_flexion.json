@@ -35,18 +35,14 @@
   "optimization_informations": {
     "objective_function": "min",
     "objective_type": "compliance",
-    "position_objective": {
-      "Surface": ["Xmax", "Zmax"],
-      "DOF": ["Z"]
+    "optimization_parameters": {
+      "type": "constant",
+      "hybrid": false
     },
     "constraints": {
       "relative_density": {
         "value": 0.03
       }
-    },
-    "optimization_parameters": {
-      "type": "linear",
-      "direction": ["x"]
     },
     "enable_parameter_normalization": true,
     "simulation_type": "FEM"

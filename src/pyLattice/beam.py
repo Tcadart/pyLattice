@@ -156,7 +156,7 @@ class Beam(object):
         angle_deg = math.degrees(angle_rad)
         return angle_deg
 
-    def get_point_on_beam_at_distance(self, distance: float, start_point: int) -> "point":
+    def get_point_on_beam_at_distance(self, distance: float, start_point: int) -> "Point":
         """
         Calculate the coordinates of a point on the beam at a specific distance from an endpoint.
 
@@ -249,6 +249,7 @@ class Beam(object):
             self.angle_point_2["L_zone"] = function_penalization_Lzone(radius, angle)
         else:
             raise ValueError("The specified point is not an endpoint of the beam.")
+
 
     def get_length_mod(self) -> Tuple[float, float]:
         """

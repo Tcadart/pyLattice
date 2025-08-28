@@ -139,6 +139,8 @@ def function_penalization_Lzone(radius: float, angle: float) -> float:
     # Case beam quasi-aligned, avoid division by zero
     if angle > 170:
         return 0.0000001
+    if angle == 0.0:
+        return 0.0
     return radius / math.tan(math.radians(angle) / 2)
 
 

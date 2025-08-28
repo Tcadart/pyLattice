@@ -40,7 +40,7 @@ class LatticeSim(Lattice):
 
         self.define_connected_beams_for_all_nodes()
         self.define_angles_between_beams()
-        self.set_beam_node_mod()
+        self.set_penalized_beams()
         # Define global indexation
         self.define_node_index_boundary()
         self.set_boundary_conditions()
@@ -337,7 +337,7 @@ class LatticeSim(Lattice):
                         else:
                             node.global_free_DOF_index[:] = processed_nodes[node.index_boundary]
 
-    def initialize_reaction_force(self) -> None:
+    def _initialize_reaction_force(self) -> None:
         """
         Initialize reaction force of all nodes to 0 on each DOF
         """
@@ -346,7 +346,7 @@ class LatticeSim(Lattice):
                 for node in [beam.point1, beam.point2]:
                     node.initialize_reaction_force()
 
-    def initialize_displacement(self) -> None:
+    def _initialize_displacement(self) -> None:
         """
         Initialize displacement of all nodes to zero on each DOF
         """
@@ -354,6 +354,17 @@ class LatticeSim(Lattice):
             for beam in cell.beams:
                 for node in [beam.point1, beam.point2]:
                     node.initialize_displacement()
+
+    def _initialize_simulation_parameters(self):
+        """
+        Initialize simulation parameters for each node in the lattice
+        """
+        for cell in self.cells:
+            for beam in cell.beams:
+                for node in [beam.point1, beam.point2]:
+                    node.initialize_reaction_force()
+                    node.initialize_displacement()
+        self.set_boundary_conditions()
 
     def build_coupling_operator_cells(self) -> None:
         """
@@ -529,7 +540,7 @@ class LatticeSim(Lattice):
         self.set_global_free_DOF_index()
 
         # Initialize local displacement to zero
-        self.initialize_displacement()
+        self._initialize_displacement()
 
         # Define the preconditioner
         self.define_preconditioner()
@@ -583,7 +594,7 @@ class LatticeSim(Lattice):
             The global displacement vector.
         """
         # print("Update RF local with FenicsX")
-        self.initialize_reaction_force()
+        self._initialize_reaction_force()
         datasetDataCell = []
         for cell in self.cells:
             # Set Displacement on nodes (Global to Local)
