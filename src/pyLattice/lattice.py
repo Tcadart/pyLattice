@@ -535,11 +535,11 @@ class Lattice(object):
             d.setdefault(k, []).append(p)
 
         # Collect all points once
-        all_points = set()
+        all_points = []
         for cell in self.cells:
             for beam in cell.beams:
-                all_points.add(beam.point1)
-                all_points.add(beam.point2)
+                all_points.append(beam.point1)
+                all_points.append(beam.point2)
 
         # Fill buckets
         for p in all_points:
@@ -570,153 +570,12 @@ class Lattice(object):
             merge_bucket_connectivity(periodic_buckets)
 
     @timing.timeit
-    def get_list_angle_beam(self, beam: "Beam", pointbeams: list["Beam"]) -> tuple[list[float], list[float]]:
-        """
-        Calculate an angle between the considerate beam and beams contains in pointbeams
-
-        Parameters:
-        -----------
-        beam: Beam object
-            Beam where an angle is computed on
-        pointbeams: list of Beam object
-            List of beam to calculate an angle with considered beam
-
-        Return:
-        ---------
-        non_zero_anglebeam: list of an angle between considered beam and pointbeams beam list
-        non_zero_radiusbeam: list of radii between a considered beam and pointbeams beam list
-
-        Special case when pointbeams is an empty return max angle to minimize penalization zone
-        """
-        anglebeam = []
-        radiusBeam = []
-        if len(pointbeams) > 1:
-            for beampoint in pointbeams:
-                radiusBeam.append(beampoint.radius)
-                anglebeam.append(beam.get_angle_between_beams(beampoint, self.enable_periodicity))
-        else:  # Not connected beam
-            radiusBeam.append(beam.radius)
-            anglebeam.append(179.9)
-        non_zero_anglebeam = [angle for angle in anglebeam if angle >= 0.01]
-        non_zero_radiusbeam = [radius for angle, radius in zip(anglebeam, radiusBeam) if angle >= 0.01]
-        return non_zero_anglebeam, non_zero_radiusbeam
-
-    @timing.timeit
-    def get_connected_beams(self, beamList: list["Beam"], beam: "Beam") -> tuple[list["Beam"], list["Beam"]]:
-        """
-        Get all beams connected to the interest beam.
-
-        Parameters:
-        -----------
-        beamList: list of Beam objects
-            List of all beams in the lattice.
-        beam: Beam
-            Beam of interest.
-        """
-        point1beams = set()
-        point2beams = set()
-
-        tag_checks = [*[(tags, 'corner') for tags in self.corner_tags], *[(tags, 'edge') for tags in self.edge_tags],
-                      *[(tags, 'face') for tags in self.face_tags]]
-
-        def is_periodic_connected(p, b_idx, tags_range_list):
-            """
-            Check if the point p is periodic connected to the beam index b_idx
-            """
-            if not p.tag:
-                return False
-            p_tag_set = set(p.tag)
-            if not p_tag_set.intersection(tags_range_list):
-                return False
-
-            bp1_tag = set(b_idx.point1.tag or [])
-            bp2_tag = set(b_idx.point2.tag or [])
-            if not (bp1_tag.union(bp2_tag)).intersection(tags_range_list):
-                return False
-
-            p_local = set(p.local_tag)
-            bp1_local = set(b_idx.point1.local_tag or [])
-            bp2_local = set(b_idx.point2.local_tag or [])
-
-            if tags_range_list == self.corner_tags:
-                return bool(p_local.intersection(tags_range_list) and (bp1_local.union(bp2_local)).intersection(tags_range_list))
-            else:
-                return bool(p_local.intersection(tags_range_list) and (bp1_local.union(bp2_local)).intersection(tags_range_list))
-
-        for beamidx in beamList:
-            if beam.point1 in [beamidx.point1, beamidx.point2]:
-                point1beams.add(beamidx)
-            if beam.point2 in [beamidx.point1, beamidx.point2]:
-                point2beams.add(beamidx)
-
-            if not self.enable_periodicity:
-                continue
-
-            for tags_range, _ in tag_checks:
-                if is_periodic_connected(beam.point1, beamidx, tags_range):
-                    point1beams.add(beamidx)
-                if is_periodic_connected(beam.point2, beamidx, tags_range):
-                    point2beams.add(beamidx)
-
-        return list(point1beams), list(point2beams)
-
-    # @timing.timeit
-    # def define_angles_between_beams(self) -> None:
-    #     """
-    #     Calculates angles between beams in the lattice.
-    #
-    #     Return:
-    #     ---------
-    #     angle:
-    #         data structure => ((beam_index, Angle mininmum point 1, minRad1, Angle mininmum point 2, minRad2))
-    #     """
-    #
-    #     @timing.timeit
-    #     def find_min_angle(angles, radii):
-    #         """
-    #         Find the Minimum angle between beams and radii connection to this particular beam
-    #         """
-    #         LValuesMax = 0
-    #         LRadius = None
-    #         LAngle = None
-    #         for radius, angle in zip(radii, angles):
-    #             L = function_penalization_Lzone(radius, angle)
-    #             if L > LValuesMax:
-    #                 LValuesMax = L
-    #                 LRadius = radius
-    #                 LAngle = angle
-    #         return LAngle, LRadius
-    #
-    #     # Create the list of beam objects for each cell with neighbors cells
-    #     for cell in self.cells:
-    #         beamList = []
-    #         cellListNeighbours = cell.get_all_cell_neighbours()
-    #         cellListNeighbours.append(cell)  # Include the cell itself
-    #         for neighbour in cellListNeighbours:
-    #             for beam in neighbour.beams:
-    #                 if beam not in beamList:
-    #                     beamList.append(beam)
-    #         angleList = {}
-    #         for beam in cell.beams:
-    #             # Determine beams on nodes
-    #             point1beams, point2beams = self.get_connected_beams(beamList, beam)
-    #             # Determine angles for all beams connected at the node
-    #             non_zero_anglebeam1, non_zero_radiusbeam1 = self.get_list_angle_beam(beam, point1beams)
-    #             non_zero_anglebeam2, non_zero_radiusbeam2 = self.get_list_angle_beam(beam, point2beams)
-    #             # Find the lowest angle
-    #             LAngle1, LRadius1 = find_min_angle(non_zero_anglebeam1, non_zero_radiusbeam1)
-    #             LAngle2, LRadius2 = find_min_angle(non_zero_anglebeam2, non_zero_radiusbeam2)
-    #             beam.set_angle(LRadius1, LAngle1, beam.point1)
-    #             beam.set_angle(LRadius2, LAngle2, beam.point2)
-
-    @timing.timeit
     def define_angles_between_beams(self) -> None:
         """
         Compute, for each beam, the penalization-optimal angle at its two endpoints
         using node-level connectivity (Point.connected_beams). Assumes
         `define_connected_beams_for_all_nodes()` has been called.
         """
-
         @timing.timeit
         def _best_by_penalization(angles: list[float], radii: list[float]) -> tuple[float, float]:
             """Return (angle, radius) that maximizes L = function_penalization_Lzone((radius, angle))."""
@@ -746,6 +605,7 @@ class Lattice(object):
                             r1_list.append(nb.radius)
                     ang1, rad1 = _best_by_penalization(a1_list, r1_list)
                     b.set_angle(rad1, ang1, p)
+
 
     @timing.timeit
     def define_lattice_dimensions(self) -> dict:
