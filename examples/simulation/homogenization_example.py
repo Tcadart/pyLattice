@@ -12,13 +12,10 @@ name_file = "hybrid_cell_simulation"
 
 lattice_object = LatticeSim(name_file)
 
-vizualizer = LatticePlotting()
-vizualizer.visualize_lattice(lattice_object, beam_color_type="radii")
-
 mat_S_orthotropic, homogenization_analysis = get_homogenized_properties(lattice_object)
 
 create_homogenization_figure(mat_S_orthotropic, save=True, name_file=name_file, plot= False)
 
 # Export simulations to Paraview
-# exportData = exportSimulationResults(homogenization_analysis, name_file)
-# exportData.export_data_homogenization()
+exportData = exportSimulationResults(homogenization_analysis, name_file)
+exportData.export_data_homogenization()

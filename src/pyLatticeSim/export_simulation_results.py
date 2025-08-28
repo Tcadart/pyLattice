@@ -9,7 +9,7 @@ from basix.ufl import element
 import gmsh
 import ufl
 
-from .utils import clear_directory
+from .utils import clear_directory, directional_modulus
 
 
 class exportSimulationResults:
@@ -154,7 +154,7 @@ class exportSimulationResults:
         self.export_local_coordinates_system()
         self.write_function(time=float(case))
 
-    def export_data_homogenization(self):
+    def export_data_homogenization(self, homogenization_surface: bool = True):
         """
         Export all data from 6 loading cases in homogenization.
         Each item in saveDataToExport is a solution field.
@@ -173,7 +173,110 @@ class exportSimulationResults:
             self.export_internal_force(simu_result, case=case)
             self.export_local_coordinates_system()
             self.write_function(time=float(case))
+
+        # Export homogenization surface
+        if homogenization_surface:
+            mat = self.simulation_model.get_S_orthotropic()
+            if mat is not None:
+                self.export_homogenization_surface_paraview(np.asarray(mat),
+                                                            filename="homogenization_surface",
+                                                            n_theta=90, n_phi=180)
+
         self.close_file()
+
+    def export_homogenization_surface_paraview(self, mat_S_orthotropic: np.ndarray,
+                                           filename: str = "homogenization_surface",
+                                           n_theta: int = 90, n_phi: int = 180) -> Path:
+        """
+        Export the 3D homogenization polar surface (directional stiffness) using Gmsh.
+        Writes <filename>.msh into self.out_dir.
+
+        Parameters
+        ----------
+        mat_S_orthotropic: np.ndarray
+            6x6 stiffness matrix in Voigt notation (assumed orthotropic)
+        filename: str
+            Base name for output files (without extension)
+        n_theta: int
+            Number of angular samples in theta (0..pi)
+        n_phi: int
+            Number of angular samples in phi (0..2pi)
+
+        New update:
+        - Coloring mesh by stiffness value
+        """
+        # Angular grid
+        thetas = np.linspace(0.0, np.pi, n_theta)       # 0..pi
+        phis   = np.linspace(0.0, 2.0*np.pi, n_phi)     # 0..2pi
+
+        # Sample directional surface (expects your existing directional_modulus(theta°, phi°))
+        pts = []
+        for th in thetas:
+            th_deg = float(np.degrees(th))
+            for ph in phis:
+                ph_deg = float(np.degrees(ph))
+                vec = directional_modulus(mat_S_orthotropic, th_deg, ph_deg)
+                pts.append(vec)
+        points = np.asarray(pts, dtype=float)
+
+        # Rescale to fit inside the lattice box
+        lat = getattr(self.simulation_model.BeamModel, "lattice", None)
+        if lat is not None:
+            lx, ly, lz = float(lat.size_x), float(lat.size_y), float(lat.size_z)
+            maxabs = np.maximum(np.max(np.abs(points), axis=0), 1e-12)  # avoid divide-by-zero
+            scale = np.array([ (lx * 0.5) / maxabs[0],
+                               (ly * 0.5) / maxabs[1],
+                               (lz * 0.5) / maxabs[2] ])
+            points *= scale
+
+        # Connectivity (triangles)
+        tris = []
+        for i in range(n_theta - 1):
+            for j in range(n_phi - 1):
+                n0 = i * n_phi + j
+                n1 = n0 + 1
+                n2 = n0 + n_phi
+                n3 = n2 + 1
+                tris.append([n0, n1, n3])
+                tris.append([n0, n3, n2])
+        tris = np.asarray(tris, dtype=np.int64)
+
+        # Gmsh export
+        need_finalize = False
+        if not gmsh.isInitialized():
+            gmsh.initialize()
+            need_finalize = True
+        try:
+            gmsh.model.add("homogenization_surface")
+
+            # Create a discrete surface entity
+            surf_tag = gmsh.model.addDiscreteEntity(2)
+
+            # Nodes: gmsh expects 1-based tags and flat coord array
+            node_tags = np.arange(1, points.shape[0] + 1, dtype=np.int64)
+            coords = points.reshape(-1).tolist()
+            gmsh.model.mesh.addNodes(2, surf_tag, node_tags.tolist(), coords)
+
+            elem_type = 2
+            elem_tags = np.arange(1, tris.shape[0] + 1, dtype=np.int32)
+            nodes_flat = (tris + 1).astype(np.int32).ravel()
+            gmsh.model.mesh.addElements(
+                2, surf_tag,
+                [elem_type],
+                [elem_tags],
+                [nodes_flat]
+            )
+
+            # Write files next to simulation outputs
+            msh_path = (self.out_dir / filename).with_suffix(".msh")
+            gmsh.write(str(msh_path))
+            print(f"Homogenization surface written to {msh_path}")
+            return msh_path
+        finally:
+            gmsh.model.remove()  # clean current model
+            if need_finalize:
+                gmsh.finalize()
+
 
     # ---------------- 3D beam visualization utilities ----------------
 
