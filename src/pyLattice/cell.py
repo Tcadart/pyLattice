@@ -178,7 +178,8 @@ class Cell(object):
 
         return corners
 
-    def generate_cell_properties(self, initial_cell_size, beams_already_defined, nodes_already_defined):
+    def generate_cell_properties(self, initial_cell_size, beams_already_defined: Optional[set] = None,
+                                 nodes_already_defined: Optional[set] = None):
         """
         Generate a cell object with beams and nodes based on the lattice type_beam and radii.
 
@@ -394,17 +395,6 @@ class Cell(object):
         Calculate the center point of the cell
         """
         self.center_point = [self.coordinate[i] + self.size[i] / 2 for i in range(3)]
-
-    def get_list_points(self) -> list:
-        """
-        Determine a list of points in cell
-        """
-        pointList = []
-        for beam in self.beams_cell:
-            for point in [beam.point1, beam.point2]:
-                if point not in pointList:
-                    pointList.append(point)
-        return pointList
 
     def remove_beam(self, beam_to_delete: Union["Beam", Iterable["Beam"]]) -> None:
         """
@@ -834,7 +824,7 @@ class Cell(object):
         """
         Get the rotation matrix of the rigid body using SVD.
         """
-        all_points = self.get_list_points()
+        all_points = self.points_cell
         initial_positions = np.array([point.coordinates for point in all_points])  # P_i
         final_positions = np.array([point.deformed_coordinates for point in all_points])  # P_i'
 

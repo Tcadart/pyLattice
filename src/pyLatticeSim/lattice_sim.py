@@ -4,6 +4,7 @@ from colorama import Fore, Style
 from scipy.sparse import coo_matrix, lil_matrix
 from scipy.sparse.linalg import LinearOperator, splu
 
+from pyLattice.cell import Cell
 from pyLattice.lattice import Lattice
 from pyLattice.utils import open_lattice_parameters
 from pyLatticeSim.utils_simulation import get_schur_complement
@@ -228,17 +229,17 @@ class LatticeSim(Lattice):
         """
         IndexCounter = 0
         nodeAlreadyIndexed = {}
+        self.max_index_boundary = 0
         for cell in self.cells:
-            for beam in cell.beams_cell:
-                for node in [beam.point1, beam.point2]:
-                    localTag = node.tag_point(cell.boundary_box)
-                    if localTag:
-                        if node in nodeAlreadyIndexed:
-                            node.index_boundary = nodeAlreadyIndexed[node]
-                        else:
-                            nodeAlreadyIndexed[node] = IndexCounter
-                            node.index_boundary = IndexCounter
-                            IndexCounter += 1
+            for node in cell.points_cell:
+                localTag = node.tag_point(cell.boundary_box)
+                if localTag:
+                    if node in nodeAlreadyIndexed:
+                        node.index_boundary = nodeAlreadyIndexed[node]
+                    else:
+                        nodeAlreadyIndexed[node] = IndexCounter
+                        node.index_boundary = IndexCounter
+                        IndexCounter += 1
         self.max_index_boundary = IndexCounter - 1
 
 
@@ -733,7 +734,47 @@ class LatticeSim(Lattice):
 
         return LUSchurComplement, inverseSchurComplement
 
+    def reset_cell_with_new_radii(self, new_radii: list[float], index_cell: int = 0) -> None:
+        """
+        Reset a cell with new radii for each beam type
 
+        Parameters:
+        ------------
+        new_radii: list of float
+            List of new radii for each beam type
+        index_cell: int
+            Index of the cell to reset
+        """
+        if len(new_radii) != len(self.radii):
+            raise ValueError("Invalid hybrid radii data.")
+        self.radii = new_radii
+        if not (0 <= index_cell < len(self.cells)):
+            raise IndexError("Invalid cell index.")
+
+        cell_to_reset = self.cells[index_cell]
+        self.cells.remove(cell_to_reset)
+        self.beams.difference_update(cell_to_reset.beams_cell)
+        self.nodes.difference_update(cell_to_reset.points_cell)
+        new_cell = Cell(
+            cell_to_reset.pos, cell_to_reset.initial_cell_size, cell_to_reset.start_cell_pos,
+            self.geom_types, self.radii,
+            self.grad_radius, self.grad_dim, self.grad_mat,
+            self.uncertainty_node, self._verbose
+        )
+        self.cells.append(new_cell)
+        self.beams.update(new_cell.beams_cell)
+        self.nodes.update(new_cell.points_cell)
+        self.define_beam_node_index()
+        self.define_cell_index()
+        self.define_cell_neighbours()
+        self.define_connected_beams_for_all_nodes()
+        self.apply_tag_all_point()
+        if self._simulation_flag:
+            self.define_angles_between_beams()
+            self.set_penalized_beams()
+            # Define global indexation
+            self.define_node_index_boundary()
+            self.set_boundary_conditions()
 
 
 

@@ -893,16 +893,59 @@ class Lattice(object):
         Change the beam configuration of collisionned beams
         """
         for cell in self.cells:
-            cellPoints = cell.get_list_points()
-            for node in cellPoints:
-                for beam in cell.beams_cell:
-                    if beam.is_point_on_beam(node):
-                        typeBeamToRemove = beam.type_beam  # Get beam to remove type_beam to apply in new separated beams
-                        beam1 = Beam(beam.point1, node, beam.radius, beam.material, typeBeamToRemove)
-                        beam2 = Beam(beam.point2, node, beam.radius, beam.material, typeBeamToRemove)
-                        cell.remove_beam(beam)
-                        cell.add_beam(beam1)
-                        cell.add_beam(beam2)
+            beams_iter = set(cell.beams_cell)
+            points_iter = set(cell.points_cell)
+
+            beams_to_remove = set()
+            beams_to_add = set()
+
+            for beam in beams_iter:
+                p1, p2 = beam.point1, beam.point2
+
+                vx, vy, vz = (p2.x - p1.x, p2.y - p1.y, p2.z - p1.z)
+                L2 = vx * vx + vy * vy + vz * vz
+                if L2 == 0.0:
+                    continue
+
+                # Get internal nodes on the beam (excluding endpoints)
+                internal_nodes = []
+                for n in points_iter:
+                    if n is p1 or n is p2:
+                        continue
+                    if beam.is_point_on_beam(n):
+                        t = ((n.x - p1.x) * vx + (n.y - p1.y) * vy + (n.z - p1.z) * vz) / L2
+                        if 1e-12 < t < 1 - 1e-12:
+                            internal_nodes.append((t, n))
+
+                if not internal_nodes:
+                    continue  # no internal nodes, skip
+
+                # Sort internal nodes by their parameter t along the beam
+                internal_nodes.sort(key=lambda tn: tn[0])
+
+                chain = [p1] + [n for _, n in internal_nodes] + [p2]
+
+                # Create new beam segments
+                type_to_keep = beam.type_beam
+                new_segments = []
+                for a, b in zip(chain[:-1], chain[1:]):
+                    new_segments.append(Beam(a, b, beam.radius, beam.material, type_to_keep))
+
+                beams_to_remove.add(beam)
+                for nb in new_segments:
+                    beams_to_add.add(nb)
+
+            if beams_to_remove:
+                for b in beams_to_remove:
+                    cell.remove_beam(b)
+            if beams_to_add:
+                cell.add_beam(list(beams_to_add))
+
+            if hasattr(self, "beams"):
+                self.beams.difference_update(beams_to_remove)
+                self.beams.update(beams_to_add)
+
+        self.define_beam_node_index()
 
     def get_node_coordinates_data(self) -> list[list[float]]:
         """
@@ -948,23 +991,28 @@ class Lattice(object):
         """
         return [[b.length] for b in self.beams]
 
-    def change_beam_radius_data_hybrid_lattice(self, hybridRadiusData: list[float]) -> None:
+    def change_beam_radius(self, radius_list: list[float]) -> None:
         """
-        Change radii data for hybrid lattice
+        Change beam radius for all beams in the lattice
+        radius_list must have the same length as the number of different beam types in cells
+
+        Take care if penalization is activated, the radius of penalized beams will be modified with the
+        penalization coefficient but the length of the modified beam will not be changed
+        (Use reset_cell_with_new_radii instead if you want to have clean cells for simulation)
 
         Parameters:
         ------------
-        hybridRadiusData: list of float
-            List of radii data for hybrid lattice
+        radius_list: list of float
+            List of new radii for each beam type
         """
-        if len(hybridRadiusData) != len(self.radii):
+        if len(radius_list) != len(self.radii):
             raise ValueError("Invalid hybrid radii data.")
-        for cell in self.cells:
-            for beam in cell.beams_cell:
-                if beam.beam_mod:
-                    beam.radius = hybridRadiusData[beam.type_beam] * beam.penalization_coefficient
-                else:
-                    beam.radius = hybridRadiusData[beam.type_beam]
+        for beam in self.beams:
+            if beam.beam_mod:
+                beam.radius = radius_list[beam.type_beam] * beam.penalization_coefficient
+            else:
+                beam.radius = radius_list[beam.type_beam]
+
 
     def get_relative_density(self) -> float:
         """
@@ -1251,7 +1299,8 @@ class Lattice(object):
     @timing.timeit
     def generate_mesh_lattice_Gmsh(self, cut_mesh_at_boundary: bool = False, mesh_size: float = 0.05,
                                    name_mesh: str = "Lattice",save_mesh: bool = False, save_STL: bool = True,
-                                   volume_computation: bool = False):
+                                   volume_computation: bool = False, only_volume: bool = False,
+                                   only_relative_density: bool = False) -> float | None:
         """
         Generate a 2D mesh representation of the lattice structure using GMSH.
         Generating 3D mesh for simulation is not currently supported, but will be in the future.
@@ -1301,61 +1350,115 @@ class Lattice(object):
 
         gmsh.model.occ.synchronize()
 
+        if only_relative_density:
+            return self.get_relative_density_mesh()
+
+        total_volume = None
+        if volume_computation or only_volume:
+            total_volume = self.get_volume_mesh(synchronize=False)
+            if only_volume:
+                return total_volume
+
+
         # Define mesh size
         points = gmsh.model.getEntities(dim=0)
         gmsh.model.mesh.setSize(points, mesh_size)
         gmsh.model.occ.synchronize()
 
-        if volume_computation:
-            self.get_volume_mesh()
-
         gmsh.model.mesh.generate(2)
 
-        project_root = Path(__file__).resolve().parents[2]
+        project_root = Path(__file__).resolve().parents[2] / "data" / "outputs" / "mesh_file"
         if save_mesh:
-            path = project_root / "data" / "outputs" / "mesh_file" / f"{name_mesh}.msh"
+            path = project_root / f"{name_mesh}.msh"
             gmsh.write(str(path))
             print("mesh_file saved at ", path)
 
         if save_STL:
-            path = project_root / "mesh_file" / f"{name_mesh}.stl"
+            path = project_root / f"{name_mesh}.stl"
             gmsh.write(str(path))
             print("mesh_file saved at ", path)
 
         gmsh.finalize()
+        if volume_computation:
+            return total_volume
 
     @timing.timeit
-    def get_volume_mesh(self) -> float:
+    def get_volume_mesh(self, entities_3d: list | None = None, synchronize: bool = True,
+                        return_details: bool = False) -> float | dict:
         """
-        Compute the total volume of the mesh and the relative density of the lattice.
+        Compute the exact CAD volume (OCC 'mass' with unit density) of the current model
+        without requiring any meshing.
 
-        Returns:
-        --------
-        vol: float
-            Total volume of the mesh.
+        Parameters
+        ----------
+        entities_3d : list[(int,int)] | None
+            Optional list of 3D OCC entities (pairs (dim=3, tag)). If None, all 3D
+            entities in the current model are used.
+        synchronize : bool
+            If True, call gmsh.model.occ.synchronize() before querying mass properties.
+            Set to False only if you've already synchronized after your boolean ops.
+        return_details : bool
+            If True, return a dict with 'total' and 'per_entity' (list of (tag, volume)).
+
+        Returns
+        -------
+        float | dict
+            Total volume if return_details is False, else a dict:
+            {'total': float, 'per_entity': [(tag:int, volume:float), ...]}
         """
-        vol = 0.0
-        for dim, tag in gmsh.model.getEntities(dim=3):
-            vol += gmsh.model.occ.getMass(dim, tag)
+        if synchronize:
+            gmsh.model.occ.synchronize()
+
+        # Default: all 3D solids present in the model
+        if entities_3d is None:
+            entities_3d = gmsh.model.getEntities(dim=3)
+
+        total = 0.0
+        details = []
+
+        # Guard against empty list
+        if not entities_3d:
+            if self._verbose > 0:
+                print("get_volume_mesh: no 3D entities found; volume = 0.0")
+            return {'total': 0.0, 'per_entity': []} if return_details else 0.0
+
+        # Sum exact OCC 'mass' (density=1 => mass == volume)
+        for dim, tag in entities_3d:
+            # Defensive: ensure correct dimension
+            if dim != 3:
+                continue
+            v = gmsh.model.occ.getMass(dim, tag)
+            total += v
+            if return_details:
+                details.append((tag, v))
+
         if self._verbose > 0:
-            print(f"Total volume: {vol}")
-        return vol
+            print(f"Total volume: {total}")
 
-    def get_relative_density_mesh(self) -> float:
-        """
-        Compute the relative density of the lattice based on the mesh volume.
+        if return_details:
+            return {'total': total, 'per_entity': details}
+        return total
 
-        Returns:
-        --------
-        relative_density: float
-            Relative density of the lattice.
+    def get_relative_density_mesh(self, solids_3d=None, domain_volume: float | None = None) -> float:
         """
-        bb = self.get_lattice_boundary_box()
-        volume_lattice = bb[1] - bb[0] * bb[3] - bb[2] * bb[5] - bb[4]
-        relative_density = self.get_volume_mesh() / volume_lattice
-        if self._verbose > 0:
-            print(f"Relative density: {relative_density:.4f}")
-        return relative_density
+        Compute relative density = V_solid / V_domain using exact CAD volumes.
+
+        If domain_volume is None, the domain is taken as the axis-aligned box
+        defined by (x_min..x_max) × (y_min..y_max) × (z_min..z_max).
+        """
+        V_solid = self.get_volume_mesh(entities_3d=solids_3d, synchronize=False)
+
+        if domain_volume is None:
+            Lx = self.x_max - self.x_min
+            Ly = self.y_max - self.y_min
+            Lz = self.z_max - self.z_min
+            V_domain = float(Lx * Ly * Lz)
+        else:
+            V_domain = float(domain_volume)
+
+        if V_domain <= 0.0:
+            raise ValueError("get_relative_density: domain volume must be positive.")
+        return V_solid / V_domain
 
     def are_cells_identical(self) -> bool:
         """
