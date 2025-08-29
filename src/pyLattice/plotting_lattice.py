@@ -130,7 +130,7 @@ class LatticePlotting:
             nodeDraw = set()
 
             for cell in cells:
-                for beam in cell.beams:
+                for beam in cell.beams_cell:
                     if beam.radius != 0.0 and beam not in beamDraw:
                         colorBeam, idxColor = _get_beam_color(beam, color_palette, beam_color_type, idxColor, cells,
                                                               nbRadiusBins)
@@ -219,7 +219,7 @@ class LatticePlotting:
 
                 beam_color_type = beam_color_type.lower()
                 if beam_color_type == "material":
-                    colorCell = color_palette[cell.beams[0].material % len(color_palette)]
+                    colorCell = color_palette[cell.beams_cell[0].material % len(color_palette)]
                 elif beam_color_type == "type":
                     colorCell = color_palette[cell.geom_types % len(color_palette)]
                 elif beam_color_type == "radii":
@@ -242,7 +242,7 @@ class LatticePlotting:
             corners_by_cell = {}
 
             for cell in cells:
-                for beam in cell.beams:
+                for beam in cell.beams_cell:
                     if beam.radius != 0.0 and beam not in beamDraw:
                         colorBeam, idxColor = _get_beam_color(beam, color_palette, beam_color_type, idxColor, cells,
                                                               nbRadiusBins)

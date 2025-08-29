@@ -5,7 +5,7 @@ Example of lattice structure design with all entries from the package.
 from pyLattice.lattice import Lattice
 from pyLattice.plotting_lattice import LatticePlotting
 
-name_file = "all_design_parameters"
+name_file = "design/all_design_parameters"
 
 lattice_object = Lattice(name_file, verbose=1)
 

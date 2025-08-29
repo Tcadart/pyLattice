@@ -2,6 +2,8 @@
 cell.py
 """
 import json
+from typing import Iterable, Union
+
 
 import numpy as np
 from colorama import Fore, Style
@@ -17,7 +19,8 @@ class Cell(object):
 
     def __init__(self, pos: list, initial_size: list, coordinate: list, geom_types: list[str],
                  radii: list[float], grad_radius: list or None, grad_dim: list or None, grad_mat: list or None,
-                 uncertainty_node: float = 0.0, _verbose: int = 0):
+                 uncertainty_node: float = 0.0, _verbose: int = 0,
+                 beams_already_defined: Optional[dict] = None, nodes_already_defined: Optional[dict] = None) -> None:
         """
         Initialize a Cell with its dimensions and position
 
@@ -43,6 +46,10 @@ class Cell(object):
             Standard deviation for adding uncertainty to node coordinates. Defaults to 0.0.
         _verbose: bool
             If True, prints additional information during initialization. Defaults to False.
+        beams_already_defined: set
+            Set of beams already defined in the lattice to avoid duplication. Defaults to None.
+        nodes_already_defined: set
+            Set of nodes already defined in the lattice to avoid duplication. Defaults to None.
         """
 
         _validate_inputs_cell(pos, initial_size, coordinate, geom_types,
@@ -56,7 +63,8 @@ class Cell(object):
         self.size = None
         self.pos: list[int] = pos
         self.coordinate: list[float] = coordinate
-        self.beams: Optional[list] = []
+        self.beams_cell: Optional[set] = set()  # Set of beams in the cell
+        self.points_cell: Optional[set] = set()  # Set of points in the cell
         self.index: Optional[int] = None
         self.geom_types: list[str] = geom_types
         self.radii: list[float] = radii
@@ -71,7 +79,7 @@ class Cell(object):
         self.node_in_order_simulation = None
 
         self.define_original_tags()
-        self.generate_cell_properties(initial_size)
+        self.generate_cell_properties(initial_size, beams_already_defined, nodes_already_defined)
         if self.relative_density > 1 and self._verbose > 0:
             print(Fore.YELLOW + "WARNING: Approximated relative density of the cell is greater than 1. "
                                 "Beam radius and cell size is probably not well defined" + Style.RESET_ALL)
@@ -90,7 +98,7 @@ class Cell(object):
         Calculate the relative density of the cell based on the volume of beams and the cell volume.
         """
         volumeBeams = 0
-        for beam in self.beams:
+        for beam in self.beams_cell:
             volumeBeams += beam.volume
         return volumeBeams / self.volume
 
@@ -100,7 +108,7 @@ class Cell(object):
         Get the volume of the cell separated by geometry type_beam.
         """
         volumes = np.zeros(len(self.radii))
-        for beam in self.beams:
+        for beam in self.beams_cell:
             if not beam.beam_mod:
                 volumeBeam = beam.volume
                 volumes[beam.type_beam] += volumeBeam
@@ -170,7 +178,7 @@ class Cell(object):
 
         return corners
 
-    def generate_cell_properties(self, initialCellSize):
+    def generate_cell_properties(self, initial_cell_size, beams_already_defined, nodes_already_defined):
         """
         Generate a cell object with beams and nodes based on the lattice type_beam and radii.
 
@@ -178,6 +186,10 @@ class Cell(object):
         -----------
         initialCellSize: list
             Initial size of the cell without modification
+        beams_already_defined: set
+            Set of beams already defined in the lattice to avoid duplication
+        nodes_already_defined: set
+            Set of nodes already defined in the lattice to avoid duplication
         """
         idxCell = 0
         for idx, radius in enumerate(self.radii):
@@ -185,12 +197,12 @@ class Cell(object):
                 if idxCell == 0:
                     self.get_beam_material()
                     beamRadius = self.get_radius(radius)
-                    self.get_cell_size(initialCellSize)
-                    self.generate_beams(self.geom_types[idx], beamRadius, idx)
+                    self.get_cell_size(initial_cell_size)
+                    self.generate_beams(self.geom_types[idx], beamRadius, idx, beams_already_defined, nodes_already_defined)
                     self.get_cell_center()
                 else:
                     hybridRadius = self.get_radius(radius)
-                    self.generate_beams(self.geom_types[idx], hybridRadius, idx)
+                    self.generate_beams(self.geom_types[idx], hybridRadius, idx, beams_already_defined, nodes_already_defined)
                 idxCell += 1
 
     def define_original_tags(self) -> None:
@@ -235,36 +247,82 @@ class Cell(object):
         else:
             raise ValueError("Lattice type_beam not recognized")
 
-    def generate_beams(self, latticeType: str, beamRadius: float, beamType: int = 0) -> None:
+    def generate_beams(self, latticeType: str, beamRadius: float, beamType: int = 0,
+                       beams_already_defined: Optional[dict] = None, nodes_already_defined: Optional[dict] = None) \
+            -> None:
         """
         Generate beams and nodes using a given lattice type_beam and parameters.
 
         Parameters:
         -----------
-        geom_types: int
-            Type of lattice geometry
-        startCellPos: list
-            Position of the start of the cell
+        latticeType: str
+            Type of lattice structure (e.g., 'BCC', 'Hybrid1', etc.)
+        beamRadius: float
+            Radius of the beam
         beamType: int
-            Type of beam
+            Type index of the beam
+        beams_already_defined: set
+            Set of beams already defined in the lattice to avoid duplication
+        nodes_already_defined: set
+            Set of nodes already defined in the lattice to avoid duplication
         """
-        pointDict = {}
+
+        def wkey(x, y, z, ndigits=9):
+            """ Create a unique key for a point based on its coordinates rounded to a specified number of digits."""
+            return round(x, ndigits), round(y, ndigits), round(z, ndigits)
+
+        frac_cache = {}
+
         for line in get_beam_structure(latticeType):
-            x1, y1, z1, x2, y2, z2 = map(float, line)
-            if (x1, y1, z1) in pointDict:
-                point1 = pointDict[(x1, y1, z1)]
+            x1f, y1f, z1f, x2f, y2f, z2f = map(float, line)
+
+            x1 = x1f * self.size[0] + self.coordinate[0]
+            y1 = y1f * self.size[1] + self.coordinate[1]
+            z1 = z1f * self.size[2] + self.coordinate[2]
+            x2 = x2f * self.size[0] + self.coordinate[0]
+            y2 = y2f * self.size[1] + self.coordinate[1]
+            z2 = z2f * self.size[2] + self.coordinate[2]
+
+            k1 = wkey(x1, y1, z1)
+            k2 = wkey(x2, y2, z2)
+
+            if nodes_already_defined is not None:
+                p1 = nodes_already_defined.get(k1)
+                p2 = nodes_already_defined.get(k2)
             else:
-                point1 = Point(x1 * self.size[0] + self.coordinate[0], y1 * self.size[1] + self.coordinate[1],
-                               z1 * self.size[2] + self.coordinate[2], self.uncertainty_node)
-                pointDict[(x1, y1, z1)] = point1
-            if (x2, y2, z2) in pointDict:
-                point2 = pointDict[(x2, y2, z2)]
+                p1 = p2 = None
+
+            if p1 is None:
+                p1 = frac_cache.get((x1f, y1f, z1f))
+                if p1 is None:
+                    p1 = Point(x1, y1, z1, self.uncertainty_node)
+                    frac_cache[(x1f, y1f, z1f)] = p1
+                if nodes_already_defined is not None:
+                    nodes_already_defined[k1] = p1
+
+            if p2 is None:
+                p2 = frac_cache.get((x2f, y2f, z2f))
+                if p2 is None:
+                    p2 = Point(x2, y2, z2, self.uncertainty_node)
+                    frac_cache[(x2f, y2f, z2f)] = p2
+                if nodes_already_defined is not None:
+                    nodes_already_defined[k2] = p2
+
+            if beams_already_defined is not None:
+                bkey = tuple(sorted((k1, k2)))
+                beam = beams_already_defined.get(bkey)
             else:
-                point2 = Point(x2 * self.size[0] + self.coordinate[0], y2 * self.size[1] + self.coordinate[1],
-                               z2 * self.size[2] + self.coordinate[2], self.uncertainty_node)
-                pointDict[(x2, y2, z2)] = point2
-            beam = Beam(point1, point2, beamRadius, self._beamMaterial, beamType)
-            self.beams.append(beam)
+                bkey = None
+                beam = None
+
+            if beam is None:
+                beam = Beam(p1, p2, beamRadius, self._beamMaterial, beamType)
+                if beams_already_defined is not None:
+                    beams_already_defined[bkey] = beam
+
+            self.beams_cell.add(beam)
+            self.points_cell.add(p1)
+            self.points_cell.add(p2)
 
 
     def get_beam_material(self) -> None:
@@ -342,38 +400,39 @@ class Cell(object):
         Determine a list of points in cell
         """
         pointList = []
-        for beam in self.beams:
+        for beam in self.beams_cell:
             for point in [beam.point1, beam.point2]:
                 if point not in pointList:
                     pointList.append(point)
         return pointList
 
-    def remove_beam(self, beam_to_delete: "Beam") -> None:
+    def remove_beam(self, beam_to_delete: Union["Beam", Iterable["Beam"]]) -> None:
         """
-        Removes a beam from the lattice
-
-        Parameters:
-        ------------
-        beamToDelete: beam Object
-            Beam to remove
+        Removing beam from cell
         """
-        try:
-            self.beams.remove(beam_to_delete)
-        except ValueError:
-            if self._verbose > 0:
-                print("Beam not found in the list for delete:", beam_to_delete)
+        if isinstance(beam_to_delete, Beam):
+            self.beams_cell.discard(beam_to_delete)
+        else:
+            for b in beam_to_delete:
+                self.beams_cell.discard(b)
 
-    def add_beam(self, beam_to_add: "Beam") -> None:
+    def add_beam(self, beam_to_add: Union["Beam", Iterable["Beam"]]) -> None:
         """
         Adding beam to cell
         """
-        if beam_to_add.__class__.__name__ == "Beam":
-            self.beams.append(beam_to_add)
-        elif isinstance(beam_to_add, tuple):
-            for beam in beam_to_add:
-                self.beams.append(beam)
+        if isinstance(beam_to_add, Beam):
+            self.beams_cell.add(beam_to_add)
         else:
-            raise ValueError("Invalid beam type_beam")
+            self.beams_cell.update(beam_to_add)
+
+    def add_point(self, point_to_add: List["Point"] or "Point") -> None:
+        """
+        Adding point to cell
+        """
+        if isinstance(point_to_add, Point):
+            self.points_cell.add(point_to_add)
+        else:
+            self.points_cell.update(point_to_add)
 
     def get_point_on_surface(self, surfaceName: str) -> list:
         """
@@ -418,7 +477,7 @@ class Cell(object):
         axis = coord_index[surfaceName]
 
         return list({
-            point for beam in self.beams
+            point for beam in self.beams_cell
             for point in [beam.point1, beam.point2]
             if getattr(point, axis) == surface_value
         })
@@ -429,7 +488,7 @@ class Cell(object):
         """
         tag_dict = {tag: None for tag in self.original_tags}
 
-        for beam in self.beams:
+        for beam in self.beams_cell:
             if beam.radius > 0:
                 for point in [beam.point1, beam.point2]:
                     if point.index_boundary is not None:
@@ -472,7 +531,7 @@ class Cell(object):
             print("Displacement array", displacementArray)
             print("Displacement index", displacementIndex)
             print("Non-zero displacements:", displacementArray[displacementArray != 0])
-        for beam in self.beams:
+        for beam in self.beams_cell:
             for point in [beam.point1, beam.point2]:
                 if point.index_boundary is not None and point.index_boundary in displacementIndex:
                     index = displacementIndex.index(point.index_boundary)
@@ -509,7 +568,7 @@ class Cell(object):
         Get the number of boundary nodes in the cell
         """
         return len(
-            [beam for beam in self.beams for point in [beam.point1, beam.point2] if point.index_boundary is not None])
+            [beam for beam in self.beams_cell for point in [beam.point1, beam.point2] if point.index_boundary is not None])
 
     def build_coupling_operator(self, nb_free_DOF: int) -> None:
         """
@@ -524,7 +583,7 @@ class Cell(object):
         data = []
         row, col = [], []
         listBndNodes = []
-        for beam in self.beams:
+        for beam in self.beams_cell:
             for point in [beam.point1, beam.point2]:
                 if point.index_boundary is not None and point.index_boundary not in listBndNodes:
                     localNodeIndex = self.original_tags.index(point.local_tag[0])
@@ -561,7 +620,7 @@ class Cell(object):
         Get the internal energy of the cell
         """
         internalEnergy = 0
-        for beam in self.beams:
+        for beam in self.beams_cell:
             for point in [beam.point1, beam.point2]:
                 if point.index_boundary is not None:
                     pointEnergy = point.calculate_point_energy()
@@ -575,7 +634,7 @@ class Cell(object):
         Build and return displacement data on cell for dataset generation
         """
         allBoundaryDisplacementData = []
-        for beam in self.beams:
+        for beam in self.beams_cell:
             for point in [beam.point1, beam.point2]:
                 if point.index_boundary is not None:
                     allBoundaryDisplacementData.append(point.displacement_vector)
@@ -601,7 +660,7 @@ class Cell(object):
         for rad in new_radius:
             beamRadius.append(self.get_radius(rad))
 
-        for beam in self.beams:
+        for beam in self.beams_cell:
             beam.change_beam_radius(beamRadius[beam.type_beam])
 
         self.radii = new_radius
@@ -693,7 +752,7 @@ class Cell(object):
         """
         counterNodes = 0
         nodeAlreadyCounted = []
-        for beam in self.beams:
+        for beam in self.beams_cell:
             for point in [beam.point1, beam.point2]:
                 if point.index_boundary is not None and point.index_boundary not in nodeAlreadyCounted:
                     counterNodes += 1
@@ -750,12 +809,12 @@ class Cell(object):
         print("Lattice type_beam: ", self.geom_types)
         print("Beam radii: ", self.radii)
         print("Beam material: ", self._beamMaterial)
-        print("beams in cell: ", self.beams)
+        print("beams in cell: ", self.beams_cell)
         print("Cell center point: ", self.center_point)
         print("Cell index: ", self.index)
         print("Beam material: ", self._beamMaterial)
         print("Coupling matrix: ", self.coupling_matrix_B)
-        print("Number of beams: ", len(self.beams))
+        print("Number of beams: ", len(self.beams_cell))
         print("Volume of the cell: ", self.volume)
         print("Relative density: ", self.relative_density)
         print("Number of nodes at boundary: ", self.get_number_nodes_at_boundary())
@@ -765,7 +824,7 @@ class Cell(object):
         Get the translation of the rigid body
         """
         translation = np.zeros(3)
-        for beam in self.beams:
+        for beam in self.beams_cell:
             for point in [beam.point1, beam.point2]:
                 if point.index_boundary is not None:
                     translation += point.displacement_vector[:3]

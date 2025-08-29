@@ -6,7 +6,7 @@ from pyLatticeSim.lattice_sim import LatticeSim
 from pyLattice.plotting_lattice import LatticePlotting
 
 
-name_file = "3PointBending"
+name_file = "simulation/3PointBending"
 
 solver_DDM = LatticeSim(name_file, verbose=1, enable_domain_decomposition_solver=True)
 

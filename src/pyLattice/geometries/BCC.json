@@ -1,6 +1,7 @@
 {
     "name": "BCC",
     "description": "Body-Centered Cubic [BCC] lattice structure",
+    "cell_geometry": "Cubic",
     "beams":[
        [0.0, 0.0, 0.0, 0.5, 0.5, 0.5],
        [0.5, 0.5, 0.5, 1.0, 1.0, 1.0],

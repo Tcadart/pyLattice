@@ -1,6 +1,7 @@
 {
     "name": "Auxetic",
     "description": "Lattice structure with auxetic properties",
+    "cell_geometry": "Cubic",
     "parameters": {
       "hgeom": 0.35,
       "angleGeom": 20,

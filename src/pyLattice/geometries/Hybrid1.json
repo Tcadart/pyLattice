@@ -1,6 +1,7 @@
 {
     "name": "Hybrid1",
     "description": "Specialy created for geometry hybridization",
+    "cell_geometry": "Cubic",
     "beams":[
     [0.25, 0.25, 0.25, 0.5, 0.0, 0.0],
     [0.25, 0.25, 0.25, 0.0, 0.0, 0.5],

@@ -78,7 +78,7 @@ class latticeGeneration:
         node_already_added = set()
         for cell in self.lattice.cells:
             if cell_index is None or cell.index == cell_index:
-                for beam in cell.beams:
+                for beam in cell.beams_cell:
                     if beam.radius != 0:
                         for node in [beam.point1, beam.point2]:
                             if node.index not in node_already_added:
@@ -114,7 +114,7 @@ class latticeGeneration:
         idxRadBeam = 0
         for cell in self.lattice.cells:
             if cell_index is None or cell.index == cell_index:
-                for beam in cell.beams:
+                for beam in cell.beams_cell:
                     if beam.radius != 0:
                         if beam not in beam_already_added:
                             beam_already_added.add(beam)

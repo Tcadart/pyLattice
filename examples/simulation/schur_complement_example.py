@@ -6,7 +6,7 @@ from pyLatticeSim.lattice_sim import LatticeSim
 from pyLatticeSim.utils_simulation import get_schur_complement
 
 
-name_file = "hybrid_cell_simulation"
+name_file = "simulation/hybrid_cell_simulation"
 
 lattice_object = LatticeSim(name_file)
 

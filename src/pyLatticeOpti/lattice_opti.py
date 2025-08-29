@@ -19,7 +19,7 @@ from pyLatticeOpti.plotting_lattice_optim import OptimizationPlotter
 from pyLatticeSim.lattice_sim import LatticeSim
 
 if TYPE_CHECKING:
-    from mesh_file.mesh_trimmer import MeshTrimmer
+    from data.inputs.mesh_file.mesh_trimmer import MeshTrimmer
 
 from pyLattice.timing import *
 timingOpti = Timing()

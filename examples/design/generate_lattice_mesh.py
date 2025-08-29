@@ -4,7 +4,7 @@ Example script to generate a lattice mesh
 from pyLattice.lattice import Lattice
 from pyLattice.plotting_lattice import LatticePlotting
 
-name_file = "hybrid_cell"
+name_file = "design/hybrid_cell"
 
 lattice_object = Lattice(name_file)
 

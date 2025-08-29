@@ -22,7 +22,7 @@ def open_lattice_parameters(file_name: str):
         Name of the JSON file containing lattice parameters.
     """
     project_root = Path(__file__).resolve().parents[2]
-    json_path = project_root / "preset_lattice" / file_name
+    json_path = project_root / "data" / "inputs" / "preset_lattice" / file_name
     if json_path.suffix != ".json":
         json_path = json_path.with_suffix('.json')
 

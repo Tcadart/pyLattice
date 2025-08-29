@@ -8,7 +8,7 @@ from pyLatticeSim.utils_simulation import solve_FEM_FenicsX
 from pyLatticeSim.export_simulation_results import exportSimulationResults
 
 
-name_file = "simulation_beam_flexion"
+name_file = "simulation/simulation_beam_flexion"
 
 lattice_Sim_object = LatticeSim(name_file)
 

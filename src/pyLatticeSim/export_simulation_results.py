@@ -29,7 +29,7 @@ class exportSimulationResults:
         self.simulation_model = simulation_model
 
         # Project root and export directory
-        project_root = Path(__file__).resolve().parent.parent.parent
+        project_root = Path(__file__).resolve().parents[2] / "data" / "outputs"
         self.out_dir = (project_root / "simulation_results" / name_export_file).resolve()
         self.out_dir.mkdir(parents=True, exist_ok=True)
 

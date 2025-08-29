@@ -1,6 +1,7 @@
 {
     "name": "Cubic",
     "description": "Cubic truss with beams at the edges of a cube",
+    "cell_geometry": "Cubic",
     "beams": [[0.0, 0.0, 0.0, 0.0, 0.0, 1.0],
          [1.0, 0.0, 0.0, 1.0, 0.0, 1.0],
          [0.0, 1.0, 0.0, 0.0, 1.0, 1.0],

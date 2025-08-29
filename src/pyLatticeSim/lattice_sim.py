@@ -10,7 +10,7 @@ from pyLatticeSim.utils_simulation import get_schur_complement
 from pyLatticeSim.conjugate_gradient_solver import conjugate_gradient_solver
 
 if TYPE_CHECKING:
-    from mesh_file.mesh_trimmer import MeshTrimmer
+    from data.inputs.mesh_file.mesh_trimmer import MeshTrimmer
 
 from pyLattice.timing import *
 timing = Timing()
@@ -113,7 +113,7 @@ class LatticeSim(Lattice):
         indexBoundaryList = {point.index_boundary for point in pointSet}
 
         for cell in self.cells:
-            for beam in cell.beams:
+            for beam in cell.beams_cell:
                 for node in [beam.point1, beam.point2]:
                     if node.index_boundary in indexBoundaryList:
                         for val, DOFi in zip(value, DOF):
@@ -174,7 +174,7 @@ class LatticeSim(Lattice):
                 raise ValueError("Node index out of range.")
 
         for cell in self.cells:
-            for beam in cell.beams:
+            for beam in cell.beams_cell:
                 for node in [beam.point1, beam.point2]:
                     if node.index in nodeList:
                         node.fix_DOF(dofFixed)
@@ -200,7 +200,7 @@ class LatticeSim(Lattice):
         globalDisplacementIndex = []
         processed_nodes = set()
         for cell in self.cells:
-            for beam in cell.beams:
+            for beam in cell.beams_cell:
                 for node in [beam.point1, beam.point2]:
                     if node.index_boundary is not None and node.index_boundary not in processed_nodes:
                         for i in range(6):
@@ -229,10 +229,9 @@ class LatticeSim(Lattice):
         IndexCounter = 0
         nodeAlreadyIndexed = {}
         for cell in self.cells:
-            for beam in cell.beams:
+            for beam in cell.beams_cell:
                 for node in [beam.point1, beam.point2]:
                     localTag = node.tag_point(cell.boundary_box)
-                    node.set_local_tag(localTag)
                     if localTag:
                         if node in nodeAlreadyIndexed:
                             node.index_boundary = nodeAlreadyIndexed[node]
@@ -255,7 +254,7 @@ class LatticeSim(Lattice):
         globalReactionForce = {i: [0, 0, 0, 0, 0, 0] for i in range(self.max_index_boundary + 1)}
         for cell in self.cells:
             nodeIndexProcessed = set()
-            for beam in cell.beams:
+            for beam in cell.beams_cell:
                 for node in [beam.point1, beam.point2]:
                     if node.index_boundary is not None and node.index not in nodeIndexProcessed:
                         globalReactionForce[node.index_boundary] = [
@@ -286,7 +285,7 @@ class LatticeSim(Lattice):
         globalReactionForceWithoutFixedDOF = []
         processed_nodes = set()
         for cell in self.cells:
-            for beam in cell.beams:
+            for beam in cell.beams_cell:
                 for node in [beam.point1, beam.point2]:
                     if node.index_boundary is not None and node.index_boundary not in processed_nodes:
                         # Append reaction force components where fixed_DOF is 0
@@ -313,7 +312,7 @@ class LatticeSim(Lattice):
         self.free_DOF = 0
         processed_nodes = set()
         for cell in self.cells:
-            for beam in cell.beams:
+            for beam in cell.beams_cell:
                 for node in [beam.point1, beam.point2]:
                     if node.index_boundary is not None and node.index_boundary not in processed_nodes:
                         self.free_DOF += node.fixed_DOF.count(0)
@@ -326,7 +325,7 @@ class LatticeSim(Lattice):
         counter = 0
         processed_nodes = {}
         for cell in self.cells:
-            for beam in cell.beams:
+            for beam in cell.beams_cell:
                 for node in [beam.point1, beam.point2]:
                     if node.index_boundary is not None:
                         if node.index_boundary not in processed_nodes.keys():
@@ -342,7 +341,7 @@ class LatticeSim(Lattice):
         Initialize reaction force of all nodes to 0 on each DOF
         """
         for cell in self.cells:
-            for beam in cell.beams:
+            for beam in cell.beams_cell:
                 for node in [beam.point1, beam.point2]:
                     node.initialize_reaction_force()
 
@@ -351,7 +350,7 @@ class LatticeSim(Lattice):
         Initialize displacement of all nodes to zero on each DOF
         """
         for cell in self.cells:
-            for beam in cell.beams:
+            for beam in cell.beams_cell:
                 for node in [beam.point1, beam.point2]:
                     node.initialize_displacement()
 
@@ -360,7 +359,7 @@ class LatticeSim(Lattice):
         Initialize simulation parameters for each node in the lattice
         """
         for cell in self.cells:
-            for beam in cell.beams:
+            for beam in cell.beams_cell:
                 for node in [beam.point1, beam.point2]:
                     node.initialize_reaction_force()
                     node.initialize_displacement()
@@ -385,7 +384,7 @@ class LatticeSim(Lattice):
             radii of the lattice
         """
         for cell in self.cells:
-            for beam in cell.beams:
+            for beam in cell.beams_cell:
                 return beam.radius
 
     def apply_reaction_force_on_node_list(self, reactionForce: list, nodeCoordinatesList: list):
@@ -402,7 +401,7 @@ class LatticeSim(Lattice):
         nodeCoordinatesArray = np.array(nodeCoordinatesList)
 
         for cell in self.cells:
-            for beam in cell.beams:
+            for beam in cell.beams_cell:
                 for node in [beam.point1, beam.point2]:
                     nodeCoord = np.array([node.x, node.y, node.z])
                     match = np.all(nodeCoordinatesArray == nodeCoord, axis=1)
@@ -424,7 +423,7 @@ class LatticeSim(Lattice):
         nodeCoordinatesArray = np.array(nodeCoordinatesList)
 
         for cell in self.cells:
-            for beam in cell.beams:
+            for beam in cell.beams_cell:
                 for node in [beam.point1, beam.point2]:
                     nodeCoord = np.array([node.x, node.y, node.z])
                     match = np.all(nodeCoordinatesArray == nodeCoord, axis=1)

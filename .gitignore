@@ -38,6 +38,6 @@ __pycache__
 *.msh
 *.egg-info/
 *.egg
-/simulation_results/*
-!/simulation_results/figure_homogenization/
+data/outputs/simulation_results/*
+!data/outputs/simulation_results/figure_homogenization/
 

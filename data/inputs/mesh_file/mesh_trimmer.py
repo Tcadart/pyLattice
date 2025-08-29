@@ -39,7 +39,7 @@ class MeshTrimmer:
             Name of the mesh file to load.
             The file should be in STL format and located in the 'mesh_file' directory.
         """
-        project_root = Path(__file__).resolve().parent.parent
+        project_root = Path(__file__).resolve().parents[1]
         mesh_path = Path(mesh_name)
         if mesh_path.suffix != ".stl":
             mesh_path = mesh_path.with_suffix(".stl")
@@ -59,11 +59,12 @@ class MeshTrimmer:
             Name of the output mesh file.
             The file will be saved in STL format in the 'mesh_file' directory.
         """
+        project_root = Path(__file__).resolve().parents[1] / "data" / "inputs"
         output_path = Path(output_name)
         if output_path.suffix != ".stl":
             output_path = output_path.with_suffix(".stl")
         if not output_path.parts[0] == "mesh_file":
-            output_path = Path("mesh_file") / output_path
+            output_path = project_root / output_path
 
         self.mesh.export(str(output_path))
         print(f"mesh_file saved to {output_path}")

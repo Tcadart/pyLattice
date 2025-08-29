@@ -1,6 +1,7 @@
 {
     "name": "Octahedron",
     "description": "Only interior beams of an octet truss",
+    "cell_geometry": "Cubic",
     "beams":[[0.5, 0.0, 0.5, 0.5, 0.5, 0.0],
             [0.5, 0.0, 0.5, 0.0, 0.5, 0.5],
             [0.5, 0.0, 0.5, 1.0, 0.5, 0.5],

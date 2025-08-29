@@ -35,7 +35,6 @@ class Point:
         self.z: float = float(z) + random.gauss(0, node_uncertainty_SD)
         self.index: Optional[int] = None  # Global index of the point
         self.tag: Optional[int] = None  # Global boundary tag #TODO change tagging method
-        self.local_tag: List[int] = []  # Cell local boundary tag
         self.index_boundary: Optional[int] = None  # Global index for boundary cell
         self.displacement_vector: List[float] = [0.0] * 6  # Displacement vector of 6 DOF (Degrees of Freedom).
         self.reaction_force_vector: List[float] = [0.0] * 6  # Reaction force vector of 6 DOF.
@@ -232,20 +231,7 @@ class Point:
         """
         return sum([self.displacement_vector[i] * self.reaction_force_vector[i] for i in range(6)])
 
-    def set_local_tag(self, localTag: List[int]) -> None:
-        """
-        Assign local tags to the point.
-
-        Parameters
-        ----------
-        localTag : List[int]
-            Local tags to assign.
-        """
-        if not isinstance(localTag, list):
-            raise ValueError("Local tag must be a list.")
-        self.local_tag = localTag
-
-    def is_identical_to(self, other: 'point', cell_size: list[float]) -> bool:
+    def is_identical_to(self, other: 'Point', cell_size: list[float]) -> bool:
         """
         Check if this point is identical to another point, modulo the cell size (periodicity).
 

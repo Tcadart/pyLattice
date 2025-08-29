@@ -6,7 +6,7 @@ from pyLattice.lattice import Lattice
 from pyLattice.plotting_lattice import LatticePlotting
 
 
-name_file = "simple_BCC"
+name_file = "design/simple_BCC"
 
 lattice_object = Lattice(name_file)
 

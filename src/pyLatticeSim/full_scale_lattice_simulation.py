@@ -27,7 +27,7 @@ class FullScaleLatticeSimulation(SimulationBase):
         triplet_tuples = [tuple(row) for row in nodePosition]
         dictNode = {triplet: idx for idx, triplet in enumerate(triplet_tuples)}
         for cell in self.BeamModel.lattice.cells:
-            for beam in cell.beams:
+            for beam in cell.beams_cell:
                 for node in [beam.point1, beam.point2]:
                     if 1 in node.fixed_DOF:
                         nodeIndices = dictNode.get(tuple(np.array([node.x,node.y,node.z])), None)
@@ -67,7 +67,7 @@ class FullScaleLatticeSimulation(SimulationBase):
 
         # Node assignment
         for cell in self.BeamModel.lattice.cells:
-            for beam in cell.beams:
+            for beam in cell.beams_cell:
                 for node in [beam.point1, beam.point2]:
                     pos = tuple(np.round([node.x, node.y, node.z], 5))
                     if pos in pos_to_disp:
@@ -84,7 +84,7 @@ class FullScaleLatticeSimulation(SimulationBase):
         Set reaction force on boundary condition nodes with FEM results.
         """
         for cell in self.BeamModel.lattice.cells:
-            for beam in cell.beams:
+            for beam in cell.beams_cell:
                 for node in [beam.point1, beam.point2]:
                     if 1 in node.fixed_DOF:
                         RF = self.calculate_reaction_force_and_moment_at_position(
@@ -104,7 +104,7 @@ class FullScaleLatticeSimulation(SimulationBase):
         dictNode = {triplet: idx for idx, triplet in enumerate(triplet_tuples)}
 
         for cell in self.BeamModel.lattice.cells:
-            for beam in cell.beams:
+            for beam in cell.beams_cell:
                 for node in [beam.point1, beam.point2]:
                     if np.any(node.applied_force):  # Check if any force is applied
                         nodeIndices = dictNode.get((node.x, node.y, node.z), None)
