@@ -1297,7 +1297,7 @@ class Lattice(object):
                 cell.remove_beam(beam)
 
     @timing.timeit
-    def generate_mesh_lattice_Gmsh(self, cut_mesh_at_boundary: bool = False, mesh_size: float = 0.05,
+    def generate_mesh_lattice_Gmsh(self, cut_mesh_at_boundary: bool = False, mesh_size: float = 0.045,
                                    name_mesh: str = "Lattice",save_mesh: bool = False, save_STL: bool = True,
                                    volume_computation: bool = False, only_volume: bool = False,
                                    only_relative_density: bool = False) -> float | None:
@@ -1329,17 +1329,25 @@ class Lattice(object):
         dim = 3  # Dimension of the mesh
 
         all_tags = []
+        tags = []
         for beam in self.beams:
             p1 = np.array(beam.point1.coordinates)
             p2 = np.array(beam.point2.coordinates)
             direction = p2 - p1
+            if np.linalg.norm(direction) < 1e-12 or beam.radius <= 0.0:
+                continue  # skip zero/near-zero length or non-positive radius
             if beam.index not in all_tags:
-                tag = gmsh.model.occ.addCylinder(*p1, *direction, beam.radius, tag=beam.index)
+                tag = gmsh.model.occ.addCylinder(*p1, *direction, beam.radius)
                 all_tags.append(tag)
+                tags.append((dim, tag))
 
         # Merge all beams into a single entity
         beam_entities = [(dim, tag) for tag in all_tags]
-        lattice = gmsh.model.occ.fragment(beam_entities, [])
+        try:
+            lattice = gmsh.model.occ.fragment(beam_entities, [])
+        except Exception as e:
+            print("Fragmentation failed:", e)
+            return None
 
         if cut_mesh_at_boundary:
             # Bounding box definition
@@ -1351,12 +1359,17 @@ class Lattice(object):
         gmsh.model.occ.synchronize()
 
         if only_relative_density:
-            return self.get_relative_density_mesh()
+            relative_density = self.get_relative_density_mesh()
+            gmsh.clear()
+            gmsh.finalize()
+            return relative_density
 
         total_volume = None
         if volume_computation or only_volume:
             total_volume = self.get_volume_mesh(synchronize=False)
             if only_volume:
+                gmsh.clear()
+                gmsh.finalize()
                 return total_volume
 
 

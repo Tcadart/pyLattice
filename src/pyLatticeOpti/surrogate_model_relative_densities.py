@@ -1,3 +1,4 @@
+import os
 from itertools import product
 from pathlib import Path
 import pickle
@@ -7,65 +8,71 @@ import numpy as np
 
 
 
-def compute_relative_densities_dataset(lattice_cell, step_radius: float = 0.01, range_radius: tuple = (0.00, 0.1),
-                                       name_dataset: str = None):
+def compute_relative_densities_dataset(lattice_cell,
+                                       step_radius: float = 0.01,
+                                       range_radius: tuple = (0.00, 0.1),
+                                       name_dataset: str = None,
+                                       save_every: int = 5,
+                                       resume: bool = True):
     """
     Compute relative densities for a range of radii in the lattice.
-
-    Parameters:
-    -----------
-    lattice : Lattice
-        The lattice object containing the cell structure.
-    step_radius : float
-        Step size for radius values.
-    range_radius : tuple
-        Tuple specifying the (min, max) radius values.
+    Periodically saves partial results every `save_every` iterations and can resume if a file exists.
     """
     if lattice_cell.get_number_cells() != 1:
         raise ValueError("The lattice must contain exactly one cell.")
 
-    dataset_already_exists = False
     path_dataset = Path(__file__).parents[2] / "data" / "outputs" / "relative_densities" / "data"
 
     if name_dataset is None:
         geom_cell = lattice_cell.cells[0].geom_types
-        name_dataset = "RelativeDensities"
-        for geom in geom_cell:
-            name_dataset += f"_{geom}"
+        name_dataset = "RelativeDensities" + "".join(f"_{g}" for g in geom_cell)
 
-    if (path_dataset / name_dataset).exists():
-        print(f"The dataset {name_dataset} already exists in {path_dataset}.")
-        dataset_already_exists = True
+    # Prepare grid and potential resume
+    n_geom = len(lattice_cell.cells[0].geom_types)
+    valid_combos = _valid_combinations(step_radius, range_radius, n_geom)
 
-    if not dataset_already_exists:
-        min_radius, max_radius = range_radius
-        radius_values = np.arange(min_radius, max_radius + step_radius, step_radius)
+    relative_densities = {}
+    dataset_file = path_dataset / f"{name_dataset}.pkl"
+    if dataset_file.exists() and resume:
+        relative_densities = load_dataset(path_dataset, name_dataset)
+        print(f"Resuming from {len(relative_densities)} existing entries in {dataset_file}")
 
-        n_geom = len(lattice_cell.cells[0].geom_types)
-        all_combinations = list(product(radius_values, repeat=n_geom))
+    remaining = [c for c in valid_combos if c not in relative_densities]
+    if not remaining:
+        print("Dataset already complete.")
+        return
 
-        relative_densities = {}
-        for combo in all_combinations:
-            if sum(combo) > 0.001:
-                print(f"Computing for radii: {combo}")
-                lattice_cell.change_beam_radius(list(combo))
-                relative_density = lattice_cell.generate_mesh_lattice_Gmsh(volume_computation=True,
-                                                                           cut_mesh_at_boundary=True,
-                                                                           save_STL=False,
-                                                                           only_relative_density=True)
-                relative_densities[combo] = relative_density
-                print(f"Relative density: {relative_density}")
-        save_dataset(path_dataset, name_dataset, relative_densities)
-    else:
-        print("Dataset already exists.")
+    for i, combo in enumerate(remaining, 1):
+        print(f"Computing for radii: {combo}")
+        lattice_cell.change_beam_radius(list(combo))
+        rd = lattice_cell.generate_mesh_lattice_Gmsh(volume_computation=True,
+                                                     cut_mesh_at_boundary=True,
+                                                     save_STL=False,
+                                                     only_relative_density=True)
+        if rd is None:
+            continue
+        relative_densities[combo] = rd
+        print(f"Relative density: {rd}")
+
+        if i % max(1, int(save_every)) == 0:
+            save_dataset(path_dataset, name_dataset, relative_densities)
+            print(f"Progress saved: {len(relative_densities)}/{len(valid_combos)} entries")
+
+    # Final save
+    save_dataset(path_dataset, name_dataset, relative_densities)
+    print(f"✅ Completed. Total entries: {len(relative_densities)}/{len(valid_combos)}")
+
 
 def save_dataset(path_dataset, name_dataset, relative_densities_dict):
-    """Save the dataset as a pickle file."""
+    """Save the dataset as a pickle file (atomic write)."""
     path_dataset.mkdir(parents=True, exist_ok=True)
-    with open(path_dataset / f"{name_dataset}.pkl", "wb") as f:
-        pickle.dump(relative_densities_dict, f)
+    final_path = path_dataset / f"{name_dataset}.pkl"
+    tmp_path = path_dataset / f"{name_dataset}.pkl.tmp"
+    with open(tmp_path, "wb") as f:
+        pickle.dump(relative_densities_dict, f, protocol=pickle.HIGHEST_PROTOCOL)
+    os.replace(tmp_path, final_path)  # atomic on POSIX/Windows
+    print(f"Dataset saved as pickle at {final_path}")
 
-    print(f"Dataset saved as pickle at {path_dataset / (name_dataset + '.pkl')}")
 
 def load_dataset(path_dataset, name_dataset):
     """
@@ -92,6 +99,38 @@ def load_dataset(path_dataset, name_dataset):
 
     print(f"Dataset {name_dataset} loaded from {file_path}")
     return relative_densities_dict
+
+def _valid_combinations(step_radius: float, range_radius: tuple, n_geom: int, threshold: float = 0.001):
+    """Generate all valid radius combinations given the grid and a sum threshold."""
+    min_radius, max_radius = range_radius
+    radius_values = np.arange(min_radius, max_radius + step_radius, step_radius)
+    all_combinations = list(product(radius_values, repeat=n_geom))
+    return [c for c in all_combinations if sum(c) > threshold]
+
+def check_missing_entries(path_dataset: Path,
+                          name_dataset: str,
+                          step_radius: float,
+                          range_radius: tuple,
+                          n_geom: int,
+                          threshold: float = 0.001):
+    """
+    Check which radius combinations are missing in an existing dataset file (if any).
+    Returns a dict with counts and the list of missing combinations.
+    """
+    expected = set(_valid_combinations(step_radius, range_radius, n_geom, threshold))
+    try:
+        data = load_dataset(path_dataset, name_dataset)
+        present = set(data.keys())
+    except FileNotFoundError:
+        present = set()
+
+    missing = sorted(expected - present)
+    return {
+        "n_expected": len(expected),
+        "n_present": len(present),
+        "n_missing": len(missing),
+        "missing_combinations": missing,
+    }
 
 
 from sklearn.gaussian_process import GaussianProcessRegressor
