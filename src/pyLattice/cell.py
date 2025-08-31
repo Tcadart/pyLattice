@@ -482,10 +482,9 @@ class Cell(object):
             if beam.radius > 0:
                 for point in [beam.point1, beam.point2]:
                     if point.index_boundary is not None:
-                        tag = point.local_tag
-                        if tag:  # Ensure tags is not an empty list
-                            if tag[0] in self.original_tags:
-                                tag_dict[tag[0]] = point
+                        tag = point.cell_local_tag[self.index]  # Local tag in the cell
+                        if tag in self.original_tags:
+                            tag_dict[tag] = point
         self.node_in_order_simulation = tag_dict
 
     def set_reaction_force_on_nodes(self, reactionForce: list) -> None:

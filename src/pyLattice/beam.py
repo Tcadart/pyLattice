@@ -102,10 +102,10 @@ class Beam(object):
         if periodicity:
             # Tag for corners (1000-1007)
             for idx1, p1_candidate in enumerate([self.point1, self.point2]):
-                if p1_candidate.tag and 1000 <= p1_candidate.tag[0] <= 1007:
+                if p1_candidate.tag and 1000 <= p1_candidate.tag <= 1007:
                     p1 = idx1
                     for idx2, p2_candidate in enumerate([other.point1, other.point2]):
-                        if p2_candidate.tag and 1000 <= p2_candidate.tag[0] <= 1007:
+                        if p2_candidate.tag and 1000 <= p2_candidate.tag <= 1007:
                             p2 = idx2  # Enregistrer l'indice pour beam2
                             break
 
@@ -114,10 +114,10 @@ class Beam(object):
                 list_tag_edge = [[102, 104, 106, 107], [100, 108, 105, 111], [101, 109, 103, 110]]
                 for tag_list in list_tag_edge:
                     for idx1, p1_candidate in enumerate([self.point1, self.point2]):
-                        if p1_candidate.tag and p1_candidate.tag[0] in tag_list:
+                        if p1_candidate.tag and p1_candidate.tag in tag_list:
                             p1 = idx1
                             for idx2, p2_candidate in enumerate([other.point1, other.point2]):
-                                if p2_candidate.tag and p2_candidate.tag[0] in tag_list:
+                                if p2_candidate.tag and p2_candidate.tag in tag_list:
                                     p2 = idx2
                                     break
             # Tags for faces (10-15)
@@ -125,10 +125,10 @@ class Beam(object):
                 list_face_tag = [[10, 15], [11, 14], [12, 13]]
                 for face_tag in list_face_tag:
                     for idx1, p1_candidate in enumerate([self.point1, self.point2]):
-                        if p1_candidate.tag and p1_candidate.tag[0] in face_tag:
+                        if p1_candidate.tag and p1_candidate.tag in face_tag:
                             p1 = idx1
                             for idx2, p2_candidate in enumerate([other.point1, other.point2]):
-                                if p2_candidate.tag and p2_candidate.tag[0] in face_tag:
+                                if p2_candidate.tag and p2_candidate.tag in face_tag:
                                     p2 = idx2
                                     break
 

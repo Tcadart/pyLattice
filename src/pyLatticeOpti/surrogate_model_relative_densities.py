@@ -7,6 +7,8 @@ import joblib
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib
+from scipy.spatial import KDTree
+
 matplotlib.use('TkAgg')  # Use TkAgg backend for interactive plots
 
 from sklearn.gaussian_process import GaussianProcessRegressor
@@ -112,9 +114,11 @@ def save_dataset(path_dataset, name_dataset, relative_densities_dict):
     print(f"Dataset saved as pickle at {final_path}")
 
 
-def load_dataset(path_dataset, name_dataset):
+def load_dataset(path_dataset, name_dataset,
+                 min_vol: float = 0.0, max_vol: float = 0.6,
+                 apply_variation_filter: bool = True):
     """
-    Load a dataset previously saved as a pickle file.
+    Load a dataset previously saved as a pickle file and optionally filter it.
 
     Parameters
     ----------
@@ -122,6 +126,12 @@ def load_dataset(path_dataset, name_dataset):
         Path to the directory containing the dataset.
     name_dataset : str
         Name of the dataset (without extension).
+    min_vol : float, optional
+        Minimum volume to keep (None = no lower filter).
+    max_vol : float, optional
+        Maximum volume to keep (None = no upper filter).
+    apply_variation_filter : bool, optional
+        If True, apply the remove_large_volume_variations_dict filter.
 
     Returns
     -------
@@ -136,7 +146,56 @@ def load_dataset(path_dataset, name_dataset):
         relative_densities_dict = pickle.load(f)
 
     print(f"Dataset {name_dataset} loaded from {file_path}")
+
+    # --- Filtrage min/max volume ---
+    if min_vol is not None or max_vol is not None:
+        filtered_dict = {}
+        for radii, vol in relative_densities_dict.items():
+            if (min_vol is None or vol >= min_vol) and (max_vol is None or vol <= max_vol):
+                filtered_dict[radii] = vol
+        print(f"Filtrage volumes : {len(relative_densities_dict)} -> {len(filtered_dict)} entrées")
+        relative_densities_dict = filtered_dict
+
+    # --- Filtrage des fortes variations ---
+    if apply_variation_filter:
+        relative_densities_dict = remove_large_volume_variations_dict(relative_densities_dict)
+
     return relative_densities_dict
+
+
+def csv_to_dataset(csv_file: Path):
+    """
+    Convert a CSV file with columns Radius1, Radius2, Radius3, Volume
+    into the dict format { (r1, r2, r3): volume } and save it with save_dataset.
+    """
+    try:
+        import pandas as pd
+    except ImportError:
+        import subprocess
+        try:
+            # lance conda install dans l'environnement courant
+            subprocess.check_call(["conda", "install", "-y", "pandas"])
+            import pandas as pd
+        except Exception:
+            raise ImportError("Please install scikit-image to use this function.")
+    # Lire le CSV
+    df = pd.read_csv(csv_file)
+
+    required_cols = {"Radius1", "Radius2", "Radius3", "Volume"}
+    if not required_cols.issubset(df.columns):
+        raise ValueError(f"CSV must contain columns: {required_cols}")
+
+    # Construire le dict attendu
+    relative_densities = {}
+    for _, row in df.iterrows():
+        key = (round(float(row["Radius1"]),3), round(float(row["Radius2"]),3), round(float(row["Radius3"]),3))
+        relative_densities[key] = float(row["Volume"])
+
+    path_dataset = Path(__file__).parents[2] / "data" / "outputs" / "relative_densities" / "data"
+    name_dataset = "Test"
+    # Sauvegarder avec ta fonction
+    save_dataset(path_dataset, name_dataset, relative_densities)
+    return relative_densities
 
 def _valid_combinations(step_radius: float, range_radius: tuple, n_geom: int, threshold: float = 0.001):
     """Generate all valid radius combinations given the grid and a sum threshold."""
@@ -183,7 +242,7 @@ def check_missing_entries(path_dataset: Path,
     }
 
 
-def plot_3D_iso_surface(lattice_cell):
+def plot_3D_iso_surface(lattice_cell=None, name_dataset=None, n_levels = 10):
     """
     Plot 3D iso-surfaces of volume as a function of three radii using interpolation.
 
@@ -191,14 +250,29 @@ def plot_3D_iso_surface(lattice_cell):
     ----------
     lattice_cell : Lattice
         Lattice object with exactly one cell and three geometry types.
+    n_levels : int, optional
+        Number of iso-surface levels to plot (default is 10).
     """
+    if lattice_cell is None and name_dataset is None:
+        raise ValueError("Either lattice_cell or name_dataset must be provided.")
     try:
-        import plotly.graph_objects as go
+        from skimage.measure import marching_cubes
     except ImportError:
-        raise ImportError("Plotly is required for 3D plotting. Install it via 'conda install plotly'.")
+        import subprocess
+        try:
+            # lance conda install dans l'environnement courant
+            subprocess.check_call(["conda", "install", "-y", "scikit-image"])
+            from skimage.measure import marching_cubes
+        except Exception:
+            raise ImportError("Please install scikit-image to use this function.")
+
     # --- Load dataset and build (radii, volumes) arrays ---
-    path_dataset, name_dataset = _find_path_to_data(lattice_cell)
-    dataset_file = path_dataset / f"{name_dataset}.pkl"
+    if lattice_cell is not None:
+        path_dataset, name_dataset = _find_path_to_data(lattice_cell)
+        dataset_file = path_dataset / f"{name_dataset}.pkl"
+    else:
+        path_dataset = Path(__file__).parents[2] / "data" / "outputs" / "relative_densities" / "data"
+        dataset_file = path_dataset / f"{name_dataset}.pkl"
     if not dataset_file.exists():
         raise FileNotFoundError(f"No dataset found at {dataset_file}")
 
@@ -222,21 +296,146 @@ def plot_3D_iso_surface(lattice_cell):
     # --- Interpolate volumes on the grid ---
     grid_vol = griddata(radii, volumes, (grid_x, grid_y, grid_z), method='linear')
 
-    fig = go.Figure(data=go.Isosurface(
-        x=grid_x.flatten(), y=grid_y.flatten(), z=grid_z.flatten(),
-        value=grid_vol.flatten(),
-        opacity=0.3, surface_count=10, colorscale='viridis'
-    ))
+    vmin, vmax = np.nanpercentile(grid_vol, [5, 95])
+    if not np.isfinite([vmin, vmax]).all() or vmin >= vmax:
+        raise ValueError("Interpolated field is degenerate (constant or invalid).")
 
-    fig.update_layout(
-        scene=dict(xaxis_title='Radius 1', yaxis_title='Radius 2', zaxis_title='Radius 3'),
-        title="3D Iso-Surface of Relative Densities"
-    )
+    from mpl_toolkits.mplot3d.art3d import Poly3DCollection
+    from matplotlib import cm, colors
 
-    fig.show()
+    vmin, vmax = np.nanpercentile(grid_vol, [1, 99])
+    levels = np.linspace(vmin, vmax, n_levels)
 
+    dx = float(grid_x[1, 0, 0] - grid_x[0, 0, 0])
+    dy = float(grid_y[0, 1, 0] - grid_y[0, 0, 0])
+    dz = float(grid_z[0, 0, 1] - grid_z[0, 0, 0])
+    origin = np.array([grid_x.min(), grid_y.min(), grid_z.min()], dtype=float)
 
+    fig = plt.figure(figsize=(9, 7))
+    ax = fig.add_subplot(111, projection="3d")
+    norm = colors.Normalize(vmin=vmin, vmax=vmax)
+    cmap = cm.get_cmap("viridis")
 
+    for iso in levels:
+        verts, faces, _, _ = marching_cubes(grid_vol, level=iso, spacing=(dx, dy, dz))
+        verts += origin
+
+        poly = Poly3DCollection(verts[faces], alpha=0.35, facecolor=cmap(norm(iso)), edgecolor="none")
+        ax.add_collection3d(poly)
+
+    ax.set_xlim(grid_x.min(), grid_x.max())
+    ax.set_ylim(grid_y.min(), grid_y.max())
+    ax.set_zlim(grid_z.min(), grid_z.max())
+    ax.set_box_aspect((grid_x.ptp(), grid_y.ptp(), grid_z.ptp()))
+
+    ax.set_xlabel("Base geometry 1", fontsize=16)
+    ax.set_ylabel("Base geometry 2", fontsize=16)
+    ax.set_zlabel("Base geometry 3", fontsize=16)
+    mappable = cm.ScalarMappable(norm=norm, cmap=cmap)
+    mappable.set_array([])
+
+    cbar = fig.colorbar(mappable, ax=ax, shrink=0.65)
+    cbar.set_label(r"$\rho_{rel}$", fontsize=20)
+    cbar.ax.tick_params(labelsize=14)
+
+    plt.tight_layout()
+    plt.show()
+
+def plot_3D_scatter(lattice_cell=None, name_dataset=None):
+    """
+    Plot 3D scatter of relative densities as a function of three radii.
+
+    Parameters
+    ----------
+    lattice_cell : Lattice
+        Lattice object with exactly one cell and three geometry types.
+    """
+    if lattice_cell is None and name_dataset is None:
+        raise ValueError("Either lattice_cell or name_dataset must be provided.")
+    # --- Load dataset ---
+    if lattice_cell is not None:
+        path_dataset, name_dataset = _find_path_to_data(lattice_cell)
+        dataset_file = path_dataset / f"{name_dataset}.pkl"
+    else:
+        path_dataset = Path(__file__).parents[2] / "data" / "outputs" / "relative_densities" / "data"
+        dataset_file = path_dataset / f"{name_dataset}.pkl"
+    if not dataset_file.exists():
+        raise FileNotFoundError(f"No dataset found at {dataset_file}")
+
+    relative_densities = load_dataset(path_dataset, name_dataset)
+    if not relative_densities:
+        raise ValueError("Loaded dataset is empty.")
+
+    radii = np.array(list(relative_densities.keys()), dtype=float)    # shape (N, 3)
+    volumes = np.array(list(relative_densities.values()), dtype=float)  # shape (N,)
+
+    if radii.ndim != 2 or radii.shape[1] != 3:
+        raise ValueError(f"Expected 3 radii per sample, got shape {radii.shape}")
+
+    # --- Scatter plot 3D ---
+    fig = plt.figure(figsize=(8, 6))
+    ax = fig.add_subplot(111, projection="3d")
+
+    sc = ax.scatter(radii[:, 0], radii[:, 1], radii[:, 2],
+                    c=volumes, cmap="viridis", s=20, alpha=0.8)
+
+    ax.set_xlabel("Radius 1")
+    ax.set_ylabel("Radius 2")
+    ax.set_zlabel("Radius 3")
+    ax.set_title("3D Scatter of Relative Densities")
+
+    cbar = fig.colorbar(sc, ax=ax, shrink=0.6, label="Relative density")
+    plt.show()
+
+def remove_large_volume_variations_dict(relative_densities: dict,
+                                        distance_threshold=0.02,
+                                        variation_threshold=0.1):
+    """
+    Supprime les entrées du dict où le volume varie fortement par rapport aux voisins proches.
+
+    Parameters
+    ----------
+    relative_densities : dict
+        Dictionnaire { (r1, r2, r3): volume }
+    distance_threshold : float
+        Distance max pour considérer deux points comme voisins.
+    variation_threshold : float
+        Différence de volume considérée comme une forte variation.
+
+    Returns
+    -------
+    filtered_dict : dict
+        Nouveau dictionnaire filtré.
+    """
+
+    # Conversion en arrays pour KDTree
+    radii = np.array(list(relative_densities.keys()), dtype=float)
+    volumes = np.array(list(relative_densities.values()), dtype=float)
+
+    tree = KDTree(radii)
+    to_remove = set()
+
+    for i, radius_set in enumerate(radii):
+        indices = tree.query_ball_point(radius_set, distance_threshold)
+
+        for j in indices:
+            if i != j:
+                volume_diff = abs(volumes[i] - volumes[j])
+                if volume_diff > variation_threshold:
+                    to_remove.add(i)
+                    to_remove.add(j)
+
+    mask = np.array([i not in to_remove for i in range(len(radii))])
+    filtered_radii = radii[mask]
+    filtered_volumes = volumes[mask]
+
+    # Reconstruction du dictionnaire filtré
+    filtered_dict = {tuple(r): v for r, v in zip(filtered_radii, filtered_volumes)}
+
+    print(f"Nombre de points supprimés : {len(to_remove)}")
+    print(f"Nombre de points restants : {len(filtered_dict)}")
+
+    return filtered_dict
 
 def evaluate_kriging_from_pickle(
     dataset_dir: Path,
@@ -246,6 +445,9 @@ def evaluate_kriging_from_pickle(
     kernel: object | None = None,
     normalize_y: bool = True,
     random_state: int = 42,
+    min_vol: float = 0.0,
+    max_vol: float = 0.6,
+    apply_variation_filter: bool = True,
 ):
     """
     Train and evaluate a Kriging (GPR) model from a relative-density dataset saved as a pickle.
@@ -266,6 +468,10 @@ def evaluate_kriging_from_pickle(
         Whether to normalize the target inside the regressor (default True).
     random_state : int, optional
         Random seed for reproducibility.
+    min_vol, max_vol : float, optional
+        Filtering bounds for volumes (default 0.0–0.6).
+    apply_variation_filter : bool, optional
+        If True, apply the remove_large_volume_variations_dict filter.
 
     Returns
     -------
@@ -273,23 +479,24 @@ def evaluate_kriging_from_pickle(
         Evaluation metrics and paths. Keys: 'MSE', 'RMSE', 'NRMSE', 'MAE', 'R2',
         'n_train', 'n_test', 'model_path', 'kernel_'
     """
-    # Load dataset
-    pkl_path = Path(dataset_dir) / f"{name_dataset}.pkl"
-    if not pkl_path.exists():
-        raise FileNotFoundError(f"Dataset file not found: {pkl_path}")
+    if dataset_dir is None:
+        dataset_dir = Path(__file__).parents[2] / "data" / "outputs" / "relative_densities" / "data"
 
-    with open(pkl_path, "rb") as f:
-        rel_dens_dict = pickle.load(f)
+    # --- Load dataset with filters ---
+    rel_dens_dict = load_dataset(
+        path_dataset=dataset_dir,
+        name_dataset=name_dataset,
+        min_vol=min_vol,
+        max_vol=max_vol,
+        apply_variation_filter=apply_variation_filter,
+    )
 
     if not isinstance(rel_dens_dict, dict) or len(rel_dens_dict) == 0:
         raise ValueError("Loaded dataset is empty or not a dictionary.")
 
     # Convert dict to arrays
-    try:
-        X = np.array(list(rel_dens_dict.keys()), dtype=float)
-        y = np.array(list(rel_dens_dict.values()), dtype=float)
-    except Exception as e:
-        raise ValueError(f"Failed to parse dataset content into arrays: {e}")
+    X = np.array(list(rel_dens_dict.keys()), dtype=float)
+    y = np.array(list(rel_dens_dict.values()), dtype=float)
 
     if X.ndim == 1:
         X = X.reshape(-1, 1)
@@ -350,10 +557,13 @@ def evaluate_kriging_from_pickle(
             "kernel": gpr.kernel_,
             "feature_dim": X.shape[1],
             "metadata": {
-                "dataset_path": str(pkl_path),
+                "dataset_path": str(dataset_dir / f"{name_dataset}.pkl"),
                 "name_dataset": name_dataset,
                 "normalize_y": normalize_y,
                 "random_state": random_state,
+                "min_vol": min_vol,
+                "max_vol": max_vol,
+                "variation_filter": apply_variation_filter,
             },
         },
         model_path,
@@ -370,4 +580,176 @@ def evaluate_kriging_from_pickle(
         "n_test": int(len(y_test)),
         "model_path": str(model_path),
         "kernel_": str(gpr.kernel_),
+    }
+
+def plot_parity(y_true, y_pred, save_path=None):
+    """
+    Plot parity plot (true vs predicted values) with R² and RMSE annotation.
+
+    Parameters
+    ----------
+    y_true : array-like
+        Ground-truth values (test set).
+    y_pred : array-like
+        Predicted values (test set).
+    save_path : str or Path, optional
+        If provided, saves the figure to this path.
+    """
+    y_true = np.asarray(y_true)
+    y_pred = np.asarray(y_pred)
+
+    # Metrics
+    residuals = y_pred - y_true
+    rmse = np.sqrt(np.mean(residuals**2))
+    mae = np.mean(np.abs(residuals))
+    r2 = 1 - np.sum(residuals**2) / np.sum((y_true - np.mean(y_true))**2)
+
+    fig, ax = plt.subplots(figsize=(6, 6))
+
+    # Scatter points
+    ax.scatter(y_true, y_pred, c="blue", alpha=0.6, edgecolor="k", s=30, label="Test samples")
+
+    # Perfect prediction line
+    lims = [min(y_true.min(), y_pred.min()), max(y_true.max(), y_pred.max())]
+    ax.plot(lims, lims, "r--", label="Perfect prediction")
+
+    ax.set_xlabel(r"Computed $\rho_{rel}$", fontsize=16)
+    ax.set_ylabel(r"Predicted $\rho_{rel}$", fontsize=16)
+    # ax.set_title("Parity plot for Kriging surrogate", fontsize=14)
+
+    # Annotate metrics
+    ax.text(0.05, 0.95,
+            f"$R^2$ = {r2:.5f}\nRMSE = {rmse:.2e}\nMAE = {mae:.2e}",
+            transform=ax.transAxes,
+            verticalalignment="top",
+            fontsize=18,
+            bbox=dict(boxstyle="round,pad=0.3", facecolor="white", alpha=0.8))
+
+    ax.legend(fontsize=18)
+    ax.set_aspect("equal", "box")
+    ax.set_xlim(lims)
+    ax.set_ylim(lims)
+    ax.tick_params(axis="both", which="major", labelsize=14)
+
+    plt.tight_layout()
+    if save_path is not None:
+        fig.savefig(save_path, dpi=300)
+        print(f"Parity plot saved to {save_path}")
+    plt.show()
+
+    return {"R2": r2, "RMSE": rmse, "MAE": mae}
+
+def evaluate_saved_kriging(
+    dataset_dir: Path | None,
+    name_dataset: str,
+    model_path: Path | None = None,
+    use_test_split: bool = True,
+    test_size: float = 0.2,
+    random_state: int = 42,
+    min_vol: float = 0.0,
+    max_vol: float = 0.6,
+    apply_variation_filter: bool = True,
+    save_parity_path: Path | None = None,
+):
+    """
+    Load a previously trained Kriging model and a dataset, then evaluate and (optionally) plot a parity plot.
+
+    Parameters
+    ----------
+    dataset_dir : Path | None
+        Directory containing '<name_dataset>.pkl'. If None, uses the default data path.
+    name_dataset : str
+        Dataset base name (without extension).
+    model_path : Path | None
+        Path to the saved model file. If None, uses the default surrogate_model path.
+    use_test_split : bool
+        If True, evaluate on a train/test split (reproducible with `random_state`).
+        If False, evaluate on the whole dataset.
+    test_size : float
+        Fraction of samples for testing when `use_test_split=True`.
+    random_state : int
+        Random seed for the split.
+    min_vol, max_vol : float
+        Volume filtering bounds passed to `load_dataset`.
+    apply_variation_filter : bool
+        Apply `remove_large_volume_variations_dict` during dataset loading.
+    save_parity_path : Path | None
+        If provided, saves the parity plot to this path.
+
+    Returns
+    -------
+    dict
+        Metrics and metadata: 'MSE','RMSE','NRMSE','MAE','R2','n_eval','model_kernel','model_path'
+    """
+    # Resolve default paths
+    if dataset_dir is None:
+        dataset_dir = Path(__file__).parents[2] / "data" / "outputs" / "relative_densities" / "data"
+    if model_path is None:
+        model_root = Path(__file__).parents[2] / "data" / "outputs" / "relative_densities" / "surrogate_model"
+        model_path = model_root / f"kriging_model_{name_dataset}"
+
+    # Load model
+    model_obj = joblib.load(model_path)
+    gpr = model_obj["model"]
+    model_kernel = str(model_obj.get("kernel", getattr(gpr, "kernel_", "unknown")))
+
+    # Load dataset with filters
+    rel_dens_dict = load_dataset(
+        path_dataset=dataset_dir,
+        name_dataset=name_dataset,
+        min_vol=min_vol,
+        max_vol=max_vol,
+        apply_variation_filter=apply_variation_filter,
+    )
+    if not rel_dens_dict:
+        raise ValueError("Loaded dataset is empty after filtering.")
+
+    # Build arrays
+    X = np.array(list(rel_dens_dict.keys()), dtype=float)
+    y = np.array(list(rel_dens_dict.values()), dtype=float)
+    if X.ndim == 1:
+        X = X.reshape(-1, 1)
+
+    # Choose eval set
+    if use_test_split:
+        _, X_eval, _, y_eval = train_test_split(
+            X, y, test_size=float(test_size), random_state=random_state
+        )
+    else:
+        X_eval, y_eval = X, y
+
+    # Predict & compute metrics
+    y_pred = gpr.predict(X_eval)
+    residuals = y_pred - y_eval
+    mse = float(np.mean(residuals**2))
+    rmse = float(np.sqrt(mse))
+    mae = float(np.mean(np.abs(residuals)))
+    nrmse = float(rmse / (np.max(y_eval) - np.min(y_eval)))
+    r2 = float(1.0 - np.sum(residuals**2) / np.sum((y_eval - np.mean(y_eval))**2))
+
+    # Parity plot (optional)
+    try:
+        plot_parity(y_eval, y_pred, save_path=save_parity_path)
+    except Exception as e:
+        print(f"[warn] Parity plot failed: {e}")
+
+    print("✅ Loaded Kriging model evaluation")
+    print(f"   • Eval size = {len(y_eval)}")
+    print(f"   • MSE   = {mse:.6e}")
+    print(f"   • RMSE  = {rmse:.6e}")
+    print(f"   • MAE   = {mae:.6e}")
+    print(f"   • NRMSE = {nrmse:.6e}")
+    print(f"   • R²    = {r2:.6f}")
+    print(f"   • Model kernel: {model_kernel}")
+    print(f"   • Model path: {model_path}")
+
+    return {
+        "MSE": mse,
+        "RMSE": rmse,
+        "NRMSE": nrmse,
+        "MAE": mae,
+        "R2": r2,
+        "n_eval": int(len(y_eval)),
+        "model_kernel": model_kernel,
+        "model_path": str(model_path),
     }

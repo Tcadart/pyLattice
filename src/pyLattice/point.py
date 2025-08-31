@@ -34,7 +34,8 @@ class Point:
         self.y: float = float(y) + random.gauss(0, node_uncertainty_SD)
         self.z: float = float(z) + random.gauss(0, node_uncertainty_SD)
         self.index: Optional[int] = None  # Global index of the point
-        self.tag: Optional[int] = None  # Global boundary tag #TODO change tagging method
+        self.tag: Optional[int] = None  # Global boundary tag
+        self.cell_local_tag: Optional[dict] = {} # Dictionary of local tags for each cell containing the point
         self.index_boundary: Optional[int] = None  # Global index for boundary cell
         self.displacement_vector: List[float] = [0.0] * 6  # Displacement vector of 6 DOF (Degrees of Freedom).
         self.reaction_force_vector: List[float] = [0.0] * 6  # Reaction force vector of 6 DOF.
@@ -51,7 +52,7 @@ class Point:
     def __hash__(self) -> int:
         return hash((self.x, self.y, self.z))
 
-    def __sub__(self, other: 'point') -> List[float]:
+    def __sub__(self, other: 'Point') -> List[float]:
         return [self.x - other.x, self.y - other.y, self.z - other.z]
 
     def __repr__(self) -> str:
@@ -100,7 +101,7 @@ class Point:
         """
         self.x, self.y, self.z = xNew, yNew, zNew
 
-    def tag_point(self, boundary_box_domain: list[float]) -> List[int]:
+    def tag_point(self, boundary_box_domain: list[float]) -> int:
         """
         Generate standardized tags for the point based on its position.
         Check : https://docs.fenicsproject.org/basix/v0.2.0/index.html for more informations
@@ -112,14 +113,12 @@ class Point:
 
         Returns
         -------
-        List[int]
-            List of tags associated with the point.
+        int
+            tag of the point
         """
         if len(boundary_box_domain) != 6:
             raise ValueError("Boundary box domain must contain 6 values.")
         xMin, xMax, yMin, yMax, zMin, zMax = boundary_box_domain
-
-        tag: List[int] = []
 
         def is_in(v, min_v, max_v):
             """ Check if a value is strictly between min_v and max_v. """
@@ -160,17 +159,15 @@ class Point:
 
         for condition, code in face_codes.items():
             if all(condition):
-                tag.append(code)
+                return code
 
         for condition, code in edge_codes.items():
             if all(condition):
-                tag.append(code)
+                return code
 
         for condition, code in corner_codes.items():
             if all(condition):
-                tag.append(code)
-
-        return tag
+                return code
 
     def initialize_reaction_force(self) -> None:
         """
@@ -272,7 +269,7 @@ class Point:
                 self.z == boundary_box_lattice[4] or
                 self.z == boundary_box_lattice[5])
 
-    def distance_to(self, other: 'point') -> float:
+    def distance_to(self, other: 'Point') -> float:
         """
         Calculate the distance to another point.
 
@@ -283,3 +280,16 @@ class Point:
             float: The Euclidean distance to the other point.
         """
         return math.sqrt((self.x - other.x) ** 2 + (self.y - other.y) ** 2 + (self.z - other.z) ** 2)
+
+    def set_local_tag(self, cell_index: int, local_tag: int) -> None:
+        """
+        Set the local tag for a specific cell containing the point.
+
+        Parameters:
+        -----------
+        cell_index : int
+            Index of the cell.
+        local_tag : int
+            Local tag to assign to the point for the specified cell.
+        """
+        self.cell_local_tag[cell_index] = local_tag

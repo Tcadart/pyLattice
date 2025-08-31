@@ -1,4 +1,5 @@
 import gmsh
+import numpy as np
 from dolfinx.io.gmshio import model_to_mesh
 
 from .utils_timing import *
@@ -56,12 +57,11 @@ class latticeGeneration:
             self.geom.synchronize()
             self.generate_beams_tags()
             self.generate_points_tags()
-            # self.printMeshTags()
-
+            # self._print_mesh_tags()
             gmsh.model.mesh.generate(self.gdim)
             if save_mesh:
                 gmsh.write("Mesh/" + self.lattice.getName() + ".msh")
-            domain, cells, facets = model_to_mesh(gmsh.model, self.COMM, modelRank)
+            domain, cells, facets = model_to_mesh(model=gmsh.model, comm=self.COMM, rank=modelRank, gdim=3)
             gmsh.finalize()
             return domain, cells, facets, radtagBeam, tagBeam
 
@@ -78,22 +78,20 @@ class latticeGeneration:
         node_already_added = set()
         for cell in self.lattice.cells:
             if cell_index is None or cell.index == cell_index:
-                for beam in cell.beams_cell:
-                    if beam.radius != 0:
-                        for node in [beam.point1, beam.point2]:
-                            if node.index not in node_already_added:
-                                node_already_added.add(node.index)
-                                point_id = self.geom.addPoint(node.x, node.y, node.z, meshSize=self._mesh_size)
-                                self.point[node.index] = point_id
-                                if cell_index is not None:
-                                    tagAdd = node.local_tag
-                                else:
-                                    tagAdd = node.tag
-                                if tagAdd is not None:
-                                    for tag in tagAdd:
-                                        if tag not in self._tag_point_index:
-                                            self._tag_point_index[tag] = []
-                                        self._tag_point_index[tag].append(point_id)
+                for node in cell.points_cell:
+                    if node.index not in node_already_added:
+                        node_already_added.add(node.index)
+                        point_id = self.geom.addPoint(node.x, node.y, node.z, meshSize=self._mesh_size)
+                        self.point[node.index] = point_id
+                        if cell_index is not None:
+                            tagAdd = node.local_tag
+                        else:
+                            tagAdd = node.tag
+                        if tagAdd is not None:
+                            if tagAdd not in self._tag_point_index:
+                                self._tag_point_index[tagAdd] = []
+                            self._tag_point_index[tagAdd].append(point_id)
+
 
     @timingLG.timeit
     def generate_beams(self, cell_index = None):
@@ -115,7 +113,7 @@ class latticeGeneration:
         for cell in self.lattice.cells:
             if cell_index is None or cell.index == cell_index:
                 for beam in cell.beams_cell:
-                    if beam.radius != 0:
+                    if beam.radius > 0:
                         if beam not in beam_already_added:
                             beam_already_added.add(beam)
                             beam_id = self.geom.addLine(self.point[beam.point1.index], self.point[beam.point2.index])
@@ -154,7 +152,7 @@ class latticeGeneration:
                 gmsh.model.addPhysicalGroup(self.gdim - 1, pointIds, tag)
                 gmsh.model.setPhysicalName(self.gdim - 1, tag, "tag" + str(tag))
 
-    def print_mesh_tags(self):
+    def _print_mesh_tags(self):
         """
         Debug function to print mesh tags
         Print the physical groups of the mesh, including points and beams.

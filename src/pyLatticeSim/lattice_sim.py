@@ -4,6 +4,7 @@ from colorama import Fore, Style
 from scipy.sparse import coo_matrix, lil_matrix
 from scipy.sparse.linalg import LinearOperator, splu
 
+from pyLattice.beam import Beam
 from pyLattice.cell import Cell
 from pyLattice.lattice import Lattice
 from pyLattice.utils import open_lattice_parameters
@@ -44,6 +45,7 @@ class LatticeSim(Lattice):
         self.set_penalized_beams()
         # Define global indexation
         self.define_node_index_boundary()
+        self.define_node_local_tags()
         self.set_boundary_conditions()
 
         self._parameters_define = False
@@ -55,6 +57,69 @@ class LatticeSim(Lattice):
             self.preconditioner = None
             self.iteration = 0
             self.residuals = []
+
+    @timing.timeit
+    def set_penalized_beams(self) -> None:
+        """
+        Modifies beam and node data to model lattice structures for simulation with rigidity penalization at node.
+        If L_zone at one end is 0 (or <= 0), we do not create a penalized segment at that end.
+        If both are 0, the beam is left unchanged.
+        """
+        for cell in self.cells:
+            beams_to_remove = []
+            beams_to_add = []
+            points_to_add = []
+
+            for beam in list(cell.beams_cell):
+                L1 = beam.angle_point_1.get("L_zone", 0)
+                L2 = beam.angle_point_2.get("L_zone", 0)
+
+                # No modification if both are zero or negative
+                if L1 <= 0 and L2 <= 0:
+                    continue
+
+                # Start from original endpoints
+                start = beam.point1
+                end = beam.point2
+
+                # Left/end-1 modification
+                if L1 > 0:
+                    pointExt1 = beam.get_point_on_beam_at_distance(L1, 1)
+                    pointExt1.node_mod = True
+                    points_to_add.append(pointExt1)
+                    b1 = Beam(start, pointExt1, beam.radius, beam.material, beam.type_beam)
+                    b1.set_beam_mod()
+                    beams_to_add.append(b1)
+                    start = pointExt1  # middle starts here
+
+                # Right/end-2 modification
+                if L2 > 0:
+                    pointExt2 = beam.get_point_on_beam_at_distance(L2, 2)
+                    pointExt2.node_mod = True
+                    points_to_add.append(pointExt2)
+                    mid_end = pointExt2
+                else:
+                    mid_end = end
+
+                # Middle (unmodified) segment
+                b_mid = Beam(start, mid_end, beam.radius, beam.material, beam.type_beam)
+                beams_to_add.append(b_mid)
+
+                # Final penalized segment at end-2 if needed
+                if L2 > 0:
+                    b3 = Beam(mid_end, end, beam.radius, beam.material, beam.type_beam)
+                    b3.set_beam_mod()
+                    beams_to_add.append(b3)
+
+                beams_to_remove.append(beam)
+
+            cell.add_beam(beams_to_add)
+            cell.add_point(points_to_add)
+            cell.remove_beam(beams_to_remove)
+
+        self._refresh_nodes_and_beams()
+        # Update index
+        self.define_beam_node_index()
 
     def define_simulation_parameters(self, name_file: str):
         """

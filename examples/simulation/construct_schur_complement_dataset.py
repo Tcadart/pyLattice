@@ -1,7 +1,6 @@
 """
 Construct a dataset of Schur complements for parametried cells.
 """
-
 from pyLatticeSim.lattice_sim import LatticeSim
 from pyLatticeSim.utils_simulation import get_schur_complement
 

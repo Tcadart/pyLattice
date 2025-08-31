@@ -1,7 +1,7 @@
 """
 Simple schur complement example of an hybrid cell
 """
-
+from pyLattice.plotting_lattice import LatticePlotting
 from pyLatticeSim.lattice_sim import LatticeSim
 from pyLatticeSim.utils_simulation import get_schur_complement
 

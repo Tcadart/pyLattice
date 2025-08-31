@@ -99,11 +99,6 @@ def get_schur_complement(lattice: "LatticeSim", cell_index: int = None):
     if cell_index is None and lattice.get_number_cells() > 1:
         raise ValueError("The lattice must contain only one cell for Schur complement calculation or specify a cell_index.")
 
-    cell_model = BeamModel(MPI.COMM_SELF, lattice=lattice, cell_index=cell_index)
-
-    # Initialization simulation
-    schur_complement_analysis = SchurComplement(cell_model)
-
     if cell_index is None:
         lattice.cells[0].define_node_order_to_simulate()
     else:
@@ -111,6 +106,11 @@ def get_schur_complement(lattice: "LatticeSim", cell_index: int = None):
 
     tags_nodes_boundary = lattice.cells[0].node_in_order_simulation if cell_index is None else (
         lattice.cells[cell_index].node_in_order_simulation)
+
+    cell_model = BeamModel(MPI.COMM_SELF, lattice=lattice, cell_index=cell_index)
+
+    # Initialization simulation
+    schur_complement_analysis = SchurComplement(cell_model)
 
     schur_complement, _ = schur_complement_analysis.calculate_schur_complement(tags_nodes_boundary)
 
