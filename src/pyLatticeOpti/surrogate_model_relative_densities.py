@@ -5,14 +5,28 @@ import pickle
 
 import joblib
 import numpy as np
+import matplotlib.pyplot as plt
+import matplotlib
+matplotlib.use('TkAgg')  # Use TkAgg backend for interactive plots
 
+from sklearn.gaussian_process import GaussianProcessRegressor
+from sklearn.gaussian_process.kernels import RBF, ConstantKernel as C, WhiteKernel
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import mean_squared_error, r2_score, mean_absolute_error
+from scipy.interpolate import griddata
 
+def _find_path_to_data(lattice_cell):
+    """Determine a default dataset path based on lattice geometry."""
+    path_dataset = Path(__file__).parents[2] / "data" / "outputs" / "relative_densities" / "data"
+    geom_cell = lattice_cell.cells[0].geom_types
+    name_dataset = "RelativeDensities" + "".join(f"_{g}" for g in geom_cell)
+    return path_dataset, name_dataset
 
 def compute_relative_densities_dataset(lattice_cell,
                                        step_radius: float = 0.01,
                                        range_radius: tuple = (0.00, 0.1),
                                        name_dataset: str = None,
-                                       save_every: int = 5,
+                                       save_every: int = 1,
                                        resume: bool = True):
     """
     Compute relative densities for a range of radii in the lattice.
@@ -21,11 +35,7 @@ def compute_relative_densities_dataset(lattice_cell,
     if lattice_cell.get_number_cells() != 1:
         raise ValueError("The lattice must contain exactly one cell.")
 
-    path_dataset = Path(__file__).parents[2] / "data" / "outputs" / "relative_densities" / "data"
-
-    if name_dataset is None:
-        geom_cell = lattice_cell.cells[0].geom_types
-        name_dataset = "RelativeDensities" + "".join(f"_{g}" for g in geom_cell)
+    path_dataset, name_dataset = _find_path_to_data(lattice_cell)
 
     # Prepare grid and potential resume
     n_geom = len(lattice_cell.cells[0].geom_types)
@@ -37,14 +47,42 @@ def compute_relative_densities_dataset(lattice_cell,
         relative_densities = load_dataset(path_dataset, name_dataset)
         print(f"Resuming from {len(relative_densities)} existing entries in {dataset_file}")
 
-    remaining = [c for c in valid_combos if c not in relative_densities]
+        # Use check_missing_entries to report and sanitize
+        status = check_missing_entries(
+            path_dataset=path_dataset,
+            name_dataset=name_dataset,
+            step_radius=step_radius,
+            range_radius=range_radius,
+            n_geom=n_geom,
+            threshold=0.001,
+        )
+
+        # Remove invalid entries that don't match current grid/threshold
+        if status.get("n_invalid", 0) > 0:
+            print(f"Removing {status['n_invalid']} invalid entries from {dataset_file}")
+            for combo in status["invalid_combinations"]:
+                relative_densities.pop(combo, None)
+            save_dataset(path_dataset, name_dataset, relative_densities)
+
+        remaining = status["missing_combinations"]
+        print(f"{len(remaining)} combinations missing (expected {status['n_expected']}).")
+    else:
+        remaining = [c for c in valid_combos if c not in relative_densities]
+
     if not remaining:
         print("Dataset already complete.")
         return
 
     for i, combo in enumerate(remaining, 1):
         print(f"Computing for radii: {combo}")
-        lattice_cell.change_beam_radius(list(combo))
+        if i <= 1:
+            combo = list(combo)
+            combo[0] += 0.001
+            lattice_cell.change_beam_radius(combo)
+            combo[0] -= 0.001
+            combo = tuple(combo)
+        else:
+            lattice_cell.change_beam_radius(list(combo))
         rd = lattice_cell.generate_mesh_lattice_Gmsh(volume_computation=True,
                                                      cut_mesh_at_boundary=True,
                                                      save_STL=False,
@@ -118,6 +156,7 @@ def check_missing_entries(path_dataset: Path,
     Returns a dict with counts and the list of missing combinations.
     """
     expected = set(_valid_combinations(step_radius, range_radius, n_geom, threshold))
+    print(len(expected), "expected combinations based on parameters.")
     try:
         data = load_dataset(path_dataset, name_dataset)
         present = set(data.keys())
@@ -125,18 +164,78 @@ def check_missing_entries(path_dataset: Path,
         present = set()
 
     missing = sorted(expected - present)
+    invalid = sorted(present - expected)
+
+    if invalid:
+        print(f"⚠️ Found {len(invalid)} invalid combinations in dataset:")
+        for combo in invalid[:20]:
+            print("   ", combo)
+        if len(invalid) > 20:
+            print(f"   ... and {len(invalid)-20} more")
+
     return {
         "n_expected": len(expected),
         "n_present": len(present),
         "n_missing": len(missing),
         "missing_combinations": missing,
+        "n_invalid": len(invalid),
+        "invalid_combinations": invalid,
     }
 
 
-from sklearn.gaussian_process import GaussianProcessRegressor
-from sklearn.gaussian_process.kernels import RBF, ConstantKernel as C, WhiteKernel
-from sklearn.model_selection import train_test_split
-from sklearn.metrics import mean_squared_error, r2_score, mean_absolute_error
+def plot_3D_iso_surface(lattice_cell):
+    """
+    Plot 3D iso-surfaces of volume as a function of three radii using interpolation.
+
+    Parameters
+    ----------
+    lattice_cell : Lattice
+        Lattice object with exactly one cell and three geometry types.
+    """
+    try:
+        import plotly.graph_objects as go
+    except ImportError:
+        raise ImportError("Plotly is required for 3D plotting. Install it via 'conda install plotly'.")
+    # --- Load dataset and build (radii, volumes) arrays ---
+    path_dataset, name_dataset = _find_path_to_data(lattice_cell)
+    dataset_file = path_dataset / f"{name_dataset}.pkl"
+    if not dataset_file.exists():
+        raise FileNotFoundError(f"No dataset found at {dataset_file}")
+
+    relative_densities = load_dataset(path_dataset, name_dataset)
+    if not relative_densities:
+        raise ValueError("Loaded dataset is empty.")
+
+    radii = np.array(list(relative_densities.keys()), dtype=float)    # shape (N, n_geom)
+    volumes = np.array(list(relative_densities.values()), dtype=float)  # shape (N,)
+
+    if radii.ndim != 2 or radii.shape[1] != 3:
+        raise ValueError(f"Expected 3 radii per sample, got shape {radii.shape}")
+
+    # --- Build regular 3D grid over observed radii domain ---
+    grid_x, grid_y, grid_z = np.mgrid[
+                             np.min(radii[:, 0]):np.max(radii[:, 0]):30j,
+                             np.min(radii[:, 1]):np.max(radii[:, 1]):30j,
+                             np.min(radii[:, 2]):np.max(radii[:, 2]):30j
+                             ]
+
+    # --- Interpolate volumes on the grid ---
+    grid_vol = griddata(radii, volumes, (grid_x, grid_y, grid_z), method='linear')
+
+    fig = go.Figure(data=go.Isosurface(
+        x=grid_x.flatten(), y=grid_y.flatten(), z=grid_z.flatten(),
+        value=grid_vol.flatten(),
+        opacity=0.3, surface_count=10, colorscale='viridis'
+    ))
+
+    fig.update_layout(
+        scene=dict(xaxis_title='Radius 1', yaxis_title='Radius 2', zaxis_title='Radius 3'),
+        title="3D Iso-Surface of Relative Densities"
+    )
+
+    fig.show()
+
+
 
 
 def evaluate_kriging_from_pickle(

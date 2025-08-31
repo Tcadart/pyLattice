@@ -1297,7 +1297,7 @@ class Lattice(object):
                 cell.remove_beam(beam)
 
     @timing.timeit
-    def generate_mesh_lattice_Gmsh(self, cut_mesh_at_boundary: bool = False, mesh_size: float = 0.045,
+    def generate_mesh_lattice_Gmsh(self, cut_mesh_at_boundary: bool = False, mesh_size: float = 0.05,
                                    name_mesh: str = "Lattice",save_mesh: bool = False, save_STL: bool = True,
                                    volume_computation: bool = False, only_volume: bool = False,
                                    only_relative_density: bool = False) -> float | None:
@@ -1354,7 +1354,11 @@ class Lattice(object):
             x0, y0, z0 = self.x_min, self.y_min, self.z_min
             dx, dy, dz = self.x_max - x0, self.y_max - y0, self.z_max - z0
             box = gmsh.model.occ.addBox(x0, y0, z0, dx, dy, dz)
-            gmsh.model.occ.intersect(lattice[0], [(dim, box)], removeObject=True)
+            try:
+                gmsh.model.occ.intersect(lattice[0], [(dim, box)], removeObject=True, removeTool=True)
+            except Exception as e:
+                print("Intersection failed:", e)
+                return None
 
         gmsh.model.occ.synchronize()
 
