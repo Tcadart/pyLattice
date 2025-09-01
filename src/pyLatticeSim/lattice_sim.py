@@ -356,19 +356,12 @@ class LatticeSim(Lattice):
             Dictionary of global reaction force with index_boundary as key and reaction force vector as value
         """
         globalReactionForce = {i: [0, 0, 0, 0, 0, 0] for i in range(self.max_index_boundary + 1)}
-        for cell in self.cells:
-            nodeIndexProcessed = set()
-            for beam in cell.beams_cell:
-                for node in [beam.point1, beam.point2]:
-                    if node.index_boundary is not None and node.index not in nodeIndexProcessed:
-                        globalReactionForce[node.index_boundary] = [
-                            x + y for x, y in zip(globalReactionForce[node.index_boundary], node.reaction_force_vector)
-                        ]
-                        if appliedForceAdded:
-                            for i in range(6):
-                                if node.applied_force[i] != 0:
-                                    globalReactionForce[node.index_boundary][i] = node.applied_force[i]
-                        nodeIndexProcessed.add(node.index)
+        for node in self.nodes:
+            globalReactionForce[node.index_boundary] = node.reaction_force_vector
+            if appliedForceAdded and sum(node.applied_force) > 0:
+                for i in range(6):
+                    if node.applied_force[i] != 0:
+                        globalReactionForce[node.index_boundary][i] = node.applied_force[i]
         return globalReactionForce
 
     def get_global_reaction_force_without_fixed_DOF(self, globalReactionForce: dict, rightHandSide: bool = False) \
@@ -390,22 +383,21 @@ class LatticeSim(Lattice):
         processed_nodes = set()
 
         for cell in self.cells:
-            for beam in cell.beams_cell:
-                for node in [beam.point1, beam.point2]:
-                    if node.index_boundary is None or node.index_boundary in processed_nodes:
+            for node in cell.points_cell:
+                if node.index_boundary is None or node.index_boundary in processed_nodes:
+                    continue
+
+                for i in range(6):
+                    gi = node.global_free_DOF_index[i]
+                    if gi is None:
                         continue
+                    if rightHandSide and node.applied_force[i] != 0:
+                        # minus sign because b = -f (consistent with your RHS convention)
+                        y[gi] = -node.applied_force[i]
+                    else:
+                        y[gi] = globalReactionForce[node.index_boundary][i]
 
-                    for i in range(6):
-                        gi = node.global_free_DOF_index[i]
-                        if gi is None:
-                            continue
-                        if rightHandSide and node.applied_force[i] != 0:
-                            # minus sign because b = -f (consistent with your RHS convention)
-                            y[gi] = -node.applied_force[i]
-                        else:
-                            y[gi] = globalReactionForce[node.index_boundary][i]
-
-                    processed_nodes.add(node.index_boundary)
+                processed_nodes.add(node.index_boundary)
 
         return y
 
@@ -591,7 +583,10 @@ class LatticeSim(Lattice):
 
     def _check_parameters_defined(self):
         if not self._parameters_define:
-            raise ValueError(Fore.RED + "Parameters not defined. Please call define_parameters() before solving." + Style.RESET_ALL)
+            print(Fore.YELLOW + "You can define parameters with define_parameters method."+ Style.RESET_ALL)
+            print(Fore.YELLOW + "Default parameters are used. (Preconditioner activated and 1000 max iterations"+
+                  Style.RESET_ALL)
+            self.define_parameters()
 
     def solve_DDM(self):
         """
@@ -626,7 +621,8 @@ class LatticeSim(Lattice):
         # Define the preconditioner
         self.define_preconditioner()
 
-        A_operator = LinearOperator(shape=(self.free_DOF, self.free_DOF), matvec=self.calculate_reaction_force_global)
+        A_operator = LinearOperator(shape=(self.free_DOF, self.free_DOF),
+                                    matvec=self.calculate_reaction_force_global)
 
         print(Fore.GREEN + "Conjugate Gradient started."+ Style.RESET_ALL)
 
@@ -665,6 +661,7 @@ class LatticeSim(Lattice):
 
         return globalReactionForceWithoutFixedDOF
 
+
     def update_reaction_force_each_cell(self, global_displacement):
         """
         Update RF local
@@ -679,7 +676,7 @@ class LatticeSim(Lattice):
         datasetDataCell = []
         for cell in self.cells:
             # Set Displacement on nodes (Global to Local)
-            cell.set_displacement_at_boundary_nodes(global_displacement, self.global_displacement_index)
+            cell.set_displacement_at_boundary_nodes(global_displacement)
 
             reaction_force_cell = self.solve_sub_problem(cell)
 
@@ -733,6 +730,14 @@ class LatticeSim(Lattice):
         plotting = False
         # Increment iteration count
         self.iteration += 1
+
+        # Calculate the residual norm
+        residual = b - A_operator @ xk
+        residual_norm = np.linalg.norm(residual) / np.linalg.norm(b)
+
+        # Append the residual norm for tracking
+        self.residuals.append(residual_norm)
+        print(f"Residual norm: {residual_norm:.6e}")
 
         if plotting:
             # Calculate the residual norm

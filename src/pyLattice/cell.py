@@ -593,7 +593,7 @@ class Cell(object):
                     displacementList.append(node.displacement_vector)
         return displacementList
 
-    def set_displacement_at_boundary_nodes(self, displacementArray: list, displacementIndex: list) -> None:
+    def set_displacement_at_boundary_nodes(self, displacementArray: list) -> None:
         """
         Set displacement at nodes.
 
@@ -601,8 +601,6 @@ class Cell(object):
         ------------
         displacementArray: list or array-like
             Flattened array of displacement values.
-        displacementIndex: array of int
-            Boundary node index of each displacement value.
         """
         if self._verbose > 1:
             print("Non-zero displacements:", np.asarray(displacementArray)[np.asarray(displacementArray) != 0])
@@ -627,7 +625,7 @@ class Cell(object):
         Build the coupling operator B using the deterministic local boundary-node order.
         """
         if not self.node_in_order_simulation:
-            raise ValueError("Boundary node order not defined. Call define_node_order_to_simulate() first.")
+            self.define_node_order_to_simulate()
 
         from scipy.sparse import coo_matrix
         data, row, col = [], [], []

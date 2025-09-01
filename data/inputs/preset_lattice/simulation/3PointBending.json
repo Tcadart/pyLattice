@@ -7,11 +7,11 @@
       },
     "number_of_cells": {
       "x": 2,
-      "y": 5,
-      "z": 5
+      "y": 3,
+      "z": 3
     },
     "radii": [0.1],
-    "geom_types": ["BCC"]
+    "geom_types": ["Hybrid1"]
   },
     "simulation_parameters": {
     "enable" : true,
