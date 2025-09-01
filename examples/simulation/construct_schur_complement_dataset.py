@@ -13,7 +13,7 @@ schur_complement = get_schur_complement(lattice_object)
 
 print("Schur complement matrix:\n", schur_complement)
 
-lattice_object.reset_cell_with_new_radii([0.01, 0.02, 0.03])
+lattice_object.reset_cell_with_new_radii([0.01, 0.01, 0.01])
 
 schur_complement_updated = get_schur_complement(lattice_object)
 

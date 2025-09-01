@@ -5,6 +5,10 @@
 from typing import List, Tuple, Optional
 import math
 
+from typing import TYPE_CHECKING
+if TYPE_CHECKING:
+    from .cell import Cell
+
 from .point import Point
 from .utils import function_penalization_Lzone
 
@@ -13,7 +17,8 @@ class Beam(object):
     Class Beam represents a beam element in lattice structures.
     """
 
-    def __init__(self, point1: 'Point', point2: 'Point', radius: float, material: int, type_beam: int) -> None:
+    def __init__(self, point1: 'Point', point2: 'Point', radius: float, material: int, type_beam: int,
+                 cell_belongings: 'Cell') -> None:
         """
         Initialize a Beam object representing a beam element.
 
@@ -29,6 +34,7 @@ class Beam(object):
         self.radius: float = radius
         self.material: int = material
         self.type_beam: int = type_beam
+        self.cell_belongings: list['Cell'] = [cell_belongings]
         self.index: Optional[int] = None
         self.angle_point_1: dict = {"radius": None, "angle": None, "L_zone": None}
         self.angle_point_2: dict = {"radius": None, "angle": None, "L_zone": None}
@@ -193,11 +199,15 @@ class Beam(object):
             start_point.z + factors[2]
         ]
 
-        point_mod = Point(*point_mod)
+        if self.type_beam == 2:
+            cell_belongings = self.cell_belongings
+        else:
+            cell_belongings = list(set(self.point1.cell_belongings) & set(self.point2.cell_belongings))
+        point_mod = Point(*point_mod, cell_belongings=cell_belongings)
 
         return point_mod
 
-    def is_point_on_beam(self, node: 'point') -> bool:
+    def is_point_on_beam(self, node: 'Point') -> bool:
         """
         Check if a given node lies on the beam.
 
@@ -309,3 +319,8 @@ class Beam(object):
                 and materialtest
                 and typetest
         )
+
+    def add_cell_belonging(self, cell: "Cell") -> None:
+        """Adding a cell to the list of cells this beam belongs to."""
+        if cell not in self.cell_belongings:
+            self.cell_belongings.append(cell)

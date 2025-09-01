@@ -889,9 +889,10 @@ class Lattice(object):
 
                 # Create new beam segments
                 type_to_keep = beam.type_beam
+                beam_belongings = beam.cell_belongings
                 new_segments = []
                 for a, b in zip(chain[:-1], chain[1:]):
-                    new_segments.append(Beam(a, b, beam.radius, beam.material, type_to_keep))
+                    new_segments.append(Beam(a, b, beam.radius, beam.material, type_to_keep, beam_belongings))
 
                 beams_to_remove.add(beam)
                 for nb in new_segments:
@@ -1209,7 +1210,7 @@ class Lattice(object):
                     node_map[new_point2] = new_point2
 
                 mirrored_beams.append(
-                    Beam(node_map[new_point1], node_map[new_point2], beam.radius, beam.material, beam.type_beam))
+                    Beam(node_map[new_point1], node_map[new_point2], beam.radius, beam.material, beam.type_beam, ))
 
             # Create a new mirrored cell
             new_cell = Cell(new_pos, cell.size, list(new_start_pos), cell.geom_types, cell.radii, cell.grad_radius,

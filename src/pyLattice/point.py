@@ -5,13 +5,19 @@ import math
 import random
 from typing import List, Tuple, Optional
 
+from typing import List, Tuple, Optional, TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from .cell import Cell
+
 
 class Point:
     """
     Represents a point in 3D space with additional attributes for simulation.
     """
 
-    def __init__(self, x: float, y: float, z: float, node_uncertainty_SD: float = 0.0) -> None:
+    def __init__(self, x: float, y: float, z: float, cell_belongings: List['Cell'],
+                 node_uncertainty_SD: float = 0.0) -> None:
         """
         Initialize a point object.
 
@@ -33,6 +39,7 @@ class Point:
         self.x: float = float(x) + random.gauss(0, node_uncertainty_SD)
         self.y: float = float(y) + random.gauss(0, node_uncertainty_SD)
         self.z: float = float(z) + random.gauss(0, node_uncertainty_SD)
+        self.cell_belongings: List["Cell"] = cell_belongings  # List of cells containing the point
         self.index: Optional[int] = None  # Global index of the point
         self.tag: Optional[int] = None  # Global boundary tag
         self.cell_local_tag: Optional[dict] = {} # Dictionary of local tags for each cell containing the point
@@ -293,3 +300,8 @@ class Point:
             Local tag to assign to the point for the specified cell.
         """
         self.cell_local_tag[cell_index] = local_tag
+
+    def add_cell_belonging(self, cell: "Cell") -> None:
+        """Adding a cell to the list of cells this point belongs to."""
+        if cell not in self.cell_belongings:
+            self.cell_belongings.append(cell)

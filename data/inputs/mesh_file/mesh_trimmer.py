@@ -154,9 +154,9 @@ class MeshTrimmer:
                         if intersection_point is not None:
                             new_point = Point(intersection_point[0], intersection_point[1], intersection_point[2])
                             if not p1_inside:
-                                new_beam = Beam(new_point, beam.point2, beam.radius, beam.material, beam.type_beam)
+                                new_beam = Beam(new_point, beam.point2, beam.radius, beam.material, beam.type_beam, )
                             else:
-                                new_beam = Beam(beam.point1, new_point, beam.radius, beam.material, beam.type_beam)
+                                new_beam = Beam(beam.point1, new_point, beam.radius, beam.material, beam.type_beam, )
 
                             new_beams.append(new_beam)
                             beams_to_remove.append(beam)

@@ -9,6 +9,7 @@ import numpy as np
 from colorama import Fore, Style
 
 from .beam import *
+from .point import Point
 from .geometries.geometries_utils import *
 from .utils import _validate_inputs_cell
 
@@ -83,6 +84,63 @@ class Cell(object):
         if self.relative_density > 1 and self._verbose > 0:
             print(Fore.YELLOW + "WARNING: Approximated relative density of the cell is greater than 1. "
                                 "Beam radius and cell size is probably not well defined" + Style.RESET_ALL)
+
+    def __del__(self):
+        try:
+            if hasattr(self, "dispose"):
+                self.dispose()
+        except Exception:
+            pass
+
+    def dispose(self) -> None:
+        """
+        Dispose of the cell by detaching beams and points, and cleaning up references.
+        """
+        try:
+            beams = list(self.beams_cell or [])
+            points = list(self.points_cell or [])
+
+            # Detach the beams
+            for b in beams:
+                try:
+                    if hasattr(b, "cell_belongings") and self in b.cell_belongings:
+                        b.cell_belongings.remove(self)
+                    # If the beam no longer belongs to any cell, we prudently purge its links
+                    if not getattr(b, "cell_belongings", []):
+                        if hasattr(b, "delete_beam"):
+                            b.delete_beam()
+                except Exception:
+                    pass
+
+            # Detach the points
+            for p in points:
+                try:
+                    if hasattr(p, "cell_belongings") and self in p.cell_belongings:
+                        p.cell_belongings.remove(self)
+                    # If the point no longer belongs to any cell, we prudently purge its links
+                    if not getattr(p, "cell_belongings", []):
+                        if hasattr(p, "connected_beams"):
+                            for b in list(getattr(p, "connected_beams")):
+                                try:
+                                    # Remove the beam from the point's connected beams
+                                    if not getattr(b, "cell_belongings", []):
+                                        p.connected_beams.remove(b)
+                                except Exception:
+                                    pass
+                except Exception:
+                    pass
+
+            # Clear the sets
+            try:
+                self.beams_cell.clear()
+            except Exception:
+                pass
+            try:
+                self.points_cell.clear()
+            except Exception:
+                pass
+        except Exception:
+            pass
 
     def __repr__(self) -> str:
         return f"Cell(Coordinates:{self.coordinate}, Size: {self.size}, Index:{self.index})"
@@ -296,18 +354,26 @@ class Cell(object):
             if p1 is None:
                 p1 = frac_cache.get((x1f, y1f, z1f))
                 if p1 is None:
-                    p1 = Point(x1, y1, z1, self.uncertainty_node)
+                    p1 = Point(x1, y1, z1, [self], self.uncertainty_node)
                     frac_cache[(x1f, y1f, z1f)] = p1
+                else:
+                    p1.add_cell_belonging(self)
                 if nodes_already_defined is not None:
                     nodes_already_defined[k1] = p1
+            else:
+                p1.add_cell_belonging(self)
 
             if p2 is None:
                 p2 = frac_cache.get((x2f, y2f, z2f))
                 if p2 is None:
-                    p2 = Point(x2, y2, z2, self.uncertainty_node)
+                    p2 = Point(x2, y2, z2, [self], self.uncertainty_node)
                     frac_cache[(x2f, y2f, z2f)] = p2
+                else:
+                    p2.add_cell_belonging(self)
                 if nodes_already_defined is not None:
                     nodes_already_defined[k2] = p2
+            else:
+                p2.add_cell_belonging(self)
 
             if beams_already_defined is not None:
                 bkey = tuple(sorted((k1, k2)))
@@ -317,9 +383,11 @@ class Cell(object):
                 beam = None
 
             if beam is None:
-                beam = Beam(p1, p2, beamRadius, self._beamMaterial, beamType)
+                beam = Beam(p1, p2, beamRadius, self._beamMaterial, beamType, cell_belongings=self)
                 if beams_already_defined is not None:
                     beams_already_defined[bkey] = beam
+            else: # Already defined beam, just add the cell belonging
+                beam.add_cell_belonging(self)
 
             self.beams_cell.add(beam)
             self.points_cell.add(p1)
@@ -846,3 +914,5 @@ class Cell(object):
             R = Vt.T @ U.T
 
         return R
+
+

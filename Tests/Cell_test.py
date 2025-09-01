@@ -38,7 +38,7 @@ def test_get_cell_volume(basic_cell):
 def test_add_remove_beam(basic_cell):
     p1 = Point(0, 0, 0)
     p2 = Point(1, 0, 0)
-    b = Beam(p1, p2, 0.05, 0, 0)
+    b = Beam(p1, p2, 0.05, 0, 0, )
     initial_count = len(basic_cell.beams)
     basic_cell.add_beam(b)
     assert len(basic_cell.beams) == initial_count + 1

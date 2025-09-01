@@ -19,6 +19,7 @@ class latticeGeneration:
         self._mesh_size = []
         self._tag_point_index = {}
         self._tag_beam_index = {}
+        self.geom = None
         self.point = {}
         self.beams = []
         self.gdim = None

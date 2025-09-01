@@ -87,7 +87,7 @@ class LatticeSim(Lattice):
                     pointExt1 = beam.get_point_on_beam_at_distance(L1, 1)
                     pointExt1.node_mod = True
                     points_to_add.append(pointExt1)
-                    b1 = Beam(start, pointExt1, beam.radius, beam.material, beam.type_beam)
+                    b1 = Beam(start, pointExt1, beam.radius, beam.material, beam.type_beam, beam.cell_belongings)
                     b1.set_beam_mod()
                     beams_to_add.append(b1)
                     start = pointExt1  # middle starts here
@@ -102,12 +102,12 @@ class LatticeSim(Lattice):
                     mid_end = end
 
                 # Middle (unmodified) segment
-                b_mid = Beam(start, mid_end, beam.radius, beam.material, beam.type_beam)
+                b_mid = Beam(start, mid_end, beam.radius, beam.material, beam.type_beam, beam.cell_belongings)
                 beams_to_add.append(b_mid)
 
                 # Final penalized segment at end-2 if needed
                 if L2 > 0:
-                    b3 = Beam(mid_end, end, beam.radius, beam.material, beam.type_beam)
+                    b3 = Beam(mid_end, end, beam.radius, beam.material, beam.type_beam, beam.cell_belongings)
                     b3.set_beam_mod()
                     beams_to_add.append(b3)
 
@@ -816,19 +816,47 @@ class LatticeSim(Lattice):
         if not (0 <= index_cell < len(self.cells)):
             raise IndexError("Invalid cell index.")
 
+        # Delete only orphan beams and nodes
         cell_to_reset = self.cells[index_cell]
-        self.cells.remove(cell_to_reset)
-        self.beams.difference_update(cell_to_reset.beams_cell)
-        self.nodes.difference_update(cell_to_reset.points_cell)
+        other_cells = [c for i, c in enumerate(self.cells) if i != index_cell]
+        beams_in_others = set().union(*(c.beams_cell for c in other_cells)) if other_cells else set()
+        nodes_in_others = set().union(*(c.points_cell for c in other_cells)) if other_cells else set()
+
+        orphan_beams = cell_to_reset.beams_cell - beams_in_others
+        orphan_nodes = cell_to_reset.points_cell - nodes_in_others
+        self.beams.difference_update(orphan_beams)
+        self.nodes.difference_update(orphan_nodes)
+
+        # Dispose the cell to free memory
+        cell_to_reset.dispose()
+
+        # Prepare already defined nodes and beams
+        def _wkey_point(p, ndigits=9):
+            return round(p.x, ndigits), round(p.y, ndigits), round(p.z, ndigits)
+
+        nodes_already_defined = {_wkey_point(p): p for p in nodes_in_others}
+        beams_already_defined = {}
+        for b in beams_in_others:
+            k1, k2 = _wkey_point(b.point1), _wkey_point(b.point2)
+            beams_already_defined[tuple(sorted((k1, k2)))] = b
+
+        # Create a new cell with the same position and size but new radii
+        initial_cell_size = [self.cell_size_x, self.cell_size_y, self.cell_size_z]
         new_cell = Cell(
-            cell_to_reset.pos, cell_to_reset.initial_cell_size, cell_to_reset.start_cell_pos,
+            cell_to_reset.pos, initial_cell_size, cell_to_reset.coordinate,
             self.geom_types, self.radii,
             self.grad_radius, self.grad_dim, self.grad_mat,
-            self.uncertainty_node, self._verbose
+            self.uncertainty_node, self._verbose,
+            beams_already_defined=beams_already_defined,
+            nodes_already_defined=nodes_already_defined
         )
-        self.cells.append(new_cell)
+
+        # Update the cell in the lattice
+        self.cells[index_cell] = new_cell
         self.beams.update(new_cell.beams_cell)
         self.nodes.update(new_cell.points_cell)
+
+        # Refresh all data
         self.define_beam_node_index()
         self.define_cell_index()
         self.define_cell_neighbours()
@@ -839,6 +867,7 @@ class LatticeSim(Lattice):
             self.set_penalized_beams()
             # Define global indexation
             self.define_node_index_boundary()
+            self.define_node_local_tags()
             self.set_boundary_conditions()
 
 
