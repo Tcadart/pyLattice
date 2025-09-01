@@ -8,7 +8,7 @@ from pyLattice.beam import Beam
 from pyLattice.cell import Cell
 from pyLattice.lattice import Lattice
 from pyLattice.utils import open_lattice_parameters
-from pyLatticeSim.utils_simulation import get_schur_complement
+from pyLatticeSim.utils_schur import get_schur_complement
 from pyLatticeSim.conjugate_gradient_solver import conjugate_gradient_solver
 
 if TYPE_CHECKING:
@@ -47,6 +47,7 @@ class LatticeSim(Lattice):
         self.define_node_index_boundary()
         self.define_node_local_tags()
         self.set_boundary_conditions()
+        self.are_cells_identical()
 
         self._parameters_define = False
         if self.domain_decomposition_solver:
@@ -245,41 +246,78 @@ class LatticeSim(Lattice):
                     if node.index in nodeList:
                         node.fix_DOF(dofFixed)
 
-    def get_global_displacement(self, withFixed: bool = False, OnlyImposed: bool = False) \
+    def get_global_displacement_DDM(self, OnlyImposed: bool = False) \
             -> tuple[list[float], list[int]]:
         """
         Get global displacement of the lattice
 
         Parameters:
         -----------
-        withFixed: bool
-            If True, return displacement of all nodes, else return only free degree of freedom
+        OnlyImposed: bool
+            If True, only return imposed displacement, else return all displacement
 
         Returns:
         --------
-        globalDisplacement: dict
+        x: list of float
+            List of global displacement
+        idx_list: list of int
+            List of boundary index per DOF (optional info)
+        """
+        x = [0.0] * self.free_DOF
+        idx_list = [None] * self.free_DOF  # boundary index per DOF (optional info)
+
+        processed_nodes = set()
+        for cell in self.cells:
+            for node in cell.points_cell:
+                if node.index_boundary is None or node.index_boundary in processed_nodes:
+                    continue
+                for i in range(6):
+                    gi = node.global_free_DOF_index[i]
+                    if gi is None:
+                        continue
+                    if not OnlyImposed:
+                        x[gi] = node.displacement_vector[i]
+                        idx_list[gi] = node.index_boundary
+                    else:
+                        # If OnlyImposed, keep imposed values where present, else 0
+                        x[gi] = node.displacement_vector[i]
+                        idx_list[gi] = node.index_boundary
+                processed_nodes.add(node.index_boundary)
+
+        self.global_displacement_index = idx_list
+        if self._verbose > 2:
+            print("globalDisplacement (canonically ordered): ", x)
+            print("global_displacement_index (per DOF): ", idx_list)
+        return x, idx_list
+
+    def get_global_displacement(self, withFixed: bool = False, OnlyImposed: bool = False) \
+            -> tuple[list[float], list[int]]:
+        """ Get global displacement of the lattice
+        Parameters:
+            -----------
+            withFixed: bool If True, return displacement of all nodes, else return only free degree of freedom
+        Returns:
+            --------
+            globalDisplacement: dict
             Dictionary of global displacement with index_boundary as key and displacement vector as value
-        global_displacement_index: list of int
-            List of index_boundary of the lattice
+            global_displacement_index: list of int List of index_boundary of the lattice
         """
         globalDisplacement = []
         globalDisplacementIndex = []
         processed_nodes = set()
         for cell in self.cells:
-            for beam in cell.beams_cell:
-                for node in [beam.point1, beam.point2]:
-                    if node.index_boundary is not None and node.index_boundary not in processed_nodes:
-                        for i in range(6):
-                            if node.fixed_DOF[i] == 0 and not OnlyImposed:
-                                globalDisplacement.append(node.displacement_vector[i])
-                                globalDisplacementIndex.append(node.index_boundary)
-                            elif node.fixed_DOF[i] == 0 and node.applied_force[i] == 0:
-                                globalDisplacement.append(0)
-                            elif withFixed or OnlyImposed:
-                                globalDisplacement.append(node.displacement_vector[i])
-                                globalDisplacementIndex.append(node.index_boundary)
-
-                        processed_nodes.add(node.index_boundary)
+            for node in cell.points_cell:
+                if node.index_boundary is not None and node.index_boundary not in processed_nodes:
+                    for i in range(6):
+                        if node.fixed_DOF[i] == 0 and not OnlyImposed:
+                            globalDisplacement.append(node.displacement_vector[i])
+                            globalDisplacementIndex.append(node.index_boundary)
+                        elif node.fixed_DOF[i] == 0 and node.applied_force[i] == 0:
+                            globalDisplacement.append(0)
+                        elif withFixed or OnlyImposed:
+                            globalDisplacement.append(node.displacement_vector[i])
+                            globalDisplacementIndex.append(node.index_boundary)
+                    processed_nodes.add(node.index_boundary)
         if not OnlyImposed:
             self.global_displacement_index = globalDisplacementIndex
         if self._verbose > 2:
@@ -348,28 +386,28 @@ class LatticeSim(Lattice):
         globalReactionForceWithoutFixedDOF: np.ndarray
             Array of global reaction force without fixed degree of freedom
         """
-        globalReactionForceWithoutFixedDOF = []
+        y = np.zeros(self.free_DOF)
         processed_nodes = set()
+
         for cell in self.cells:
             for beam in cell.beams_cell:
                 for node in [beam.point1, beam.point2]:
-                    if node.index_boundary is not None and node.index_boundary not in processed_nodes:
-                        # Append reaction force components where fixed_DOF is 0
-                        RFToAdd = []
-                        for i in range(6):
-                            if node.applied_force[i] != 0 and rightHandSide:
-                                RFToAdd.append(-node.applied_force[i])
-                                # Add a sign minus because right-hand side already with a sign minus see (b = -b)
-                            elif node.fixed_DOF[i] == 0:
-                                RFToAdd.append(globalReactionForce[node.index_boundary][i])
-                        globalReactionForceWithoutFixedDOF.append(RFToAdd)
-                        # globalReactionForceWithoutFixedDOF.append([
-                        #     v1 for v1, v2 in zip(globalReactionForce[node.index_boundary], node.fixed_DOF)
-                        #     if v2 == 0])
-                        # print(globalReactionForceWithoutFixedDOF[-1])
-                        # Mark this node as processed
-                        processed_nodes.add(node.index_boundary)
-        return np.concatenate(globalReactionForceWithoutFixedDOF)
+                    if node.index_boundary is None or node.index_boundary in processed_nodes:
+                        continue
+
+                    for i in range(6):
+                        gi = node.global_free_DOF_index[i]
+                        if gi is None:
+                            continue
+                        if rightHandSide and node.applied_force[i] != 0:
+                            # minus sign because b = -f (consistent with your RHS convention)
+                            y[gi] = -node.applied_force[i]
+                        else:
+                            y[gi] = globalReactionForce[node.index_boundary][i]
+
+                    processed_nodes.add(node.index_boundary)
+
+        return y
 
     def define_free_DOF(self):
         """
@@ -378,11 +416,10 @@ class LatticeSim(Lattice):
         self.free_DOF = 0
         processed_nodes = set()
         for cell in self.cells:
-            for beam in cell.beams_cell:
-                for node in [beam.point1, beam.point2]:
-                    if node.index_boundary is not None and node.index_boundary not in processed_nodes:
-                        self.free_DOF += node.fixed_DOF.count(0)
-                        processed_nodes.add(node.index_boundary)
+            for node in cell.points_cell:
+                if node.index_boundary is not None and node.index_boundary not in processed_nodes:
+                    self.free_DOF += node.fixed_DOF.count(0)
+                    processed_nodes.add(node.index_boundary)
 
     def set_global_free_DOF_index(self) -> None:
         """
@@ -391,44 +428,40 @@ class LatticeSim(Lattice):
         counter = 0
         processed_nodes = {}
         for cell in self.cells:
-            for beam in cell.beams_cell:
-                for node in [beam.point1, beam.point2]:
-                    if node.index_boundary is not None:
-                        if node.index_boundary not in processed_nodes.keys():
-                            for i in np.where(np.array(node.fixed_DOF) == 0)[0]:
-                                node.global_free_DOF_index[i] = counter
-                                counter += 1
-                            processed_nodes[node.index_boundary] = node.global_free_DOF_index
-                        else:
-                            node.global_free_DOF_index[:] = processed_nodes[node.index_boundary]
+            for node in cell.points_cell:
+                if node.index_boundary is not None:
+                    if node.index_boundary not in processed_nodes.keys():
+                        for i in np.where(np.array(node.fixed_DOF) == 0)[0]:
+                            node.global_free_DOF_index[i] = counter
+                            counter += 1
+                        processed_nodes[node.index_boundary] = node.global_free_DOF_index
+                    else:
+                        node.global_free_DOF_index[:] = processed_nodes[node.index_boundary]
 
     def _initialize_reaction_force(self) -> None:
         """
         Initialize reaction force of all nodes to 0 on each DOF
         """
         for cell in self.cells:
-            for beam in cell.beams_cell:
-                for node in [beam.point1, beam.point2]:
-                    node.initialize_reaction_force()
+            for node in cell.points_cell:
+                node.initialize_reaction_force()
 
     def _initialize_displacement(self) -> None:
         """
         Initialize displacement of all nodes to zero on each DOF
         """
         for cell in self.cells:
-            for beam in cell.beams_cell:
-                for node in [beam.point1, beam.point2]:
-                    node.initialize_displacement()
+            for node in cell.points_cell:
+                node.initialize_displacement()
 
     def _initialize_simulation_parameters(self):
         """
         Initialize simulation parameters for each node in the lattice
         """
         for cell in self.cells:
-            for beam in cell.beams_cell:
-                for node in [beam.point1, beam.point2]:
-                    node.initialize_reaction_force()
-                    node.initialize_displacement()
+            for node in cell.points_cell:
+                node.initialize_reaction_force()
+                node.initialize_displacement()
         self.set_boundary_conditions()
 
     def build_coupling_operator_cells(self) -> None:
@@ -437,21 +470,6 @@ class LatticeSim(Lattice):
         """
         for cell in self.cells:
             cell.build_coupling_operator(self.free_DOF)
-
-
-    def get_radius_temp(self) -> float:
-        """
-        ################### TEMPORARY FUNCTION ###################
-        Get the radii of the lattice
-
-        Returns:
-        --------
-        radii: float
-            radii of the lattice
-        """
-        for cell in self.cells:
-            for beam in cell.beams_cell:
-                return beam.radius
 
     def apply_reaction_force_on_node_list(self, reactionForce: list, nodeCoordinatesList: list):
         """
@@ -467,13 +485,12 @@ class LatticeSim(Lattice):
         nodeCoordinatesArray = np.array(nodeCoordinatesList)
 
         for cell in self.cells:
-            for beam in cell.beams_cell:
-                for node in [beam.point1, beam.point2]:
-                    nodeCoord = np.array([node.x, node.y, node.z])
-                    match = np.all(nodeCoordinatesArray == nodeCoord, axis=1)
-                    if np.any(match):
-                        index = np.where(match)[0][0]
-                        node.set_reaction_force(reactionForce[index])
+            for node in cell.points_cell:
+                nodeCoord = np.array([node.x, node.y, node.z])
+                match = np.all(nodeCoordinatesArray == nodeCoord, axis=1)
+                if np.any(match):
+                    index = np.where(match)[0][0]
+                    node.set_reaction_force(reactionForce[index])
 
     def apply_displacement_on_node_list(self, displacement: list, nodeCoordinatesList: list):
         """
@@ -489,14 +506,13 @@ class LatticeSim(Lattice):
         nodeCoordinatesArray = np.array(nodeCoordinatesList)
 
         for cell in self.cells:
-            for beam in cell.beams_cell:
-                for node in [beam.point1, beam.point2]:
-                    nodeCoord = np.array([node.x, node.y, node.z])
-                    match = np.all(nodeCoordinatesArray == nodeCoord, axis=1)
-                    if np.any(match):
-                        index = np.where(match)[0][0]
-                        node.displacement_vector = displacement[index]
-                        node.fix_DOF([i for i in range(6)])
+            for node in cell.points_cell:
+                nodeCoord = np.array([node.x, node.y, node.z])
+                match = np.all(nodeCoordinatesArray == nodeCoord, axis=1)
+                if np.any(match):
+                    index = np.where(match)[0][0]
+                    node.displacement_vector = displacement[index]
+                    node.fix_DOF([i for i in range(6)])
 
     def set_boundary_conditions(self) -> None:
         """
@@ -594,15 +610,15 @@ class LatticeSim(Lattice):
         if self._verbose > 0:
             print(Fore.GREEN + "Free DOF", self.free_DOF, Style.RESET_ALL)
 
+        self.set_global_free_DOF_index()
+
         # Calculate b
         if self._verbose > -1:
             print(Fore.GREEN + "Calculate right-hand side" + Style.RESET_ALL)
-        globalDisplacement, _ = self.get_global_displacement()
+        globalDisplacement, _ = self.get_global_displacement_DDM()
 
         b = self.calculate_reaction_force_global(globalDisplacement, rightHandSide=True)
         b = -b # Change sign to have the right-hand side
-
-        self.set_global_free_DOF_index()
 
         # Initialize local displacement to zero
         self._initialize_displacement()
@@ -756,6 +772,7 @@ class LatticeSim(Lattice):
             if self._verbose > 0:
                 print(Fore.GREEN + "Define the preconditioner" + Style.RESET_ALL)
             LUSchurComplement, inverseSchurComplement = self.build_preconditioner()
+
             if LUSchurComplement is not None:
                 self.preconditioner = LinearOperator(shape = (self.free_DOF, self.free_DOF),
                                                 matvec=lambda x: LUSchurComplement.solve(x))

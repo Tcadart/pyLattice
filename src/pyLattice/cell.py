@@ -2,7 +2,8 @@
 cell.py
 """
 import json
-from typing import Iterable, Union
+from typing import Iterable, Union, Optional, List
+from collections import OrderedDict
 
 
 import numpy as np
@@ -77,9 +78,8 @@ class Cell(object):
         self._verbose: int = _verbose
         self.neighbour_cells: dict = {}
         self.schur_complement: list[list[float]] or None = None
-        self.node_in_order_simulation = None
+        self.node_in_order_simulation: Optional[List[Point]] = None
 
-        self.define_original_tags()
         self.generate_cell_properties(initial_size, beams_already_defined, nodes_already_defined)
         if self.relative_density > 1 and self._verbose > 0:
             print(Fore.YELLOW + "WARNING: Approximated relative density of the cell is greater than 1. "
@@ -263,48 +263,6 @@ class Cell(object):
                     hybridRadius = self.get_radius(radius)
                     self.generate_beams(self.geom_types[idx], hybridRadius, idx, beams_already_defined, nodes_already_defined)
                 idxCell += 1
-
-    def define_original_tags(self) -> None:
-        """
-        Define original tags and cell geometry based on the lattice type_beam and radii.
-
-        Parameters:
-        -----------
-        geom_types: list[int]
-            List of lattice types
-        radii: list[float]
-            List of beam radii
-        """
-        # TODO : change this with data in geometries_utils
-        if len(self.radii) == 1:
-            if self.geom_types[0] == 'BCC':
-                self.original_tags = [1000, 1001, 1002, 1003, 1004, 1005, 1006, 1007]
-                self.original_cell_geom = [0, 0, 0, 0, 0, 0, 0, 0]
-            elif self.geom_types[0] == 'Hybrid1':
-                self.original_tags = [100, 101, 102, 103, 104, 105, 106, 107, 108, 109, 110, 111]
-                self.original_cell_geom = [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
-            elif self.geom_types[0] == 'Hybrid4':
-                self.original_tags = [10, 11, 12, 13, 14, 15]
-                self.original_cell_geom = [2, 2, 2, 2, 2, 2]
-            else:
-                raise ValueError("Lattice type_beam not recognized")
-        elif len(self.radii) == 2:
-            if self.geom_types[0] == 'BCC' and self.geom_types[1] == 'Hybrid1':
-                self.original_tags = [1000, 1001, 1002, 1003, 1004, 1005, 1006, 1007,
-                                      100, 101, 102, 103, 104, 105, 106, 107, 108, 109, 110, 111]
-                self.original_cell_geom = [0, 0, 0, 0, 0, 0, 0, 0,
-                                           1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
-            else:
-                raise ValueError("Lattice type_beam not recognized")
-        elif len(self.radii) == 3:
-            self.original_tags = [1000, 1001, 1002, 1003, 1004, 1005, 1006, 1007,
-                                  10, 11, 12, 13, 14, 15,
-                                  100, 101, 102, 103, 104, 105, 106, 107, 108, 109, 110, 111]
-            self.original_cell_geom = [0, 0, 0, 0, 0, 0, 0, 0,
-                                       2, 2, 2, 2, 2, 2,
-                                       1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
-        else:
-            raise ValueError("Lattice type_beam not recognized")
 
     def generate_beams(self, latticeType: str, beamRadius: float, beamType: int = 0,
                        beams_already_defined: Optional[dict] = None, nodes_already_defined: Optional[dict] = None) \
@@ -540,38 +498,100 @@ class Cell(object):
             if getattr(point, axis) == surface_value
         })
 
-    def define_node_order_to_simulate(self):
+    # REPLACE define_node_order_to_simulate with this version
+    def define_node_order_to_simulate(self, face_priority: Optional[List[str]] = None, tol: float = 1e-9) -> None:
         """
-        Get the order of nodes to simulate in the cell
+        Build a deterministic local ordering of boundary nodes
+        Strategy:
+          1) Classify each boundary node to one face in a priority order.
+          2) Within each face, sort lexicographically by the two in-plane coordinates, then by (x,y,z) for tie-break.
+          3) Concatenate faces to get the final order.
+        The resulting order is stored as a list of Points in self.node_in_order_simulation.
         """
-        tag_dict = {tag: None for tag in self.original_tags}
+        if face_priority is None:
+            face_priority = ["Xmin", "Xmax", "Ymin", "Ymax", "Zmin", "Zmax"]
 
+        x0, x1, y0, y1, z0, z1 = self.boundary_box
+
+        def _faces_of_point(p: Point) -> List[str]:
+            faces = []
+            if abs(p.x - x0) <= tol: faces.append("Xmin")
+            if abs(p.x - x1) <= tol: faces.append("Xmax")
+            if abs(p.y - y0) <= tol: faces.append("Ymin")
+            if abs(p.y - y1) <= tol: faces.append("Ymax")
+            if abs(p.z - z0) <= tol: faces.append("Zmin")
+            if abs(p.z - z1) <= tol: faces.append("Zmax")
+            return faces
+
+        def _inplane_key(face: str, p: Point):
+            # Use the two in-plane coordinates as primary sort keys
+            if face in ("Xmin", "Xmax"):
+                return p.y, p.z, p.x
+            if face in ("Ymin", "Ymax"):
+                return p.x, p.z, p.y
+            # Z faces
+            return p.x, p.y, p.z
+
+        # Unique boundary points by boundary index to avoid duplicates
+        bnd_points: dict[int, Point] = {}
         for beam in self.beams_cell:
-            if beam.radius > 0:
-                for point in [beam.point1, beam.point2]:
-                    if point.index_boundary is not None:
-                        tag = point.cell_local_tag[self.index]  # Local tag in the cell
-                        if tag in self.original_tags:
-                            tag_dict[tag] = point
-        self.node_in_order_simulation = tag_dict
+            for p in (beam.point1, beam.point2):
+                if p.index_boundary is not None:
+                    bnd_points.setdefault(p.index_boundary, p)
+
+        # Assign each point to a single face using the given priority
+        face_buckets: dict[str, List[Point]] = {f: [] for f in face_priority}
+        for p in bnd_points.values():
+            faces = _faces_of_point(p)
+            # pick the first face that appears in face_priority
+            chosen = next((f for f in face_priority if f in faces), None)
+            if chosen is None:
+                # Extremely rare: numerical drift puts a node just off all faces; choose nearest
+                dists = {
+                    "Xmin": abs(p.x - x0),
+                    "Xmax": abs(p.x - x1),
+                    "Ymin": abs(p.y - y0),
+                    "Ymax": abs(p.y - y1),
+                    "Zmin": abs(p.z - z0),
+                    "Zmax": abs(p.z - z1),
+                }
+                chosen = min(dists, key=dists.get)
+            face_buckets[chosen].append(p)
+
+        ordered: List[Point] = []
+        for face in face_priority:
+            pts = face_buckets[face]
+            pts.sort(key=lambda q: _inplane_key(face, q))
+            ordered.extend(pts)
+
+        self.node_in_order_simulation = ordered
 
     def set_reaction_force_on_nodes(self, reactionForce: list) -> None:
         """
-        Set reaction force on each node.
-
-        Parameters:
-        -----------
-        reactionForce: list
-            List of reaction force values corresponding to the nodes.
+        Set reaction force on each boundary node in the established local order.
         """
-        if self.node_in_order_simulation is None:
-            raise ValueError("Node order to simulate has not been defined. Please define it first.")
+        if not self.node_in_order_simulation:
+            raise ValueError("Boundary node order not defined. Call define_node_order_to_simulate() first.")
+        if len(reactionForce) < len(self.node_in_order_simulation):
+            raise ValueError("Not enough reaction force entries for boundary nodes.")
 
-        idx = 0
-        for node in self.node_in_order_simulation:
-            if self.node_in_order_simulation[node]:
-                self.node_in_order_simulation[node].set_reaction_force(reactionForce[idx])
-                idx += 1
+        for idx, node in enumerate(self.node_in_order_simulation):
+            node.set_reaction_force(reactionForce[idx])
+
+    def get_displacement_at_nodes(self, nodeList: Union[List["Point"], "OrderedDict[int, Point]"]) -> list:
+        """
+        Return displacement vectors ordered consistently with the provided local list/dict of Points.
+        """
+        displacementList = []
+        if isinstance(nodeList, list):
+            for node in nodeList:
+                if node:
+                    displacementList.append(node.displacement_vector)
+        else:  # OrderedDict-like
+            for _, node in nodeList.items():
+                if node:
+                    displacementList.append(node.displacement_vector)
+        return displacementList
 
     def set_displacement_at_boundary_nodes(self, displacementArray: list, displacementIndex: list) -> None:
         """
@@ -585,74 +605,44 @@ class Cell(object):
             Boundary node index of each displacement value.
         """
         if self._verbose > 1:
-            print("Displacement array", displacementArray)
-            print("Displacement index", displacementIndex)
-            print("Non-zero displacements:", displacementArray[displacementArray != 0])
+            print("Non-zero displacements:", np.asarray(displacementArray)[np.asarray(displacementArray) != 0])
+
         for beam in self.beams_cell:
             for point in [beam.point1, beam.point2]:
-                if point.index_boundary is not None and point.index_boundary in displacementIndex:
-                    index = displacementIndex.index(point.index_boundary)
-                    indexActual = 0
-                    for i in range(6):
-                        if point.fixed_DOF[i] == 0:  # Filter out the fixed DOF
-                            point.displacement_vector[i] = displacementArray[index + indexActual]
-                            indexActual += 1
-
-    def get_displacement_at_nodes(self, nodeList: dict) -> list:
-        """
-        Get the displacement at nodes.
-
-        Parameters:
-        -----------
-        nodeList: list of point objects
-            List of nodes to get the displacement.
-
-        Returns:
-        --------
-        list
-            A flattened list of displacement values.
-        """
-
-        displacementList = []
-        for key, node in nodeList.items():
-            if node:
-                displacement = node.displacement_vector
-                displacementList.append(displacement)
-        return displacementList
+                if point.index_boundary is None:
+                    continue
+                for i in range(6):
+                    gi = point.global_free_DOF_index[i]
+                    if gi is not None:
+                        point.displacement_vector[i] = displacementArray[gi]
 
     def get_number_boundary_nodes(self) -> int:
         """
-        Get the number of boundary nodes in the cell
+        Get the number of unique boundary nodes in the cell.
         """
-        return len(
-            [beam for beam in self.beams_cell for point in [beam.point1, beam.point2] if point.index_boundary is not None])
+        return len({p.index_boundary for p in self.points_cell if p.index_boundary is not None})
 
     def build_coupling_operator(self, nb_free_DOF: int) -> None:
         """
-        Build the coupling operator for the cell
-
-        Parameters:
-        -----------
-        nbFreeDOF: int
-            Number of free degrees of freedom
+        Build the coupling operator B using the deterministic local boundary-node order.
         """
+        if not self.node_in_order_simulation:
+            raise ValueError("Boundary node order not defined. Call define_node_order_to_simulate() first.")
+
         from scipy.sparse import coo_matrix
-        data = []
-        row, col = [], []
-        listBndNodes = []
-        for beam in self.beams_cell:
-            for point in [beam.point1, beam.point2]:
-                if point.index_boundary is not None and point.index_boundary not in listBndNodes:
-                    localNodeIndex = self.original_tags.index(point.local_tag[0])
-                    listBndNodes.append(point.index_boundary)
-                    for i in range(6):
-                        if point.global_free_DOF_index[i] is not None:
-                            data.append(1)
-                            col.append(localNodeIndex * 6 + i)
-                            row.append(point.global_free_DOF_index[i])
-        nbBndDOFloc = len(listBndNodes) * 6
-        shapeB = (nb_free_DOF, nbBndDOFloc)
-        self.coupling_matrix_B = coo_matrix((data, (row, col)), shape=shapeB)
+        data, row, col = [], [], []
+
+        # Map boundary index
+        for local_idx, point in enumerate(self.node_in_order_simulation):
+            for i in range(6):
+                gi = point.global_free_DOF_index[i]
+                if gi is not None:
+                    data.append(1)
+                    row.append(gi)
+                    col.append(local_idx * 6 + i)
+
+        nbBndDOFloc = len(self.node_in_order_simulation) * 6
+        self.coupling_matrix_B = coo_matrix((data, (row, col)), shape=(nb_free_DOF, nbBndDOFloc))
 
     def build_local_preconditioner(self):
         """

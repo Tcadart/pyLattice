@@ -85,7 +85,10 @@ class latticeGeneration:
                         point_id = self.geom.addPoint(node.x, node.y, node.z, meshSize=self._mesh_size)
                         self.point[node.index] = point_id
                         if cell_index is not None:
-                            tagAdd = node.local_tag
+                            if cell.index not in node.cell_local_tag:
+                                tagAdd = None
+                            else:
+                                tagAdd = node.cell_local_tag[cell.index]
                         else:
                             tagAdd = node.tag
                         if tagAdd is not None:

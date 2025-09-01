@@ -294,7 +294,7 @@ class Beam(object):
         else:
             self.radius = new_radius
 
-    def is_identical_to(self, other: "Beam", cell_size: list) -> bool:
+    def is_identical_to(self, other: "Beam", tol:float =1e-9) -> bool:
         """
         Check if this beam is identical to another beam.
 
@@ -302,23 +302,24 @@ class Beam(object):
         ----------
         other : Beam
             The other beam to compare with.
-        cell_size : list
-            cell size [cell_size_X, cell_size_Y, cell_size_Z].
+        tol : float
+            Tolerance for floating-point comparisons.
         """
-        lengthtest = math.isclose(self.length, other.length, rel_tol=1e-5)
-        radiustest = math.isclose(self.radius, other.radius, rel_tol=1e-5)
-        point1test = self.point1.is_identical_to(other.point1, cell_size)
-        point2test = self.point2.is_identical_to(other.point2, cell_size)
-        materialtest = self.material == other.material
-        typetest = self.type_beam == other.type_beam
-        return (
-                lengthtest
-                and radiustest
-                and point1test
-                and point2test
-                and materialtest
-                and typetest
-        )
+        if not isinstance(other, Beam):
+            return False
+        if not math.isclose(self.radius, other.radius, rel_tol=1e-8, abs_tol=tol):
+            return False
+        if self.material != other.material or self.type_beam != other.type_beam:
+            return False
+
+        def _pt_close(a: "Point", b: "Point") -> bool:
+            return (math.isclose(a.x, b.x, abs_tol=tol) and
+                    math.isclose(a.y, b.y, abs_tol=tol) and
+                    math.isclose(a.z, b.z, abs_tol=tol))
+
+        same_order = _pt_close(self.point1, other.point1) and _pt_close(self.point2, other.point2)
+        swap_order = _pt_close(self.point1, other.point2) and _pt_close(self.point2, other.point1)
+        return same_order or swap_order
 
     def add_cell_belonging(self, cell: "Cell") -> None:
         """Adding a cell to the list of cells this beam belongs to."""

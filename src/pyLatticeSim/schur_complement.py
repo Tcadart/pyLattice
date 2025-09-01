@@ -26,7 +26,7 @@ class SchurComplement(SimulationBase):
         self._K = petsc.assemble_matrix(k)
         self._K.assemble()
 
-    def calculate_schur_complement(self, tags_nodes_boundary):
+    def calculate_schur_complement(self, tags_nodes_boundary, tol=1e-9):
         """
         Calculate the Schur complement of the stiffness matrix.
 
@@ -47,7 +47,7 @@ class SchurComplement(SimulationBase):
         DofsBoundary = np.array(DofsBoundary, dtype=np.int32)
 
         if len(DofsBoundary) == 0:
-            raise ValueError("Aucun DOF de frontière trouvé pour les tags fournis.")
+            raise ValueError("No boundary DOFs found; check your boundary node tags.")
 
         # Create IS objects for boundary and interior DOFs
         is_boundary = PETSc.IS().createGeneral(DofsBoundary)

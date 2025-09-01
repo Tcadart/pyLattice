@@ -12,6 +12,8 @@ import os
 import pickle
 from statistics import mean
 from typing import TYPE_CHECKING
+from collections import Counter
+
 
 import gmsh
 
@@ -93,8 +95,10 @@ class Lattice(object):
         self.define_connected_beams_for_all_nodes()
         self.apply_tag_all_point()
 
-        if self._verbose > 0:
+        if not self._simulation_flag:
             self.are_cells_identical()
+
+        if self._verbose > 0:
             self.print_statistics_lattice()
             self.timing.summary()
 
@@ -1119,7 +1123,6 @@ class Lattice(object):
         print("Number of cells: ", len(self.cells))
         print("Number of beams: ", self.get_number_beams())
         print("Number of nodes: ", self.get_number_nodes())
-        print("Relative density approximate: ", self.get_relative_density())
         radMax, radMin = self.get_beam_radius_min_max()
         print("radii max: ", radMax)
         print("radii min: ", radMin)
@@ -1442,41 +1445,48 @@ class Lattice(object):
 
     def are_cells_identical(self) -> bool:
         """
-        Check if all cells in the list are identical based on their attributes and beams.
-        Print the result.
-        Possible upgrade could be to use a more sophisticated comparison method (Only beam length is checked for now).
+        Check if all cells in the lattice are identical.
         """
         if len(self.cells) < 2:
             print(Fore.GREEN + "Only one or no cell: considered identical." + Style.RESET_ALL)
             return True
 
-        reference = self.cells[0]
-        attrs_to_check = [
-            "geom_types",
-            "radii",
-            "size",
-            "grad_radius",
-            "grad_dim",
-        ]
+        ref = self.cells[0]
 
-        for i, cell in enumerate(self.cells[1:], start=1):
+        def _allclose(a, b):
+            try:
+                return np.allclose(a, b, rtol=1e-8, atol=1e-10, equal_nan=True)
+            except Exception:
+                return a == b
+
+        attrs_to_check = ["geom_types", "radii", "size", "grad_radius", "grad_dim"]
+        for i, c in enumerate(self.cells[1:], start=1):
             for attr in attrs_to_check:
-                if not np.array_equal(getattr(reference, attr), getattr(cell, attr)):
+                a0, a1 = getattr(ref, attr), getattr(c, attr)
+                if not _allclose(a0, a1):
                     print(
                         Fore.RED + f"Difference found in attribute '{attr}' between cell 0 and cell {i}" + Style.RESET_ALL)
                     return False
 
-            if len(reference.beams_cell) != len(cell.beams_cell):
-                print(Fore.RED + f"Different number of beams between cell 0 and cell {i}" + Style.RESET_ALL)
-                return False
+        def _pt_local_key(p, cell, nd=9):
+            return (round(p.x - cell.coordinate[0], nd),
+                    round(p.y - cell.coordinate[1], nd),
+                    round(p.z - cell.coordinate[2], nd))
 
-            for j, (b1, b2) in enumerate(zip(sorted(reference.beams_cell, key=id),
-                                             sorted(cell.beams_cell, key=id))):
-                if not b1.is_identical_to(b2, reference.size):
-                    print(b1, b2)
-                    print(Fore.RED + f"Difference found in beam {j} between cell 0 and cell {i}" + Style.RESET_ALL)
-                    return False
+        def _beam_key(b, cell, ndp=9, ndr=9):
+            e1 = _pt_local_key(b.point1, cell, nd=ndp)
+            e2 = _pt_local_key(b.point2, cell, nd=ndp)
+            ends = tuple(sorted((e1, e2)))  # order-independent
+            return ends, round(float(b.radius), ndr), int(b.material), int(b.type_beam)
+
+        def _beam_multiset(cell):
+            return Counter(_beam_key(b, cell) for b in cell.beams_cell if getattr(b, "radius", 0.0) > 0.0)
+
+        ref_ms = _beam_multiset(ref)
+        for i, c in enumerate(self.cells[1:], start=1):
+            if ref_ms != _beam_multiset(c):
+                print(Fore.RED + f"Beam topology/parameters differ between cell 0 and cell {i}" + Style.RESET_ALL)
+                return False
 
         print(Fore.GREEN + "All cells are identical." + Style.RESET_ALL)
         return True
-

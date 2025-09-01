@@ -723,7 +723,7 @@ class LatticeOpti(LatticeSim):
         if self.objective_type == "compliance":
             reactionForce = self.get_global_reaction_force(appliedForceAdded=True)
             reaction_force_array = np.array(list(reactionForce.values())).flatten()
-            displacement = np.array(self.get_global_displacement(OnlyImposed=True)[0])
+            displacement = np.array(self.get_global_displacement_DDM(OnlyImposed=True)[0])
             objective = - 0.5 * np.dot(reaction_force_array, displacement)
             if self._verbose > 2:
                 np.set_printoptions(threshold=np.inf)
