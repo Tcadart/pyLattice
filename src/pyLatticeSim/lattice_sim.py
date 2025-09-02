@@ -1,13 +1,18 @@
+from math import sqrt
 from typing import TYPE_CHECKING
 import numpy as np
 from colorama import Fore, Style
+from scipy.interpolate import RBFInterpolator
 from scipy.sparse import coo_matrix, lil_matrix
-from scipy.sparse.linalg import LinearOperator, splu
+from scipy.sparse.linalg import LinearOperator, splu, spilu
+from scipy.spatial import Delaunay
+from sklearn.neighbors import NearestNeighbors
 
 from pyLattice.beam import Beam
 from pyLattice.cell import Cell
 from pyLattice.lattice import Lattice
 from pyLattice.utils import open_lattice_parameters
+from pyLatticeSim.greedy_algorithm import load_reduced_basis
 from pyLatticeSim.utils_schur import get_schur_complement
 from pyLatticeSim.conjugate_gradient_solver import conjugate_gradient_solver
 
@@ -30,6 +35,13 @@ class LatticeSim(Lattice):
         self.boundary_conditions = None
         self.enable_simulation_properties = None
         self.material_name = None
+        self.number_iteration_max = None
+        self.enable_preconditioner = None
+        self.type_schur_complement_computation = None
+        self.precision_greedy: float | None = None
+        self.radial_basis_function = None
+        self.shape_schur_complement = None
+        self._parameters_define = False
 
         self.define_simulation_parameters(name_file)
         assert self.material_name is not None, "Material name_lattice must be defined for simulation properties."
@@ -39,6 +51,7 @@ class LatticeSim(Lattice):
         self.global_displacement_index = None
         self.n_DOF_per_node: int = 6  # Number of DOF per node (3 translation + 3 rotation)
         self.penalization_coefficient: float = 1.5  # Fixed with previous optimization
+        self.surrogate_model_implemented = ["exact", "nearest_neighbor", "linear", "RBF"]
 
         self.define_connected_beams_for_all_nodes()
         self.define_angles_between_beams()
@@ -49,12 +62,13 @@ class LatticeSim(Lattice):
         self.set_boundary_conditions()
         self.are_cells_identical()
 
-        self._parameters_define = False
         if self.domain_decomposition_solver:
+            if not self.type_schur_complement_computation == "exact":
+                self.reduce_basis_dict = load_reduced_basis(self, self.precision_greedy)
+                self.alpha_coefficients_greedy = self.reduce_basis_dict["alpha_ortho"].T
+
             self.calculate_schur_complement_cells()
 
-            self.enable_preconditioner = None
-            self.numberIterationMax = 0
             self.preconditioner = None
             self.iteration = 0
             self.residuals = []
@@ -137,6 +151,24 @@ class LatticeSim(Lattice):
         self.enable_simulation_properties = bool(sim_params.get("enable", False))
         self.material_name = sim_params.get("material", "VeroClear")
         self.enable_periodicity = sim_params.get("periodicity", False)
+        DDM_parameters = sim_params.get("DDM", None)
+        if DDM_parameters is not None:
+            self.enable_preconditioner = DDM_parameters.get("enable_preconditioner", False)
+            self.number_iteration_max = DDM_parameters.get("max_iterations", 1000)
+            if self.enable_preconditioner is not None and self.number_iteration_max is not None:
+                self._parameters_define = True
+            schur_complement_computation = DDM_parameters.get("schur_complement_computation", None)
+            if schur_complement_computation is not None:
+                self.type_schur_complement_computation = schur_complement_computation.get("type", None)
+                if not self.type_schur_complement_computation == "exact":
+                    self.precision_greedy = schur_complement_computation.get("precision_greedy", None)
+                    if self.precision_greedy is None:
+                        raise ValueError("Precision for greedy algorithm must be defined in the input file.")
+            else:
+                raise ValueError("Schur complement computation method must be defined in the input file.")
+
+        elif self.domain_decomposition_solver:
+            raise ValueError("DDM parameters must be defined in the input file if DDM solver is enabled.")
 
         self.boundary_conditions = lattice_parameters.get("boundary_conditions", {})
 
@@ -557,7 +589,13 @@ class LatticeSim(Lattice):
                 schur_complement_calculated[geom_key] = {}
 
             if radius_key not in schur_complement_calculated[geom_key]:
-                schur_complement_cell = get_schur_complement(self, cell.index)
+                if self.type_schur_complement_computation == "exact":
+                    schur_complement_cell = get_schur_complement(self, cell.index)
+                elif self.type_schur_complement_computation in self.surrogate_model_implemented:
+                    geometric_params = list(radius_key)
+                    schur_complement_cell = self.get_schur_complement_from_reduced_basis(geometric_params)
+                else:
+                    raise NotImplementedError("Not implemented schur complement computation method.")
                 schur_complement_calculated[geom_key][radius_key] = schur_complement_cell
                 if self._verbose > 1:
                     print(f"Schur complement calculated for geometry {geom_key} with radii {radius_key}.")
@@ -566,6 +604,169 @@ class LatticeSim(Lattice):
 
             cell.schur_complement = schur_complement_cell
 
+    def get_schur_complement_from_reduced_basis(self, geometric_params: list[float]) -> np.ndarray:
+        """
+        Get the Schur complement from the reduced basis with a giver surrogate method
+
+        Parameters:
+        -----------
+        geometric_params: list of float
+            List of geometric parameters to define the Schur complement
+
+        Returns:
+        -----------
+        schur_complement_approx: np.ndarray
+            Approximated Schur complement
+        """
+        if self.type_schur_complement_computation == "nearest_neighbor":
+            neigh = NearestNeighbors(n_neighbors=1, algorithm='auto')
+            neigh.fit(self.reduce_basis_dict["list_elements"])
+            distances, indices = neigh.kneighbors(np.array(geometric_params).reshape(1, -1))
+            alphas = self.alpha_coefficients_greedy[indices[0][0]]
+        elif self.type_schur_complement_computation == "linear":
+            alphas = self.evaluate_alphas_linear_surrogate(geometric_params)
+        elif self.type_schur_complement_computation == "RBF":
+            if self.radial_basis_function is None:
+                self._define_radial_basis_functions()
+            alphas = self.radial_basis_function(np.array(geometric_params).reshape(1, -1)).squeeze()
+        else:
+            raise NotImplementedError("Not implemented schur complement computation method.")
+        schur_complement_approx = self.reduce_basis_dict["basis_reduced_ortho"] @ alphas
+        if self.shape_schur_complement is None:
+            self.shape_schur_complement = int(sqrt(schur_complement_approx.shape[0]))
+        schur_complement_approx_reshape = schur_complement_approx.reshape(
+            (self.shape_schur_complement, self.shape_schur_complement), order='F')
+        return schur_complement_approx_reshape
+
+    def evaluate_alphas_linear_surrogate(self, geometric_params: list[float]) -> np.ndarray:
+        """
+        Robust linear surrogate with safe extrapolation:
+          • 1D: np.interp (fast, stable).
+          • ND: LinearNDInterpolator inside convex hull; fallback to NearestNDInterpolator outside.
+        """
+        from scipy.interpolate import LinearNDInterpolator, NearestNDInterpolator
+
+        mu = np.array(geometric_params, dtype=float).ravel()
+        evalParams = np.asarray(self.reduce_basis_dict["list_elements"], dtype=float)
+        alphaCoeffs = np.asarray(self.alpha_coefficients_greedy, dtype=float)
+        print(self.reduce_basis_dict["list_elements"].shape, self.alpha_coefficients_greedy.shape)
+
+        # --- Ensure (N_points, n_alpha) orientation for values ---
+        if alphaCoeffs.ndim == 1:
+            alphaCoeffs = alphaCoeffs.reshape(-1, 1)
+        if alphaCoeffs.shape[0] != evalParams.shape[0]:
+            if alphaCoeffs.shape[1] == evalParams.shape[0]:
+                alphaCoeffs = alphaCoeffs.T
+            else:
+                raise ValueError(
+                    f"Incompatible shapes: points={evalParams.shape}, values={alphaCoeffs.shape}. "
+                    "alphaCoeffs must be (N_points, n_alpha)."
+                )
+
+        N = evalParams.shape[0]
+
+        # ---- 1D fast path ----
+        if evalParams.ndim == 1 or (evalParams.ndim == 2 and evalParams.shape[1] == 1):
+            x = float(mu[0])
+            x_grid = evalParams.ravel()
+            idx_sorted = np.argsort(x_grid)
+            x_sorted = x_grid[idx_sorted]
+            A_sorted = alphaCoeffs[idx_sorted]  # (N, k)
+            # np.interp works per scalar -> interpolate each column
+            y = np.vstack([np.interp(x, x_sorted, A_sorted[:, j],
+                                     left=A_sorted[0, j], right=A_sorted[-1, j])
+                           for j in range(A_sorted.shape[1])]).T
+            return y.squeeze()
+
+        # ---- ND general case ----
+        # Cache interpolators to avoid rebuilding every call
+        if not hasattr(self, "_alpha_lin_nd") or not hasattr(self, "_alpha_nn_nd"):
+            print(evalParams.shape, alphaCoeffs.shape)
+            self._alpha_lin_nd = LinearNDInterpolator(evalParams, alphaCoeffs)  # NaN outside hull
+            self._alpha_nn_nd = NearestNDInterpolator(evalParams, alphaCoeffs)  # nearest neighbor fallback
+
+        y = self._alpha_lin_nd(mu)
+        print(y)
+        if y is None or np.any(np.isnan(y)):
+            # Outside convex hull -> robust fallback
+            y = self._alpha_nn_nd(mu)
+            if getattr(self, "_verbose", 0) > 0:
+                print(f"⚠️ Extrapolation (nearest-neighbor) used for mu={mu}.")
+        print(y.shape)
+        return np.asarray(y).squeeze()
+
+    # def evaluate_alphas_linear_surrogate(self, geometric_params: list[float]) -> np.ndarray:
+    #     """
+    #     General linear interpolation for alpha coefficients.
+    #     Handles both 1D and multi-D parameter cases.
+    #
+    #     Parameters
+    #     ----------
+    #     geometric_params : list of float
+    #         List of geometric parameters to define the Schur complement
+    #
+    #     Returns
+    #     -------
+    #     alpha_interp : np.ndarray
+    #         Interpolated alpha coefficients
+    #     """
+    #     mu = np.array(geometric_params).flatten()
+    #     evalParams = self.reduce_basis_dict["list_elements"]
+    #     alphaCoeffs = self.alpha_coefficients_greedy
+    #
+    #     N = evalParams.shape[0]
+    #
+    #     # 1D case
+    #     if evalParams.ndim == 1 or evalParams.shape[1] == 1:
+    #         x = float(mu[0])
+    #         evalParams_1d = evalParams.flatten()
+    #         if x <= evalParams_1d.min():
+    #             return alphaCoeffs[np.argmin(evalParams_1d)]
+    #         elif x >= evalParams_1d.max():
+    #             return alphaCoeffs[np.argmax(evalParams_1d)]
+    #
+    #         idx_sorted = np.argsort(evalParams_1d)
+    #         evalParams_sorted = evalParams_1d[idx_sorted]
+    #         alpha_sorted = alphaCoeffs[idx_sorted]
+    #
+    #         for i in range(N - 1):
+    #             x0, x1 = evalParams_sorted[i], evalParams_sorted[i + 1]
+    #             if x0 <= x <= x1:
+    #                 w = (x - x0) / (x1 - x0)
+    #                 return (1 - w) * alpha_sorted[i] + w * alpha_sorted[i + 1]
+    #
+    #         raise ValueError(f"No interval found for x = {x}")
+    #
+    #     else:
+    #         # Multi-D case
+    #         tri = Delaunay(evalParams)
+    #         simplex_id = tri.find_simplex(mu)
+    #
+    #         if simplex_id == -1:
+    #             barycenters = np.mean(evalParams[tri.simplices], axis=1)
+    #             closest = np.argmin(np.linalg.norm(barycenters - mu, axis=1))
+    #             vertices = tri.simplices[closest]
+    #             points = evalParams[vertices]
+    #             use_extrapolation = True
+    #         else:
+    #             vertices = tri.simplices[simplex_id]
+    #             points = evalParams[vertices]
+    #             use_extrapolation = False
+    #
+    #         V = (points[:-1] - points[-1]).T
+    #         rhs = mu - points[-1]
+    #         lambdas = np.linalg.solve(V, rhs)
+    #         weights = np.append(lambdas, 1 - np.sum(lambdas))
+    #
+    #         alpha_interp = np.dot(weights, alphaCoeffs[vertices])
+    #         if use_extrapolation:
+    #             print(f"⚠️ Extrapolation used for mu = {mu}, weights = {weights}")
+    #         return alpha_interp
+
+    def _define_radial_basis_functions(self):
+        mu_train = np.array(self.reduce_basis_dict["list_elements"])  # shape (N, d)
+        alpha_train = np.array(self.alpha_coefficients_greedy)  # shape (N, m)
+        self.radial_basis_function = RBFInterpolator(mu_train, alpha_train, kernel='thin_plate_spline')
 
     def define_parameters(self, enable_precondioner: bool = True, numberIterationMax: int = 1000):
         """
@@ -574,11 +775,11 @@ class LatticeSim(Lattice):
         Parameters:
         enable_preconditioner: bool
             Enable the preconditioner for the conjugate gradient solver.
-        numberIterationMax: int
+        number_iteration_max: int
             Maximum number of iterations for the conjugate gradient solver.
         """
         self.enable_preconditioner = enable_precondioner
-        self.numberIterationMax = numberIterationMax
+        self.number_iteration_max = numberIterationMax
         self._parameters_define = True
 
     def _check_parameters_defined(self):
@@ -591,10 +792,6 @@ class LatticeSim(Lattice):
     def solve_DDM(self):
         """
         Solve the problem with the domain decomposition method.
-
-        Parameters:
-        enable_preconditioner: bool
-            Enable the preconditioner for the conjugate gradient solver.
         """
         self._check_parameters_defined()
 
@@ -630,9 +827,9 @@ class LatticeSim(Lattice):
         mintol = 1e-5
         restart_every = 50
         alpha_max = 100
-        xsol, info = conjugate_gradient_solver(A_operator, b, M = self.preconditioner, maxiter=self.numberIterationMax,
+        xsol, info = conjugate_gradient_solver(A_operator, b, M = self.preconditioner, maxiter=self.number_iteration_max,
                                                tol = tol, mintol = mintol, restart_every = restart_every, alpha_max= alpha_max,
-                        callback=lambda xk: self.cg_progress(xk, b, A_operator))
+                                               callback=lambda xk: self.cg_progress(xk, b, A_operator))
 
         if self._verbose > -1:
             if info == 0:
@@ -787,37 +984,52 @@ class LatticeSim(Lattice):
 
     def build_preconditioner(self):
         """
-        Build LU decomposition of the Schur complement matrix for the lattice
+        Build a sparse LU/ILU preconditioner of the global Schur complement.
+        Faster assembly by accumulating triplets and avoiding dense ops.
         """
+        print(Fore.GREEN + "Build the preconditioner" + Style.RESET_ALL)
         self.build_coupling_operator_cells()
-        global_schur_complement = lil_matrix((self.free_DOF, self.free_DOF))
+
+        # Fast assembly via triplet accumulation
+        rows_acc, cols_acc, data_acc = [], [], []
+        n = self.free_DOF
 
         for cell in self.cells:
-            local = cell.build_local_preconditioner()
-            global_schur_complement += local
+            local = cell.build_local_preconditioner().tocoo()
+            rows_acc.append(local.row)
+            cols_acc.append(local.col)
+            data_acc.append(local.data)
 
-        global_schur_complement = coo_matrix(global_schur_complement)
+        if rows_acc:
+            rows_all = np.concatenate(rows_acc)
+            cols_all = np.concatenate(cols_acc)
+            data_all = np.concatenate(data_acc)
+        else:
+            rows_all = cols_all = data_all = np.array([], dtype=int)
 
-        if np.any(global_schur_complement.sum(axis=1) == 0):
+        global_schur_complement = coo_matrix((data_all, (rows_all, cols_all)), shape=(n, n))
+        global_schur_complement.sum_duplicates()
+
+        # Sanity checks
+        csr_g = global_schur_complement.tocsr()
+        zero_row_mask = np.diff(csr_g.indptr) == 0
+        if np.any(zero_row_mask):
             print("Attention : There are some rows with all zeros in the Schur complement matrix.")
 
-        # condition number
-        cond_number = np.linalg.cond(global_schur_complement.toarray())
-        if self._verbose > 0:
-            print("Condition number of the Schur complement matrix: ", cond_number)
-
-        # Factorize preconditioner
-        LUSchurComplement = None
+        # Factorization
         inverseSchurComplement = None
-        if cond_number > 1e15:
-            inverseSchurComplement = np.linalg.pinv(global_schur_complement.toarray())
-            if self._verbose > 0:
-                print("Using pseudo-inverse of the Schur complement matrix.")
-        else:
-            global_schur_complement = global_schur_complement.tocsc()
-            LUSchurComplement = splu(global_schur_complement)
+
+        try:
+            LUSchurComplement = splu(global_schur_complement.tocsc())
             if self._verbose > 0:
                 print("Using LU decomposition of the Schur complement matrix.")
+        except RuntimeError:
+            # If exact LU fails or is too ill-conditioned, try an ILU preconditioner
+            # Adjust drop_tol/fill_factor if needed for robustness vs. speed.
+            ilu = spilu(global_schur_complement.tocsc(), drop_tol=1e-4, fill_factor=10)
+            LUSchurComplement = ilu  # returns an object with solve() as well
+            if self._verbose > 0:
+                print("Using ILU (spilu) preconditioner for the Schur complement matrix.")
 
         return LUSchurComplement, inverseSchurComplement
 

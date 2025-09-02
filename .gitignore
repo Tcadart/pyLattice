@@ -41,3 +41,4 @@ __pycache__
 data/outputs/simulation_results/*
 !data/outputs/simulation_results/figure_homogenization/
 
+/data/outputs/schur_complement/Schur_complement_BCC_Hybrid1_Hybrid4.npz

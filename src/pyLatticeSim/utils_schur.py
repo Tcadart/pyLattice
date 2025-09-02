@@ -87,7 +87,7 @@ def define_path_schur_complement(lattice_object: "LatticeSim") -> Path:
     path_file = path_dataset_schur / name_file
     return path_file
 
-def load_schur_complement_dataset(lattice_object: "LatticeSim", normalization_matrix: bool = False) -> dict:
+def load_schur_complement_dataset(lattice_object: "LatticeSim", enable_normalization: bool = False) -> dict:
     """
     Load the Schur complement matrices from a file and normalize them if needed.
 
@@ -95,6 +95,8 @@ def load_schur_complement_dataset(lattice_object: "LatticeSim", normalization_ma
     -------------
     lattice_object: LatticeSim
         The lattice object containing geometry and material information.
+    enable_normalization: bool
+        If True, normalize each Schur complement matrix.
 
     Returns:
     ---------
@@ -108,7 +110,7 @@ def load_schur_complement_dataset(lattice_object: "LatticeSim", normalization_ma
     schur_matrices = data["schur_matrices"]
     schur_complement_dict = {tuple(radius): matrix for radius, matrix in zip(radius_values, schur_matrices)}
 
-    if normalization_matrix:
+    if enable_normalization:
         schur_complement_dict = normalize_schur_matrix(schur_complement_dict)
 
     return schur_complement_dict

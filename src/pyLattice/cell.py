@@ -644,21 +644,40 @@ class Cell(object):
 
     def build_local_preconditioner(self):
         """
-        Build the preconditioner part for the cell
-
-        Parameters:
-        -----------
-        SchurMatrix: coo_matrix
-            Schur matrix
+        Efficiently compute B * S * B^T but only over the active global rows touched by B.
         """
+        from scipy.sparse import coo_matrix, csc_matrix, isspmatrix
+
         if self.coupling_matrix_B is None:
             raise ValueError("Coupling matrix has not been built yet. Please build it first.")
-        if self.coupling_matrix_B.shape[1] != self.schur_complement.shape[0]:
+        if self.coupling_matrix_B.shape[1] != np.shape(self.schur_complement)[0]:
             print("Shape of B matrix", self.coupling_matrix_B.shape)
-            print("Shape of Schur matrix", self.schur_complement.shape)
+            print("Shape of Schur matrix", np.shape(self.schur_complement))
             raise ValueError("Incompatible dimensions between the coupling matrix and the Schur matrix.")
 
-        return self.coupling_matrix_B @ self.schur_complement @ self.coupling_matrix_B.transpose()
+        # Ensure sparse Schur complement to avoid dense products
+        S = self.schur_complement
+        if not isspmatrix(S):
+            S = csc_matrix(S)
+        else:
+            S = S.tocsc()
+
+        B_csr = self.coupling_matrix_B.tocsr()
+        active_rows = np.unique(B_csr.nonzero()[0])
+        n_global = B_csr.shape[0]
+
+        if active_rows.size == 0:
+            return coo_matrix((n_global, n_global))
+
+        subB = B_csr[active_rows, :]  # (r x nb)
+        tmp = S @ subB.transpose()  # (nb x r)
+        local_block = (subB @ tmp).tocoo()  # (r x r)
+
+        # Map back to absolute global indices without creating a huge intermediate
+        row_idx = active_rows[local_block.row]
+        col_idx = active_rows[local_block.col]
+
+        return coo_matrix((local_block.data, (row_idx, col_idx)), shape=(n_global, n_global))
 
     def get_internal_energy(self) -> float:
         """

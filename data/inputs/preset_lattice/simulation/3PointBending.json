@@ -6,17 +6,24 @@
         "z": 1
       },
     "number_of_cells": {
-      "x": 2,
+      "x": 10,
       "y": 3,
       "z": 3
     },
-    "radii": [0.1],
-    "geom_types": ["Hybrid1"]
+    "radii": [0.1, 0.1, 0.1],
+    "geom_types": ["BCC", "Hybrid1", "Hybrid4"]
   },
     "simulation_parameters": {
-    "enable" : true,
-    "material": "VeroClear",
-    "periodicity": true
+      "enable" : true,
+      "material": "VeroClear",
+      "periodicity": true,
+      "DDM": {
+        "enable_preconditioner": true,
+        "max_iterations": 1000,
+        "schur_complement_computation": {
+          "type": "exact"
+        }
+      }
   },
   "boundary_conditions": {
     "Displacement": {
