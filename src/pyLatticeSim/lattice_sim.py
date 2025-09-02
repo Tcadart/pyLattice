@@ -5,7 +5,6 @@ from colorama import Fore, Style
 from scipy.interpolate import RBFInterpolator
 from scipy.sparse import coo_matrix, lil_matrix
 from scipy.sparse.linalg import LinearOperator, splu, spilu
-from scipy.spatial import Delaunay
 from sklearn.neighbors import NearestNeighbors
 
 from pyLattice.beam import Beam
@@ -649,7 +648,6 @@ class LatticeSim(Lattice):
         mu = np.array(geometric_params, dtype=float).ravel()
         evalParams = np.asarray(self.reduce_basis_dict["list_elements"], dtype=float)
         alphaCoeffs = np.asarray(self.alpha_coefficients_greedy, dtype=float)
-        print(self.reduce_basis_dict["list_elements"].shape, self.alpha_coefficients_greedy.shape)
 
         # --- Ensure (N_points, n_alpha) orientation for values ---
         if alphaCoeffs.ndim == 1:
@@ -686,13 +684,11 @@ class LatticeSim(Lattice):
             self._alpha_nn_nd = NearestNDInterpolator(evalParams, alphaCoeffs)  # nearest neighbor fallback
 
         y = self._alpha_lin_nd(mu)
-        print(y)
         if y is None or np.any(np.isnan(y)):
             # Outside convex hull -> robust fallback
             y = self._alpha_nn_nd(mu)
             if getattr(self, "_verbose", 0) > 0:
                 print(f"⚠️ Extrapolation (nearest-neighbor) used for mu={mu}.")
-        print(y.shape)
         return np.asarray(y).squeeze()
 
     # def evaluate_alphas_linear_surrogate(self, geometric_params: list[float]) -> np.ndarray:

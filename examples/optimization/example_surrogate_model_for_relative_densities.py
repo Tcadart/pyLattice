@@ -14,12 +14,12 @@ name_file = "design/" + name_cell
 
 hybrid_cell = Lattice(name_file, verbose=-1)
 
-# compute_relative_densities_dataset(hybrid_cell)
+compute_relative_densities_dataset(hybrid_cell)
 
 # plot_3D_iso_surface(name_dataset="Test")
 # plot_3D_scatter(name_dataset="Test")
 
-# evaluate_kriging_from_pickle(name_dataset="Test", dataset_dir=None)
+evaluate_kriging_from_pickle(name_dataset="RelativeDensities_BCC", dataset_dir=None)
 
-evaluate_saved_kriging(name_dataset="Test", dataset_dir=None, save_parity_path=Path("data"))
+# evaluate_saved_kriging(name_dataset="Test", dataset_dir=None, save_parity_path=Path("data"))
 

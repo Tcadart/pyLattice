@@ -6,21 +6,21 @@
         "z": 1
       },
     "number_of_cells": {
-      "x": 10,
+      "x": 4,
       "y": 3,
       "z": 3
     },
-    "radii": [0.086, 0.065, 0.032],
-    "geom_types": ["BCC", "Hybrid1", "Hybrid4"]
+    "radii": [0.1],
+    "geom_types": ["BCC"]
   },
     "simulation_parameters": {
       "enable" : true,
       "material": "VeroClear",
       "periodicity": true,
       "DDM": {
-        "enable_preconditioner": true,
-        "max_iterations": 1000,
-        "schur_complement_computation": {
+          "enable_preconditioner": true,
+          "max_iterations": 1000,
+          "schur_complement_computation": {
           "type": "RBF",
           "precision_greedy": 1e-6
         }
@@ -45,5 +45,20 @@
         "SurfaceCells": ["Xmax", "Zmin"]
       }
     }
+  },
+    "optimization_informations": {
+    "objective_function": "min",
+    "objective_type": "compliance",
+    "optimization_parameters": {
+      "type": "unit_cell",
+      "hybrid": false
+    },
+    "constraints": {
+      "relative_density": {
+        "value": 0.03
+      }
+    },
+    "enable_parameter_normalization": true,
+    "simulation_type": "DDM"
   }
 }

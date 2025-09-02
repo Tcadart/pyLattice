@@ -27,7 +27,6 @@ def _find_path_to_data(lattice_cell):
 def compute_relative_densities_dataset(lattice_cell,
                                        step_radius: float = 0.01,
                                        range_radius: tuple = (0.00, 0.1),
-                                       name_dataset: str = None,
                                        save_every: int = 1,
                                        resume: bool = True):
     """
@@ -77,7 +76,7 @@ def compute_relative_densities_dataset(lattice_cell,
 
     for i, combo in enumerate(remaining, 1):
         print(f"Computing for radii: {combo}")
-        if i <= 1:
+        if i <= 0: # TODO a changer
             combo = list(combo)
             combo[0] += 0.001
             lattice_cell.change_beam_radius(combo)
@@ -549,7 +548,7 @@ def evaluate_kriging_from_pickle(
 
     # Save model
     project_root = Path(__file__).resolve().parents[2] / "data" / "outputs" / "relative_densities" / "surrogate_model"
-    model_path = (project_root / (model_name + name_dataset)).resolve()
+    model_path = (project_root / (model_name + name_dataset.replace("RelativeDensities_", ""))).resolve()
     model_path.parent.mkdir(parents=True, exist_ok=True)
     joblib.dump(
         {

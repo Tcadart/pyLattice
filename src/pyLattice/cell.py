@@ -729,7 +729,7 @@ class Cell(object):
 
         self.radii = new_radius
 
-    def get_relative_density_kriging(self, kriging_model, geometries_types) -> float:
+    def get_relative_density_kriging(self, kriging_model) -> float:
         """
         Get the relative density of the cell using kriging model
 
@@ -738,21 +738,7 @@ class Cell(object):
         krigingModel: Kriging
             Kriging model to use for prediction
         """
-        if len(self.radii) != len(geometries_types):
-            if not all(g in geometries_types for g in self.geom_types):
-                print("geometry types in cell", self.geom_types, " Not in the trained kriging model", geometries_types)
-                raise ValueError("Incompatible geometry types between the cell and the kriging model.")
-            radii = np.zeros(len(geometries_types))
-            for idx, g_type in enumerate(self.geom_types):
-                geom_index = geometries_types.index(g_type)
-                radii[geom_index] = self.radii[idx]
-            radii = np.array(radii).reshape(-1, 3)
-            relative_density = kriging_model.predict(radii)[0]
-        elif self.geom_types == geometries_types:
-                radii = np.array(self.radii).reshape(-1, 3)
-                relative_density = kriging_model.predict(radii)[0]
-        else:
-            raise ValueError("Incompatible geometry types between the cell and the kriging model.")
+        relative_density = kriging_model.predict(np.array([self.radii]))[0]
         return relative_density
 
     def get_relative_density_gradient(self, relativeDensityPolyDeriv) -> float:
@@ -794,6 +780,9 @@ class Cell(object):
         grad = np.zeros(len(self.radii))
 
         for idx, rad in enumerate(self.radii):
+            print("Computing gradient for radius index", idx, "with value", rad)
+            print(self.geom_types)
+            print(geometries_types)
             if self.geom_types[idx] not in geometries_types:
                 print("geometry types in cell", self.geom_types, " Not in the trained kriging model", geometries_types)
                 raise ValueError("Incompatible geometry types between the cell and the kriging model.")

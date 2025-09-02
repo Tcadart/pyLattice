@@ -17,6 +17,7 @@ from pyLattice.utils import open_lattice_parameters
 from pyLatticeSim.utils_simulation import solve_FEM_FenicsX
 from pyLatticeOpti.plotting_lattice_optim import OptimizationPlotter
 from pyLatticeSim.lattice_sim import LatticeSim
+from pyLatticeOpti.surrogate_model_relative_densities import _find_path_to_data
 
 if TYPE_CHECKING:
     from data.inputs.mesh_file.mesh_trimmer import MeshTrimmer
@@ -31,7 +32,8 @@ class LatticeOpti(LatticeSim):
 
     def __init__(self, name_file: str, mesh_trimmer: "MeshTrimmer" = None, verbose: int = 0,
                  convergence_plotting : bool = False):
-        super().__init__(name_file, mesh_trimmer, verbose)
+        enable_domain_decomposition_solver = self._get_DDM_enable_simulation(name_file)
+        super().__init__(name_file, mesh_trimmer, verbose, enable_domain_decomposition_solver)
         self._convergence_plotting = convergence_plotting
         self._simulation_flag = True
         self._optimization_flag = True
@@ -171,6 +173,18 @@ class LatticeOpti(LatticeSim):
 
         self.enable_normalization = optimization_informations.get("enable_parameter_normalization", False)
 
+    def _get_DDM_enable_simulation(self, name_file) -> bool:
+        """
+        Check if DDM simulation is enabled
+        """
+        lattice_parameters = open_lattice_parameters(name_file)
+        optimization_informations = lattice_parameters.get("optimization_informations", {}).get("simulation_type", None)
+        if optimization_informations == "DDM":
+            enable_domain_decomposition_solver = True
+        else:
+            enable_domain_decomposition_solver = False
+        return enable_domain_decomposition_solver
+
     def _clamp_radius(self, v: float) -> float:
         return max(self.min_radius, min(self.max_radius, float(v)))
 
@@ -187,8 +201,7 @@ class LatticeOpti(LatticeSim):
         self.bounds = Bounds(lb=[borneMin] * self.number_parameters, ub=[borneMax] * self.number_parameters)
 
         if self.optimization_parameters["type"] == "unit_cell":
-            raise NotImplementedError("Unit cell optimization not implemented yet.")
-            self.initial_parameters = np.tile(borneMax, self.number_parameters // len(borneMax))
+            self.initial_parameters = np.tile(borneMax, self.number_parameters // len(self.radii))
         elif self.optimization_parameters["type"] == "linear":
             if self.radius_field is None:
                 self._build_radius_field()
@@ -334,10 +347,8 @@ class LatticeOpti(LatticeSim):
         """
         cellRelDens = []
         for cell in self.cells:
-            if self._simulation_flag:
-                if self.kriging_model_relative_density is not None:
-                    cellRelDens.append(cell.get_relative_density_kriging(self.kriging_model_relative_density,
-                                                                         self.kriging_model_geometries_types))
+            if self._simulation_flag and self.kriging_model_relative_density is not None:
+                cellRelDens.append(cell.get_relative_density_kriging(self.kriging_model_relative_density))
             else:
                 cellRelDens.append(cell.relative_density)
         meanRelDens = mean(cellRelDens)
@@ -524,9 +535,7 @@ class LatticeOpti(LatticeSim):
         if self._simulation_type == "FEM":
             solve_FEM_FenicsX(self)
         elif self._simulation_type == "DDM":
-            if self._parameters_define is False:
-                self.define_parameters(True, 100)
-                self.solve_DDM()
+            self.solve_DDM()
         else:
             raise ValueError("Invalid simulation type for optimization. Choose 'FEM' or 'DDM'.")
 
@@ -647,7 +656,8 @@ class LatticeOpti(LatticeSim):
             for cell in self.cells:
                 startIdx = cell.index * number_parameters_per_cell
                 endIdx = (cell.index + 1) * number_parameters_per_cell
-                radius = optimization_parameters_actual[startIdx:endIdx]
+                param_slice = optimization_parameters_actual[startIdx:endIdx]
+                radius = self.denormalize_optimization_parameters(list(map(float, param_slice)))
                 cell.change_beam_radius(radius)
         elif self.optimization_parameters["type"] == "linear":
             dirs = self.optimization_parameters.get("direction", [])
@@ -782,30 +792,26 @@ class LatticeOpti(LatticeSim):
         # return gradNorm
 
     @timingOpti.timeit
-    def load_relative_density_model(self, model_name="RelativeDensityKrigingModel"):
+    def load_relative_density_model(self):
         """
         Load the relative density model from a file
-
-        Parameters:
-        -----------
-        model_path: str
-            Path to the model file
 
         Returns:
         --------
         model: Kriging
             The loaded model
         """
-        path_model = Path(__file__).parents[2] / "src" / "pyLatticeOpti" / model_name
-        if path_model.suffix != ".pkl":
-            path_model = str(path_model) + ".pkl"
+        path_dataset, name_dataset = _find_path_to_data(self)
+        path_model = path_dataset.parent / "surrogate_model" / (f"kriging_model_"
+                                                                f"{name_dataset.replace("RelativeDensities_","")}")
 
         if not os.path.exists(path_model):
             print(f"Model file not found: {path_model}")
         else:
-            gpr = joblib.load(path_model)
-            self.kriging_model_relative_density = gpr
-            self.kriging_model_geometries_types = ["BCC", "Hybrid1", "Hybrid4"] # TODO a modifier
+            kriging_surrogate_dict = joblib.load(path_model)
+            self.kriging_model_relative_density = kriging_surrogate_dict["model"]
+            self.kriging_model_geometries_types = self.geom_types
+            print(f"Loaded relative density model from {path_model}")
 
     def callback_function(self, r):
         """
