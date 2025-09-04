@@ -233,7 +233,9 @@ class Point:
         Returns:
             float: Internal energy based on displacement and reaction forces.
         """
-        return sum([self.displacement_vector[i] * self.reaction_force_vector[i] for i in range(6)])
+        rf = self.reaction_force_vector + self.applied_force
+        u = self.displacement_vector
+        return sum(rf[i] * u[i] for i in range(6))
 
     def is_identical_to(self, other: 'Point', cell_size: list[float]) -> bool:
         """

@@ -21,5 +21,6 @@ compute_relative_densities_dataset(hybrid_cell)
 
 evaluate_kriging_from_pickle(name_dataset="RelativeDensities_BCC", dataset_dir=None)
 
-# evaluate_saved_kriging(name_dataset="Test", dataset_dir=None, save_parity_path=Path("data"))
+evaluate_saved_kriging(name_dataset="RelativeDensities_BCC", dataset_dir=None, model_name="BCC",
+                       save_parity_path=Path("data"))
 

@@ -424,7 +424,7 @@ def save_JSON_to_Grasshopper(lattice, nameLattice: str = "LatticeObject", multip
         endIdx = min((partIdx + 1) * cellsPerPart, numberCell)
 
         for cell in lattice.cells[startIdx:endIdx]:
-            for beam in cell.beams:
+            for beam in cell.beams_cell:
                 partNodesX.append(beam.point1.x)
                 partNodesX.append(beam.point2.x)
                 partNodesY.append(beam.point1.y)

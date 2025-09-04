@@ -6,12 +6,12 @@
         "z": 1
       },
     "number_of_cells": {
-      "x": 4,
-      "y": 3,
-      "z": 3
+      "x": 10,
+      "y": 1,
+      "z": 1
     },
-    "radii": [0.1],
-    "geom_types": ["BCC"]
+    "radii": [0.1, 0.1, 0.1],
+    "geom_types": ["BCC", "Hybrid1", "Hybrid4"]
   },
     "simulation_parameters": {
       "enable" : true,
@@ -19,7 +19,7 @@
       "periodicity": true,
       "DDM": {
           "enable_preconditioner": true,
-          "max_iterations": 1000,
+          "max_iterations": 10,
           "schur_complement_computation": {
           "type": "RBF",
           "precision_greedy": 1e-6
@@ -29,36 +29,34 @@
   "boundary_conditions": {
     "Displacement": {
       "Fixed" : {
-        "Surface": ["Xmax"],
-        "DOF": ["X"],
-        "Value": [0]
-      },
-      "Displacement": {
+        "Surface": ["Xmin"],
+        "DOF": ["X", "Y", "Z", "RX", "RY", "RZ"],
+        "Value": [0, 0, 0, 0, 0, 0]
+      }
+    },
+    "Force": {
+      "Force": {
         "Surface": ["Xmax", "Zmax"],
         "DOF": ["Z"],
-        "Value": [-0.01]
-      },
-      "SimpleSupport": {
-        "Surface": ["Xmin", "Zmin"],
-        "DOF": ["Y", "Z"],
-        "Value": [0, 0],
-        "SurfaceCells": ["Xmax", "Zmin"]
+        "Value": [-0.0001]
       }
     }
   },
     "optimization_informations": {
-    "objective_function": "min",
-    "objective_type": "compliance",
-    "optimization_parameters": {
-      "type": "unit_cell",
-      "hybrid": false
-    },
-    "constraints": {
-      "relative_density": {
-        "value": 0.03
-      }
-    },
-    "enable_parameter_normalization": true,
-    "simulation_type": "DDM"
+      "objective_function": "min",
+      "objective_type": "compliance",
+      "max_iterations": 50,
+      "optimization_parameters": {
+        "type": "unit_cell",
+        "hybrid": false
+      },
+      "constraints": {
+        "relative_density": {
+          "value": 0.1
+        }
+      },
+      "enable_parameter_normalization": true,
+      "simulation_type": "DDM",
+      "enable_gradient_computing": true
   }
 }

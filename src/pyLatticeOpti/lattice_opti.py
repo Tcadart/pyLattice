@@ -47,14 +47,15 @@ class LatticeOpti(LatticeSim):
         self.constraints = []
         self.iteration = 0
         self.optim_max_iteration = 1000
-        self.optim_ftol = 1e-3
+        self.optim_ftol = 1e-9
         self.optim_disp = True
-        self.optim_eps = 1e-2
+        self.optim_eps = 1e-3
         self.objectif_data = None
         self.objective_function = None
         self.position_objective = None
         self.objective_type = None
         self.actual_optimization_parameters = []
+        self._sim_is_current = False # flag to indicate if the simulation is up-to-date with current parameters
         self.number_parameters = None
         self.enable_normalization = False
         self.optimization_parameters = None
@@ -82,7 +83,7 @@ class LatticeOpti(LatticeSim):
         self._get_optimization_parameters(name_file)
         self._set_number_parameters_optimization()
 
-        self.load_relative_density_model() # TODO modifier le comportement
+        self.load_relative_density_model()
 
 
 
@@ -90,11 +91,18 @@ class LatticeOpti(LatticeSim):
         """
         Runs the optimization process using SLSQP.
         """
+        self.initial_value_objective = None
+        self.actual_objective = None
+        self.denorm_objective = None
+        self.iteration = 0
+        self._sim_is_current = False
+        self.plotting_objective.clear()
+        self.plotting_densities.clear()
+
         self._initialize_optimization_solver()
         self._add_constraint_density()
-        self.solution = minimize(
+        minimize_kwargs = dict(
             fun=self.objective,
-            # jac=self.gradient,
             x0=self.initial_parameters,
             method='SLSQP',
             bounds=self.bounds,
@@ -103,11 +111,15 @@ class LatticeOpti(LatticeSim):
             options={
                 'maxiter': self.optim_max_iteration,
                 'ftol': self.optim_ftol,
-                # 'gtol': 1e-2,
                 'disp': self.optim_disp,
                 'eps': self.optim_eps
             }
         )
+        if getattr(self, "enable_gradient_computing", False):
+            minimize_kwargs["jac"] = self.gradient
+
+        self.solution = minimize(**minimize_kwargs)
+
         if self._convergence_plotting and self.plotter is not None:
             try:
                 self.plotter.update(self.actual_objective, self.solution.x)
@@ -162,6 +174,7 @@ class LatticeOpti(LatticeSim):
         self.objective_function = optimization_informations.get("objective_function", None)
         self.objective_type = optimization_informations.get("objective_type", None)
         self.position_objective = optimization_informations.get("position_objective", None)
+        self.optim_max_iteration = optimization_informations.get("max_iterations", 20)
         self.constraints_dict = optimization_informations.get("constraints", {})
         self.optimization_parameters = optimization_informations.get("optimization_parameters", None)
         if self.optimization_parameters is None:
@@ -172,6 +185,9 @@ class LatticeOpti(LatticeSim):
             raise ValueError("Invalid simulation type for optimization. Choose 'FEM' or 'DDM'.")
 
         self.enable_normalization = optimization_informations.get("enable_parameter_normalization", False)
+        self.enable_gradient_computing = optimization_informations.get("enable_gradient_computing", False)
+        if not self.enable_gradient_computing:
+            print(Fore.YELLOW + "Warning: Gradient computing is disabled. Optimization may be slow." + Fore.RESET)
 
     def _get_DDM_enable_simulation(self, name_file) -> bool:
         """
@@ -201,7 +217,7 @@ class LatticeOpti(LatticeSim):
         self.bounds = Bounds(lb=[borneMin] * self.number_parameters, ub=[borneMax] * self.number_parameters)
 
         if self.optimization_parameters["type"] == "unit_cell":
-            self.initial_parameters = np.tile(borneMax, self.number_parameters // len(self.radii))
+            self.initial_parameters = [borneMax] * self.number_parameters
         elif self.optimization_parameters["type"] == "linear":
             if self.radius_field is None:
                 self._build_radius_field()
@@ -384,13 +400,24 @@ class LatticeOpti(LatticeSim):
             Gradient of relative density
         """
         if self.optimization_parameters["type"] == "unit_cell":
-            number_cells = len(self.cells)
-            grad = np.zeros(self.number_parameters)
+            n_cells = len(self.cells)
+            n_geom = len(self.geom_types)
+            grad = np.zeros(self.number_parameters, dtype=float)
+            scale = (self.max_radius - self.min_radius) if self.enable_normalization else 1.0
 
             for cell in self.cells:
-                gradient3Geom = cell.get_relative_density_gradient_kriging(
-                    self.kriging_model_relative_density, self.kriging_model_geometries_types) / number_cells
-                grad[cell.index] = gradient3Geom
+                g_cell = np.asarray(
+                    cell.get_relative_density_gradient_kriging(
+                        self.kriging_model_relative_density,
+                        self.kriging_model_geometries_types
+                    ),
+                    dtype=float
+                )
+                if g_cell.size != n_geom:
+                    raise ValueError(f"Gradient size mismatch: expected {n_geom}, got {g_cell.size}")
+
+                start = cell.index * n_geom
+                grad[start:start + n_geom] = (g_cell * scale) / n_cells
 
             return grad
         elif self.optimization_parameters["type"] == "linear":
@@ -539,6 +566,8 @@ class LatticeOpti(LatticeSim):
         else:
             raise ValueError("Invalid simulation type for optimization. Choose 'FEM' or 'DDM'.")
 
+        self._sim_is_current = True
+
     def get_radius_continuity_difference(self, delta: float = 0.01) -> list[float]:
         """
         Get the difference in radii between connected beams in the lattice
@@ -642,6 +671,7 @@ class LatticeOpti(LatticeSim):
                                 rtol=1e-10, atol=1e-10)):
             return
 
+        self._sim_is_current = False
         self.actual_optimization_parameters = optimization_parameters_actual.copy()
 
         if self._verbose >= 2:
@@ -649,8 +679,8 @@ class LatticeOpti(LatticeSim):
 
         if self.optimization_parameters["type"] == "constant":
             for cell in self.cells:
-                radius = self.denormalize_optimization_parameters([float(optimization_parameters_actual[0])])
-                cell.change_beam_radius(radius * len(self.geom_types))
+                radius = self.denormalize_optimization_parameters([float(optimization_parameters_actual[0])])[0]
+                cell.change_beam_radius([radius] * len(self.geom_types))
         elif self.optimization_parameters["type"] == "unit_cell":
             number_parameters_per_cell = len(self.geom_types)
             for cell in self.cells:
@@ -693,6 +723,9 @@ class LatticeOpti(LatticeSim):
         else:
             raise ValueError("Invalid optimization parameters type.")
 
+        if self._simulation_type == "DDM":
+            self._update_DDM_after_geometry_change()
+
 
     def denormalize_optimization_parameters(self, r_norm: list[float]) -> list[float]:
         """
@@ -731,14 +764,9 @@ class LatticeOpti(LatticeSim):
             Objective function value
         """
         if self.objective_type == "compliance":
-            reactionForce = self.get_global_reaction_force(appliedForceAdded=True)
-            reaction_force_array = np.array(list(reactionForce.values())).flatten()
-            displacement = np.array(self.get_global_displacement_DDM(OnlyImposed=True)[0])
-            objective = - 0.5 * np.dot(reaction_force_array, displacement)
+            objective = self.compute_compliance()
+            # objective = self.compute_global_energy_ddm()
             if self._verbose > 2:
-                np.set_printoptions(threshold=np.inf)
-                print("Reaction force: ", reaction_force_array[displacement != 0])
-                print("Displacement: ", displacement[displacement != 0])
                 print("Compliance: ", objective)
         elif self.objective_type == "displacement":
             setNode = self.find_point_on_lattice_surface(surfaceNames=self.objectif_data["surface"])
@@ -756,6 +784,37 @@ class LatticeOpti(LatticeSim):
         else:
             raise ValueError("Invalid objective function type.")
         return objective
+
+    def compute_compliance(self) -> float:
+        """
+        Compliance (external work of applied loads):
+        C = sum_k f_k * u_k
+        """
+        total = 0.0
+        for node in self.nodes:
+            u = node.displacement_vector
+            for k in range(self.n_DOF_per_node):
+                if node.applied_force[k] != 0.0:
+                    total += node.applied_force[k] * u[k]
+        return  float(total)
+
+    def compute_global_energy(self) -> float:
+        """
+        Global external work = global strain energy
+        """
+        total = 0.0
+        for node in self.nodes:
+            u = node.displacement_vector
+            for k in range(6):
+                if node.applied_force[k] != 0.0 or node.fixed_DOF[k]:
+                    f = node.applied_force[k] if node.applied_force[k] != 0.0 else node.reaction_force_vector[k]
+                    total += f * u[k]
+        return 0.5 * total
+
+    def compute_global_energy_ddm(self) -> float:
+        x, _ = self.get_global_displacement_DDM()  # vecteur des DOF libres (ordre canonique)
+        y = self.calculate_reaction_force_global(x)  # y = S_global @ x
+        return 0.5 * float(np.dot(x, y))
 
     def _set_number_parameters_optimization(self):
         """
@@ -782,14 +841,110 @@ class LatticeOpti(LatticeSim):
         """
         if self._verbose >= 1:
             print(Fore.BLUE + "Gradient function"+ Fore.RESET)
+
+        # Apply parameters and (re)solve to have consistent u on boundary nodes
         self.set_optimization_parameters(r)
-        print("Calculating gradient...") # TODO
-        # grad, _ = self.conjugateGradient.calculateGradient(self.GeomScheme)
-        # print("Gradient", grad)
-        # gradNorm = self.normalizeObjective(grad, objectif=False)
-        # self.actualGradient = gradNorm
-        # print("Actual gradient", self.actualGradient)
-        # return gradNorm
+        if not self._sim_is_current:
+            self._simulate_lattice_equilibrium()
+
+        g = self.calculate_gradient()
+        print("Raw gradient:", g)
+
+        g = self.normalize_objective_data(g, objective_type=False)
+
+        # Optionally store for callbacks/plots
+        self.actualGradient = g.copy()
+        print("Gradient:", g)
+        return g
+
+    def calculate_gradient(self):
+        """
+        Compute d(objective)/d(params) for the current state.
+        Assumes objective_type == 'compliance' with imposed-DOF-only definition.
+        """
+        if self.objective_type != "compliance":
+            raise NotImplementedError("Gradient currently implemented for 'compliance' objective only.")
+
+        n_params = self.number_parameters
+        grad = np.zeros(n_params, dtype=float)
+        half_factor = 0.5
+
+        # Normalization chain rule (dr / dθ) if parameters are normalized in [0,1]
+        norm_scale = (self.max_radius - self.min_radius) if self.enable_normalization else 1.0
+
+        n_geom = len(self.geom_types)
+        opt_type = self.optimization_parameters["type"]
+
+        if opt_type == "unit_cell":
+            for cell in self.cells:
+                if cell.node_in_order_simulation is None:
+                    cell.define_node_order_to_simulate()
+
+                # u_cell in the same order used by the Schur complement
+                u_cell = np.array(cell.get_displacement_at_nodes(cell.node_in_order_simulation), dtype=float).ravel()
+
+                # For each local radius parameter (aligned with cell.radii / schur_complement_grads)
+                for j_local, dS in enumerate(getattr(cell, "schur_complement_gradient", [])):
+                    # dF_cell = dS/dr_j @ u_cell
+                    dF_cell = dS @ u_cell  # vector length = (#bnd_nodes_in_order * 6)
+                    contrib = u_cell @ dF_cell  # scalar
+
+                    p_idx = cell.index * n_geom + j_local
+                    grad[p_idx] += half_factor * contrib * norm_scale
+
+        elif opt_type == "constant":
+            hybrid = bool(self.optimization_parameters.get("hybrid", False))
+
+            if hybrid:
+                # One parameter per geometry type
+                accum = np.zeros(n_geom, dtype=float)
+                for cell in self.cells:
+                    if cell.node_in_order_simulation is None:
+                        cell.define_node_order_to_simulate()
+                    u_cell = np.array(cell.get_displacement_at_nodes(cell.node_in_order_simulation), dtype=float).ravel()
+
+                    for j_local, dS in enumerate(getattr(cell, "schur_complement_grads", [])):
+                        dF_cell = dS @ u_cell
+
+                        contrib = 0.0
+                        idx_flat = 0
+                        for node in cell.node_in_order_simulation:
+                            for k in range(6):
+                                if node.fixed_DOF[k]:
+                                    u_k = node.displacement_vector[k]
+                                    contrib += u_k * dF_cell[idx_flat]
+                                idx_flat += 1
+
+                        accum[j_local] += half_factor * contrib
+
+                # Chain rule for normalization (each geom shares same scale)
+                grad[:n_geom] = accum * norm_scale
+
+            else:
+                # Single parameter affecting all geometry types equally
+                total_contrib = 0.0
+                for cell in self.cells:
+                    if cell.node_in_order_simulation is None:
+                        cell.define_node_order_to_simulate()
+                    u_cell = np.array(cell.get_displacement_at_nodes(cell.node_in_order_simulation), dtype=float).ravel()
+
+                    for dS in getattr(cell, "schur_complement_grads", []):
+                        dF_cell = dS @ u_cell
+
+                        idx_flat = 0
+                        for node in cell.node_in_order_simulation:
+                            for k in range(6):
+                                if node.fixed_DOF[k]:
+                                    u_k = node.displacement_vector[k]
+                                    total_contrib += u_k * dF_cell[idx_flat]
+                                idx_flat += 1
+
+                grad[0] = half_factor * total_contrib * norm_scale
+
+        else:
+            raise NotImplementedError("Gradient for optimization type '{opt_type}' not implemented yet.")
+
+        return grad
 
     @timingOpti.timeit
     def load_relative_density_model(self):

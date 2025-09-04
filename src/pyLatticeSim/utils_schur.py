@@ -3,11 +3,12 @@ from pathlib import Path
 
 from mpi4py import MPI
 
-
 from .beam_model import *
 from .schur_complement import SchurComplement
 if TYPE_CHECKING:
     from pyLatticeSim.lattice_sim import LatticeSim
+    from pyLattice.cell import Cell
+
 
 def get_schur_complement(lattice: "LatticeSim", cell_index: int = None):
     """
@@ -36,7 +37,6 @@ def get_schur_complement(lattice: "LatticeSim", cell_index: int = None):
     tag_boundary = []
     for point in boundary_points:
         tag_boundary.append(point.cell_local_tag[cell.index])
-
 
     cell_model = BeamModel(MPI.COMM_SELF, lattice=lattice, cell_index=cell_index)
 

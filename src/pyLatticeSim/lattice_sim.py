@@ -51,6 +51,7 @@ class LatticeSim(Lattice):
         self.n_DOF_per_node: int = 6  # Number of DOF per node (3 translation + 3 rotation)
         self.penalization_coefficient: float = 1.5  # Fixed with previous optimization
         self.surrogate_model_implemented = ["exact", "nearest_neighbor", "linear", "RBF"]
+        self.enable_gradient_computing = False # Enable gradient computing for optimization
 
         self.define_connected_beams_for_all_nodes()
         self.define_angles_between_beams()
@@ -210,18 +211,16 @@ class LatticeSim(Lattice):
 
         indexBoundaryList = {point.index_boundary for point in pointSet}
 
-        for cell in self.cells:
-            for beam in cell.beams_cell:
-                for node in [beam.point1, beam.point2]:
-                    if node.index_boundary in indexBoundaryList:
-                        for val, DOFi in zip(value, DOF):
-                            if type_constraint == "Displacement":
-                                node.displacement_vector[DOFi] = val
-                                node.fix_DOF([DOFi])
-                            elif type_constraint == "Force":
-                                node.applied_force[DOFi] = val
-                            else:
-                                raise ValueError("Invalid type of constraint. Use 'Displacement' or 'Force'.")
+        for node in self.nodes:
+            if node.index_boundary in indexBoundaryList:
+                for val, DOFi in zip(value, DOF):
+                    if type_constraint == "Displacement":
+                        node.displacement_vector[DOFi] = val
+                        node.fix_DOF([DOFi])
+                    elif type_constraint == "Force":
+                        node.applied_force[DOFi] = val
+                    else:
+                        raise ValueError("Invalid type of constraint. Use 'Displacement' or 'Force'.")
 
     def apply_force_surface(self, surfaceName: list[str], valueForce: list[float], DOF: list[int]) -> None:
         """
@@ -395,6 +394,7 @@ class LatticeSim(Lattice):
                         globalReactionForce[node.index_boundary][i] = node.applied_force[i]
         return globalReactionForce
 
+
     def get_global_reaction_force_without_fixed_DOF(self, globalReactionForce: dict, rightHandSide: bool = False) \
             -> np.ndarray:
         """
@@ -423,8 +423,7 @@ class LatticeSim(Lattice):
                     if gi is None:
                         continue
                     if rightHandSide and node.applied_force[i] != 0:
-                        # minus sign because b = -f (consistent with your RHS convention)
-                        y[gi] = -node.applied_force[i]
+                        y[gi] = node.applied_force[i]
                     else:
                         y[gi] = globalReactionForce[node.index_boundary][i]
 
@@ -481,10 +480,9 @@ class LatticeSim(Lattice):
         """
         Initialize simulation parameters for each node in the lattice
         """
-        for cell in self.cells:
-            for node in cell.points_cell:
-                node.initialize_reaction_force()
-                node.initialize_displacement()
+        for node in self.nodes:
+            node.initialize_reaction_force()
+            node.initialize_displacement()
         self.set_boundary_conditions()
 
     def build_coupling_operator_cells(self) -> None:
@@ -578,30 +576,38 @@ class LatticeSim(Lattice):
         Calculate the Schur complement for each cell in the lattice.
         Save the result in the cell.schur_complement attribute.
         """
-        schur_complement_calculated: dict = {}
+        schur_cache: dict = {}
 
         for cell in self.cells:
             geom_key = tuple(cell.geom_types) if isinstance(cell.geom_types, list) else cell.geom_types
             radius_key = tuple(round(float(r), 8) for r in cell.radii)
 
-            if geom_key not in schur_complement_calculated:
-                schur_complement_calculated[geom_key] = {}
+            if geom_key not in schur_cache:
+                schur_cache[geom_key] = {}
 
-            if radius_key not in schur_complement_calculated[geom_key]:
+            if radius_key not in schur_cache[geom_key]:
+                # Base Schur complement
                 if self.type_schur_complement_computation == "exact":
-                    schur_complement_cell = get_schur_complement(self, cell.index)
+                    S = get_schur_complement(self, cell.index)
                 elif self.type_schur_complement_computation in self.surrogate_model_implemented:
-                    geometric_params = list(radius_key)
-                    schur_complement_cell = self.get_schur_complement_from_reduced_basis(geometric_params)
+                    S = self.get_schur_complement_from_reduced_basis(list(radius_key))
                 else:
                     raise NotImplementedError("Not implemented schur complement computation method.")
-                schur_complement_calculated[geom_key][radius_key] = schur_complement_cell
-                if self._verbose > 1:
-                    print(f"Schur complement calculated for geometry {geom_key} with radii {radius_key}.")
-            else:
-                schur_complement_cell = schur_complement_calculated[geom_key][radius_key]
 
-            cell.schur_complement = schur_complement_cell
+                dS_list = None
+                if self.enable_gradient_computing:
+                    # Derivatives w.r.t. radii (finite-difference, central)
+                    dS_list = self._compute_schur_gradients(cell, list(radius_key))
+
+                schur_cache[geom_key][radius_key] = {"S": S, "dS": dS_list}
+                if self._verbose > 1:
+                    print(f"Schur complement + grads computed for geom {geom_key} with radii {radius_key}.")
+            else:
+                S = schur_cache[geom_key][radius_key]["S"]
+                dS_list = schur_cache[geom_key][radius_key]["dS"]
+
+            cell.schur_complement = S
+            cell.schur_complement_gradient = dS_list
 
     def get_schur_complement_from_reduced_basis(self, geometric_params: list[float]) -> np.ndarray:
         """
@@ -636,6 +642,62 @@ class LatticeSim(Lattice):
         schur_complement_approx_reshape = schur_complement_approx.reshape(
             (self.shape_schur_complement, self.shape_schur_complement), order='F')
         return schur_complement_approx_reshape
+
+    def _compute_schur_gradients(self, cell: "Cell", radii_params: list[float]) -> list[np.ndarray]:
+        """
+        Central finite-difference of the Schur complement w.r.t. each radius parameter.
+
+        Parameters
+        ----------
+        cell : Cell
+            The target cell.
+        radii_params : list[float]
+            Current radii for this cell's beam types.
+
+        Returns
+        -------
+        list[np.ndarray]
+            dS/dr_j for each radius parameter j, same shape as S_base.
+        """
+        grads = []
+        eps_rel = 1e-6
+
+        for j, rj in enumerate(radii_params):
+            h = max(1e-8, eps_rel * max(1.0, abs(rj)))
+
+            rp = radii_params.copy()
+            rm = radii_params.copy()
+            rp[j] = rj + h
+            rm[j] = max(1e-12, rj - h)  # keep positive
+
+            S_p = self._schur_for_params(cell, rp)
+            S_m = self._schur_for_params(cell, rm)
+
+            dS = (S_p - S_m) / (rp[j] - rm[j])
+            grads.append(dS)
+
+        return grads
+
+    def _schur_for_params(self, cell: "Cell", radii_params: list[float]) -> np.ndarray:
+        """
+        Helper: evaluate the Schur complement for a given set of radii parameters
+        using the currently selected computation mode.
+        """
+        if self.type_schur_complement_computation == "exact":
+            # Temporarily modify cell radii, evaluate, then restore
+            old_radii = list(cell.radii)
+            try:
+                cell.change_beam_radius(list(radii_params))
+                S = get_schur_complement(self, cell.index)
+            finally:
+                cell.change_beam_radius(old_radii)
+            return S
+
+        elif self.type_schur_complement_computation in self.surrogate_model_implemented:
+            return self.get_schur_complement_from_reduced_basis(list(radii_params))
+
+        else:
+            raise NotImplementedError("Not implemented schur complement computation method.")
 
     def evaluate_alphas_linear_surrogate(self, geometric_params: list[float]) -> np.ndarray:
         """
@@ -690,74 +752,6 @@ class LatticeSim(Lattice):
             if getattr(self, "_verbose", 0) > 0:
                 print(f"⚠️ Extrapolation (nearest-neighbor) used for mu={mu}.")
         return np.asarray(y).squeeze()
-
-    # def evaluate_alphas_linear_surrogate(self, geometric_params: list[float]) -> np.ndarray:
-    #     """
-    #     General linear interpolation for alpha coefficients.
-    #     Handles both 1D and multi-D parameter cases.
-    #
-    #     Parameters
-    #     ----------
-    #     geometric_params : list of float
-    #         List of geometric parameters to define the Schur complement
-    #
-    #     Returns
-    #     -------
-    #     alpha_interp : np.ndarray
-    #         Interpolated alpha coefficients
-    #     """
-    #     mu = np.array(geometric_params).flatten()
-    #     evalParams = self.reduce_basis_dict["list_elements"]
-    #     alphaCoeffs = self.alpha_coefficients_greedy
-    #
-    #     N = evalParams.shape[0]
-    #
-    #     # 1D case
-    #     if evalParams.ndim == 1 or evalParams.shape[1] == 1:
-    #         x = float(mu[0])
-    #         evalParams_1d = evalParams.flatten()
-    #         if x <= evalParams_1d.min():
-    #             return alphaCoeffs[np.argmin(evalParams_1d)]
-    #         elif x >= evalParams_1d.max():
-    #             return alphaCoeffs[np.argmax(evalParams_1d)]
-    #
-    #         idx_sorted = np.argsort(evalParams_1d)
-    #         evalParams_sorted = evalParams_1d[idx_sorted]
-    #         alpha_sorted = alphaCoeffs[idx_sorted]
-    #
-    #         for i in range(N - 1):
-    #             x0, x1 = evalParams_sorted[i], evalParams_sorted[i + 1]
-    #             if x0 <= x <= x1:
-    #                 w = (x - x0) / (x1 - x0)
-    #                 return (1 - w) * alpha_sorted[i] + w * alpha_sorted[i + 1]
-    #
-    #         raise ValueError(f"No interval found for x = {x}")
-    #
-    #     else:
-    #         # Multi-D case
-    #         tri = Delaunay(evalParams)
-    #         simplex_id = tri.find_simplex(mu)
-    #
-    #         if simplex_id == -1:
-    #             barycenters = np.mean(evalParams[tri.simplices], axis=1)
-    #             closest = np.argmin(np.linalg.norm(barycenters - mu, axis=1))
-    #             vertices = tri.simplices[closest]
-    #             points = evalParams[vertices]
-    #             use_extrapolation = True
-    #         else:
-    #             vertices = tri.simplices[simplex_id]
-    #             points = evalParams[vertices]
-    #             use_extrapolation = False
-    #
-    #         V = (points[:-1] - points[-1]).T
-    #         rhs = mu - points[-1]
-    #         lambdas = np.linalg.solve(V, rhs)
-    #         weights = np.append(lambdas, 1 - np.sum(lambdas))
-    #
-    #         alpha_interp = np.dot(weights, alphaCoeffs[vertices])
-    #         if use_extrapolation:
-    #             print(f"⚠️ Extrapolation used for mu = {mu}, weights = {weights}")
-    #         return alpha_interp
 
     def _define_radial_basis_functions(self):
         mu_train = np.array(self.reduce_basis_dict["list_elements"])  # shape (N, d)
@@ -1101,4 +1095,20 @@ class LatticeSim(Lattice):
             self.set_boundary_conditions()
 
 
+    def _update_DDM_after_geometry_change(self):
+        """
+        Update the DDM after a change in the geometry of the lattice.
+        """
+        self.calculate_schur_complement_cells()
 
+        self.preconditioner = None
+        self.iteration = 0
+        self.residuals = []
+
+    def reset_penalized_beams(self):
+        """
+        Reset the penalized beams in the lattice.
+        """
+        for cell in self.cells:
+            cell.reset_beam_modification()
+        print(Fore.GREEN + "Penalized beams have been reset." + Style.RESET_ALL)

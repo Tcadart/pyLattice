@@ -22,12 +22,14 @@ class Beam(object):
         """
         Initialize a Beam object representing a beam element.
 
-        Args:
-            point1 (Point): First endpoint of the beam.
-            point2 (Point): Second endpoint of the beam.
-            radius (float): radii of the beam.
-            material (int): Material identifier of the beam.
-            type_beam (int): Type of the beam (0: normal, 1: modified, 2: boundary beam).
+        Parameters:
+        ----------
+        point1 (Point): The first endpoint of the beam.
+        point2 (Point): The second endpoint of the beam.
+        radius (float): The radius of the beam.
+        material (int): The material index of the beam.
+        type_beam (int): The type of the beam.
+        cell_belongings (Cell): The cell to which the beam belongs.
         """
         self.point1: 'Point' = point1
         self.point2: 'Point' = point2
@@ -279,6 +281,15 @@ class Beam(object):
         self.beam_mod = True
         self.initial_radius = self.radius
         self.radius *= self.penalization_coefficient
+
+    def unset_beam_mod(self):
+        """
+        Unset the beam as modified.
+        """
+        self.beam_mod = False
+        if self.initial_radius is not None:
+            self.radius = self.initial_radius
+            self.initial_radius = None
 
     def change_beam_radius(self, new_radius: float):
         """

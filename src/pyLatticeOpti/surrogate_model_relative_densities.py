@@ -8,6 +8,9 @@ import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib
 from scipy.spatial import KDTree
+from sklearn.compose import TransformedTargetRegressor
+from sklearn.pipeline import Pipeline
+from sklearn.preprocessing import StandardScaler
 
 matplotlib.use('TkAgg')  # Use TkAgg backend for interactive plots
 
@@ -26,7 +29,7 @@ def _find_path_to_data(lattice_cell):
 
 def compute_relative_densities_dataset(lattice_cell,
                                        step_radius: float = 0.01,
-                                       range_radius: tuple = (0.00, 0.1),
+                                       range_radius: tuple = (0.00, 0.11),
                                        save_every: int = 1,
                                        resume: bool = True):
     """
@@ -200,6 +203,7 @@ def _valid_combinations(step_radius: float, range_radius: tuple, n_geom: int, th
     """Generate all valid radius combinations given the grid and a sum threshold."""
     min_radius, max_radius = range_radius
     radius_values = np.arange(min_radius, max_radius + step_radius, step_radius)
+    radius_values = np.append(radius_values, 0.001)  # Ensure 0.001 is included
     all_combinations = list(product(radius_values, repeat=n_geom))
     return [c for c in all_combinations if sum(c) > threshold]
 
@@ -507,35 +511,39 @@ def evaluate_kriging_from_pickle(
     if np.ptp(y) == 0:
         raise ValueError("All relative densities are identical; cannot evaluate NRMSE/R² meaningfully.")
 
+    X_scaler = StandardScaler()
+
     # Train / test split
     X_train, X_test, y_train, y_test = train_test_split(
         X, y, test_size=float(test_size), random_state=random_state
     )
 
     # Kernel definition
-    if kernel is None:
-        kernel = (C(1.0, (1e-3, 1e3)) *
-                  RBF(length_scale=np.ones(X.shape[1]), length_scale_bounds=(1e-3, 1e3))
-                  + WhiteKernel(noise_level=1e-6, noise_level_bounds=(1e-12, 1e-1)))
+    kernel = C(1.0, (1e-3, 1e3)) * RBF(length_scale=X.shape[1] * [1.0],
+                                       length_scale_bounds=(1e-3, 1e3))
 
-    gpr = GaussianProcessRegressor(
-        kernel=kernel,
-        n_restarts_optimizer=10,
-        normalize_y=normalize_y,
-        random_state=random_state,
-    )
+    pipe = Pipeline([
+        ("x_scaler", StandardScaler()),
+        ("gpr", GaussianProcessRegressor(
+            kernel=kernel,
+            alpha=1e-10,  # nugget numérique (évite le bruit au bord)
+            n_restarts_optimizer=10,
+            normalize_y=True,
+            random_state=random_state,
+        ))
+    ])
 
-    # Fit
-    gpr.fit(X_train, y_train)
+    pipe.fit(X_train, y_train)
 
-    # Predict & metrics
-    y_pred, y_std = gpr.predict(X_test, return_std=True)
+    X_test_s = pipe.named_steps["x_scaler"].transform(X_test)
+    y_pred, y_std = pipe.named_steps["gpr"].predict(X_test_s, return_std=True)
 
     mse = mean_squared_error(y_test, y_pred)
     rmse = float(np.sqrt(mse))
     mae = mean_absolute_error(y_test, y_pred)
     nrmse = float(rmse / (np.max(y_test) - np.min(y_test)))
     r2 = r2_score(y_test, y_pred)
+    learned_kernel = str(pipe.named_steps["gpr"].kernel_)
 
     print("✅ Kriging model evaluation")
     print(f"   • Train size = {len(y_train)}, Test size = {len(y_test)}")
@@ -544,7 +552,7 @@ def evaluate_kriging_from_pickle(
     print(f"   • MAE   = {mae:.6e}")
     print(f"   • NRMSE = {nrmse:.6e}")
     print(f"   • R²    = {r2:.6f}")
-    print(f"   • Learned kernel: {gpr.kernel_}")
+    print(f"   • Learned kernel: {learned_kernel}")
 
     # Save model
     project_root = Path(__file__).resolve().parents[2] / "data" / "outputs" / "relative_densities" / "surrogate_model"
@@ -552,8 +560,8 @@ def evaluate_kriging_from_pickle(
     model_path.parent.mkdir(parents=True, exist_ok=True)
     joblib.dump(
         {
-            "model": gpr,
-            "kernel": gpr.kernel_,
+            "model": pipe,
+            "kernel": learned_kernel,
             "feature_dim": X.shape[1],
             "metadata": {
                 "dataset_path": str(dataset_dir / f"{name_dataset}.pkl"),
@@ -578,7 +586,7 @@ def evaluate_kriging_from_pickle(
         "n_train": int(len(y_train)),
         "n_test": int(len(y_test)),
         "model_path": str(model_path),
-        "kernel_": str(gpr.kernel_),
+        "kernel_": str(learned_kernel),
     }
 
 def plot_parity(y_true, y_pred, save_path=None):
@@ -641,9 +649,9 @@ def plot_parity(y_true, y_pred, save_path=None):
 def evaluate_saved_kriging(
     dataset_dir: Path | None,
     name_dataset: str,
-    model_path: Path | None = None,
+    model_name: str | None = None,
     use_test_split: bool = True,
-    test_size: float = 0.2,
+    test_size: float = 0.9,
     random_state: int = 42,
     min_vol: float = 0.0,
     max_vol: float = 0.6,
@@ -659,8 +667,8 @@ def evaluate_saved_kriging(
         Directory containing '<name_dataset>.pkl'. If None, uses the default data path.
     name_dataset : str
         Dataset base name (without extension).
-    model_path : Path | None
-        Path to the saved model file. If None, uses the default surrogate_model path.
+    model_name : str | None
+        Relative path (from the project root) to the saved model.
     use_test_split : bool
         If True, evaluate on a train/test split (reproducible with `random_state`).
         If False, evaluate on the whole dataset.
@@ -683,9 +691,10 @@ def evaluate_saved_kriging(
     # Resolve default paths
     if dataset_dir is None:
         dataset_dir = Path(__file__).parents[2] / "data" / "outputs" / "relative_densities" / "data"
-    if model_path is None:
-        model_root = Path(__file__).parents[2] / "data" / "outputs" / "relative_densities" / "surrogate_model"
-        model_path = model_root / f"kriging_model_{name_dataset}"
+    model_root = Path(__file__).parents[2] / "data" / "outputs" / "relative_densities" / "surrogate_model"
+    model_path = model_root / f"kriging_model_{model_name}"
+
+    save_parity_path = dataset_dir / save_parity_path
 
     # Load model
     model_obj = joblib.load(model_path)
@@ -706,7 +715,8 @@ def evaluate_saved_kriging(
     # Build arrays
     X = np.array(list(rel_dens_dict.keys()), dtype=float)
     y = np.array(list(rel_dens_dict.values()), dtype=float)
-    if X.ndim == 1:
+    is_1d_keys = (X.shape[1] == 1)
+    if is_1d_keys:
         X = X.reshape(-1, 1)
 
     # Choose eval set
@@ -716,6 +726,7 @@ def evaluate_saved_kriging(
         )
     else:
         X_eval, y_eval = X, y
+
 
     # Predict & compute metrics
     y_pred = gpr.predict(X_eval)
@@ -731,6 +742,26 @@ def evaluate_saved_kriging(
         plot_parity(y_eval, y_pred, save_path=save_parity_path)
     except Exception as e:
         print(f"[warn] Parity plot failed: {e}")
+
+    if is_1d_keys:
+        fig, ax = plt.subplots()
+        ax.scatter(X_eval.ravel(), y_eval, s=16, alpha=0.8, label="Ground truth")
+
+        x_min, x_max = float(np.min(X)), float(np.max(X))
+        x_grid = np.linspace(x_min, x_max, 400).reshape(-1, 1)
+        y_grid = gpr.predict(x_grid)
+        ax.plot(x_grid.ravel(), y_grid, linewidth=1.5, label="Model prediction")
+
+        ax.set_xlabel("Key")
+        ax.set_ylabel("Relative density")
+        ax.set_title("Relative density vs Key")
+        ax.legend(loc="best")
+        ax.grid(True, alpha=0.2)
+
+        if save_parity_path is not None:
+            save_xy_path = save_parity_path.with_name(save_parity_path.stem + "_xy.png")
+            fig.savefig(save_xy_path, dpi=150, bbox_inches="tight")
+        plt.close(fig)
 
     print("✅ Loaded Kriging model evaluation")
     print(f"   • Eval size = {len(y_eval)}")

@@ -78,6 +78,7 @@ class Cell(object):
         self._verbose: int = _verbose
         self.neighbour_cells: dict = {}
         self.schur_complement: list[list[float]] or None = None
+        self.schur_complement_gradient: list[list[float]] or None = None
         self.node_in_order_simulation: Optional[List[Point]] = None
 
         self.generate_cell_properties(initial_size, beams_already_defined, nodes_already_defined)
@@ -157,7 +158,8 @@ class Cell(object):
         """
         volumeBeams = 0
         for beam in self.beams_cell:
-            volumeBeams += beam.volume
+            if beam.beam_mod is False:
+                volumeBeams += beam.volume
         return volumeBeams / self.volume
 
     @property
@@ -683,14 +685,15 @@ class Cell(object):
         """
         Get the internal energy of the cell
         """
+        min_energy = -1e-12
         internalEnergy = 0
-        for beam in self.beams_cell:
-            for point in [beam.point1, beam.point2]:
-                if point.index_boundary is not None:
-                    pointEnergy = point.calculate_point_energy()
-                    if pointEnergy < 0:
-                        raise ValueError("Negative energy detected at point with index " + str(point.index_boundary))
-                    internalEnergy += pointEnergy
+        for point in self.points_cell:
+            if point.index_boundary is not None:
+                pointEnergy = point.calculate_point_energy()
+                if pointEnergy < min_energy:
+                    print("Negative energy = ", pointEnergy)
+                    raise ValueError("Negative energy detected at point with index " + str(point.index_boundary))
+                internalEnergy += pointEnergy
         return internalEnergy
 
     def get_displacement_data(self) -> list:
@@ -728,6 +731,16 @@ class Cell(object):
             beam.change_beam_radius(beamRadius[beam.type_beam])
 
         self.radii = new_radius
+
+    def reset_beam_modification(self) -> None:
+        """
+        Reset beam modification in the cell
+        """
+        for beam in self.beams_cell:
+            if beam.beam_mod:
+                beam.radius = self.radii[beam.type_beam]
+
+
 
     def get_relative_density_kriging(self, kriging_model) -> float:
         """
@@ -780,9 +793,6 @@ class Cell(object):
         grad = np.zeros(len(self.radii))
 
         for idx, rad in enumerate(self.radii):
-            print("Computing gradient for radius index", idx, "with value", rad)
-            print(self.geom_types)
-            print(geometries_types)
             if self.geom_types[idx] not in geometries_types:
                 print("geometry types in cell", self.geom_types, " Not in the trained kriging model", geometries_types)
                 raise ValueError("Incompatible geometry types between the cell and the kriging model.")
