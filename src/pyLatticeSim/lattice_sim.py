@@ -623,6 +623,7 @@ class LatticeSim(Lattice):
         schur_complement_approx: np.ndarray
             Approximated Schur complement
         """
+        # Evaluate alpha coefficients based on the chosen surrogate method
         if self.type_schur_complement_computation == "nearest_neighbor":
             neigh = NearestNeighbors(n_neighbors=1, algorithm='auto')
             neigh.fit(self.reduce_basis_dict["list_elements"])
@@ -636,12 +637,16 @@ class LatticeSim(Lattice):
             alphas = self.radial_basis_function(np.array(geometric_params).reshape(1, -1)).squeeze()
         else:
             raise NotImplementedError("Not implemented schur complement computation method.")
+
+        # Reconstruct Schur complement
         schur_complement_approx = self.reduce_basis_dict["basis_reduced_ortho"] @ alphas
         if self.shape_schur_complement is None:
             self.shape_schur_complement = int(sqrt(schur_complement_approx.shape[0]))
         schur_complement_approx_reshape = schur_complement_approx.reshape(
             (self.shape_schur_complement, self.shape_schur_complement), order='F')
+
         return schur_complement_approx_reshape
+
 
     def _compute_schur_gradients(self, cell: "Cell", radii_params: list[float]) -> list[np.ndarray]:
         """
@@ -826,6 +831,8 @@ class LatticeSim(Lattice):
                 print(Fore.GREEN + "Conjugate Gradient converged."+ Style.RESET_ALL)
             else:
                 print(Fore.RED + "Conjugate Gradient did not converge."+ Style.RESET_ALL)
+
+        self.update_reaction_force_each_cell(xsol)
 
         # Reset boundary conditions
         self.set_boundary_conditions()

@@ -25,11 +25,6 @@ def get_schur_complement(lattice: "LatticeSim", cell_index: int = None):
     if cell_index is None and lattice.get_number_cells() > 1:
         raise ValueError("The lattice must contain only one cell for Schur complement calculation or specify a cell_index.")
 
-    if cell_index is None:
-        lattice.cells[0].define_node_order_to_simulate()
-    else:
-        lattice.cells[cell_index].define_node_order_to_simulate()
-
     cell = lattice.cells[0] if cell_index is None else lattice.cells[cell_index]
     cell.define_node_order_to_simulate()
 

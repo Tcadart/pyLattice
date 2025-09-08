@@ -36,9 +36,9 @@
     },
     "Force": {
       "Force": {
-        "Surface": ["Xmax", "Zmax"],
+        "Surface": ["Xmax"],
         "DOF": ["Z"],
-        "Value": [-0.0001]
+        "Value": [-0.01]
       }
     }
   },

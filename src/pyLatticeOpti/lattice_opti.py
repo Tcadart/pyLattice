@@ -100,7 +100,7 @@ class LatticeOpti(LatticeSim):
         self.plotting_densities.clear()
 
         self._initialize_optimization_solver()
-        self._add_constraint_density()
+        # self._add_constraint_density()
         minimize_kwargs = dict(
             fun=self.objective,
             x0=self.initial_parameters,
@@ -217,7 +217,7 @@ class LatticeOpti(LatticeSim):
         self.bounds = Bounds(lb=[borneMin] * self.number_parameters, ub=[borneMax] * self.number_parameters)
 
         if self.optimization_parameters["type"] == "unit_cell":
-            self.initial_parameters = [borneMax] * self.number_parameters
+            self.initial_parameters = [0.8] * self.number_parameters
         elif self.optimization_parameters["type"] == "linear":
             if self.radius_field is None:
                 self._build_radius_field()
@@ -500,11 +500,12 @@ class LatticeOpti(LatticeSim):
             print(Fore.GREEN + "Objective function" + Fore.RESET)
         print("Parameters:", r)
         self.set_optimization_parameters(r)
-        self._simulate_lattice_equilibrium()
+        if not self._sim_is_current:
+            self._simulate_lattice_equilibrium()
         objective = self.calculate_objective()
         print("objective", objective)
         self.denorm_objective = objective
-        objectiveNorm = self.normalize_objective_data(objective, objective_type = True)
+        objectiveNorm = self.normalize_objective(objective)
 
         if self.objective_function == "max":
             objectiveNorm = -objectiveNorm
@@ -518,40 +519,44 @@ class LatticeOpti(LatticeSim):
         print("Actual objective", self.actual_objective)
         return self.actual_objective
 
-    def normalize_objective_data(self, value, objective_type: bool = True):
+    def _ensure_norm_scale_initialized(self, reference_value: float | None) -> None:
         """
-        Normalize the objective value if normalization is enabled.
-
-        Parameters:
-        -----------
-        value: float
-            The objective value to normalize.
-        objectif : bool
-            True if normalizing objective, False if normalizing gradient.
-
-        Returns:
-        --------
-        float
-            Normalized objective value.
+        Initialize the normalization scale C_0 once (and only once).
         """
-        if self.enable_normalization:
-            if self.initial_value_objective is None and objective_type:
-                # Use a positive scale to avoid sign flips when normalizing
-                scale = abs(value)
-                if scale == 0.0:
-                    scale = 1.0  # fallback to avoid division by zero
-                self.initial_value_objective = scale
-                print("Initial objective value (scale): ", self.initial_value_objective)
+        if not self.enable_normalization:
+            self.initial_value_objective = None
+            return
+        if self.initial_value_objective is None:
+            s = abs(float(reference_value)) if reference_value is not None else 1.0
+            if s == 0.0:
+                s = 1.0  # robust fallback
+            self.initial_value_objective = s
+            print("Initial objective value (scale): ", self.initial_value_objective)
 
-            value_normalized = value / self.initial_value_objective
-            if self._verbose >= 1:
-                if objective_type:
-                    print("Objective normalized: ", value_normalized)
-                else:
-                    print("Gradient normalized: ", value_normalized)
-            return value_normalized
-        else:
-            return value
+    def normalize_objective(self, value: float) -> float:
+        """
+        Return C/C_0 when normalization is enabled; otherwise return C.
+        """
+        if not self.enable_normalization:
+            return float(value)
+        if self.initial_value_objective is None:
+            self._ensure_norm_scale_initialized(value)
+
+        return float(value) / self.initial_value_objective
+
+    def _to_normalized_theta_space(self, grad_dr: np.ndarray) -> np.ndarray:
+        """
+        Map gradient from physical radii space (dC/dr) to the optimizer's
+        normalized parameter space (d(C/C0)/dθ), where:
+          C0 = self.initial_value_objective (first objective value, >0)
+          r  = min_radius + θ * (max_radius - min_radius)
+        so: d(C/C0)/dθ = (1/C0) * dC/dr * (max_radius - min_radius)
+        """
+        if not self.enable_normalization:
+            return grad_dr
+        if self.initial_value_objective in (None, 0.0):
+            raise RuntimeError("Normalization scale not initialized; call objective() once before grad.")
+        return grad_dr * (self.max_radius - self.min_radius) / self.initial_value_objective
 
 
     def _simulate_lattice_equilibrium(self):
@@ -795,8 +800,15 @@ class LatticeOpti(LatticeSim):
             u = node.displacement_vector
             for k in range(self.n_DOF_per_node):
                 if node.applied_force[k] != 0.0:
-                    total += node.applied_force[k] * u[k]
-        return  float(total)
+                    coefficient = node.applied_force[k] * u[k]
+                    if coefficient < 0:
+                        print(node)
+                        print("Displacement at node", node.index, "DOF", k, ":", u[k])
+                        print("Applied force at node", node.index, "DOF", k, ":", node.applied_force[k])
+                        print(Fore.YELLOW + "Warning: negative contribution to compliance from node "
+                              f"{node.index}, DOF {k}." + Fore.RESET)
+                    total += coefficient
+        return float(total)
 
     def compute_global_energy(self) -> float:
         """
@@ -847,10 +859,14 @@ class LatticeOpti(LatticeSim):
         if not self._sim_is_current:
             self._simulate_lattice_equilibrium()
 
-        g = self.calculate_gradient()
-        print("Raw gradient:", g)
+        g_raw = self.calculate_gradient()
+        g = self._to_normalized_theta_space(g_raw)
 
-        g = self.normalize_objective_data(g, objective_type=False)
+        finite_diff_g = self.finite_difference_gradient(r, eps=1e-2, scheme="central")
+        print("Raw gradient:", g)
+        print("Finite-difference gradient:", finite_diff_g)
+        diff = (g - finite_diff_g)
+        print("Gradient difference:", diff)
 
         # Optionally store for callbacks/plots
         self.actualGradient = g.copy()
@@ -890,7 +906,7 @@ class LatticeOpti(LatticeSim):
                     contrib = u_cell @ dF_cell  # scalar
 
                     p_idx = cell.index * n_geom + j_local
-                    grad[p_idx] += half_factor * contrib * norm_scale
+                    grad[p_idx] += contrib
 
         elif opt_type == "constant":
             hybrid = bool(self.optimization_parameters.get("hybrid", False))
@@ -903,7 +919,7 @@ class LatticeOpti(LatticeSim):
                         cell.define_node_order_to_simulate()
                     u_cell = np.array(cell.get_displacement_at_nodes(cell.node_in_order_simulation), dtype=float).ravel()
 
-                    for j_local, dS in enumerate(getattr(cell, "schur_complement_grads", [])):
+                    for j_local, dS in enumerate(getattr(cell, "schur_complement_gradient", [])):
                         dF_cell = dS @ u_cell
 
                         contrib = 0.0
@@ -928,7 +944,7 @@ class LatticeOpti(LatticeSim):
                         cell.define_node_order_to_simulate()
                     u_cell = np.array(cell.get_displacement_at_nodes(cell.node_in_order_simulation), dtype=float).ravel()
 
-                    for dS in getattr(cell, "schur_complement_grads", []):
+                    for dS in getattr(cell, "schur_complement_gradient", []):
                         dF_cell = dS @ u_cell
 
                         idx_flat = 0
@@ -946,6 +962,100 @@ class LatticeOpti(LatticeSim):
 
         return grad
 
+    def finite_difference_gradient(self, r, eps: float = 1e-6, scheme: str = "central") -> np.ndarray:
+        """
+        Approximate the gradient of the *normalized* objective w.r.t. the optimizer parameters
+        using finite differences, in the same parameter space as SLSQP.
+
+        Parameters
+        ----------
+        r : array-like
+            Current optimization parameters (normalized if enable_normalization=True).
+        eps : float
+            Finite-difference step (applied in the same space as `r`).
+        scheme : {"central","forward","backward"}
+            Finite-difference scheme.
+
+        Returns
+        -------
+        np.ndarray
+            Approximate gradient vector (same shape as r).
+        """
+        r = np.asarray(r, dtype=float).copy()
+        n = r.size
+        g = np.zeros_like(r)
+
+        # Make sure normalization scale is fixed before perturbations
+        if self.enable_normalization and self.initial_value_objective is None:
+            _ = self.objective(r)  # sets self.initial_value_objective
+
+        # Helper to clamp to bounds (they are already in the same space as r)
+        def _clamp(val, i):
+            return float(min(self.bounds.ub[i], max(self.bounds.lb[i], val)))
+
+        # Optionally cache f(r) for 1-sided schemes
+        f0 = None
+        if scheme in ("forward", "backward"):
+            f0 = self.objective(r)
+
+        for i in range(n):
+            if scheme == "forward":
+                rp = r.copy()
+                rp[i] = _clamp(rp[i] + eps, i)
+                if rp[i] == r[i]:
+                    # cannot move forward -> fallback to backward
+                    rm = r.copy()
+                    rm[i] = _clamp(rm[i] - eps, i)
+                    fm = self.objective(rm)
+                    denom = r[i] - rm[i]
+                    g[i] = (f0 - fm) / max(denom, 1e-16)
+                else:
+                    fp = self.objective(rp)
+                    denom = rp[i] - r[i]
+                    g[i] = (fp - f0) / max(denom, 1e-16)
+
+            elif scheme == "backward":
+                rm = r.copy()
+                rm[i] = _clamp(rm[i] - eps, i)
+                if rm[i] == r[i]:
+                    # cannot move backward -> fallback to forward
+                    rp = r.copy()
+                    rp[i] = _clamp(rp[i] + eps, i)
+                    fp = self.objective(rp)
+                    denom = rp[i] - r[i]
+                    g[i] = (fp - f0) / max(denom, 1e-16)
+                else:
+                    fm = self.objective(rm)
+                    denom = r[i] - rm[i]
+                    g[i] = (f0 - fm) / max(denom, 1e-16)
+
+            else:  # central (default)
+                rp = r.copy(); rm = r.copy()
+                rp[i] = _clamp(rp[i] + eps, i)
+                rm[i] = _clamp(rm[i] - eps, i)
+
+                if rp[i] == rm[i]:
+                    # both clamped to same value -> try tiny forward step
+                    rp2 = r.copy()
+                    rp2[i] = _clamp(rp2[i] + eps, i)
+                    f0c = self.objective(r)
+                    fp2 = self.objective(rp2)
+                    denom = rp2[i] - r[i]
+                    g[i] = (fp2 - f0c) / max(denom, 1e-16)
+                else:
+                    fp = self.objective(rp)
+                    fm = self.objective(rm)
+                    denom = rp[i] - rm[i]
+                    g[i] = (fp - fm) / max(denom, 1e-16)
+
+        # Restore the state at r (to keep downstream code consistent)
+        self.set_optimization_parameters(list(r))
+        if not self._sim_is_current:
+            self._simulate_lattice_equilibrium()
+
+        return g
+
+
     @timingOpti.timeit
     def load_relative_density_model(self):
         """
@@ -957,8 +1067,11 @@ class LatticeOpti(LatticeSim):
             The loaded model
         """
         path_dataset, name_dataset = _find_path_to_data(self)
-        path_model = path_dataset.parent / "surrogate_model" / (f"kriging_model_"
-                                                                f"{name_dataset.replace("RelativeDensities_","")}")
+        path_model = (
+            path_dataset.parent
+            / "surrogate_model"
+            / ("kriging_model_" + name_dataset.replace("RelativeDensities_", ""))
+        )
 
         if not os.path.exists(path_model):
             print(f"Model file not found: {path_model}")
