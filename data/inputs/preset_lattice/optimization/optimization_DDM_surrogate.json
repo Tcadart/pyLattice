@@ -6,7 +6,7 @@
         "z": 1
       },
     "number_of_cells": {
-      "x": 10,
+      "x": 1,
       "y": 1,
       "z": 1
     },
@@ -21,7 +21,7 @@
           "enable_preconditioner": true,
           "max_iterations": 10,
           "schur_complement_computation": {
-          "type": "RBF",
+          "type": "nearest_neighbor",
           "precision_greedy": 1e-6
         }
       }

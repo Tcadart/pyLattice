@@ -606,6 +606,9 @@ class LatticeSim(Lattice):
                 S = schur_cache[geom_key][radius_key]["S"]
                 dS_list = schur_cache[geom_key][radius_key]["dS"]
 
+            print(list(radius_key))
+            print(S)
+
             cell.schur_complement = S
             cell.schur_complement_gradient = dS_list
 
