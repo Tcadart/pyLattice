@@ -39,3 +39,18 @@ exclude_patterns = []
 
 html_theme = 'sphinx_rtd_theme'
 html_static_path = ['_static']
+
+# GitHub Pages configuration
+html_extra_path = []
+
+def setup(app):
+    """Add custom setup for Sphinx build."""
+    # Create .nojekyll file to disable Jekyll processing on GitHub Pages
+    import os
+    def create_nojekyll(app, env):
+        if app.builder.name == 'html':
+            nojekyll_path = os.path.join(app.outdir, '.nojekyll')
+            with open(nojekyll_path, 'w') as f:
+                f.write('')
+    
+    app.connect('env-updated', create_nojekyll)
