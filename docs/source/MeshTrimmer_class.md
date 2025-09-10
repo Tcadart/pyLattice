@@ -30,8 +30,8 @@ meshes. Additionally, it allows for cutting lattice beams that intersect with a 
 Typically used in conjunction with the `Lattice` class:
 
 ```python
-from mesh_file.mesh_trimmer import MeshTrimmer
-from lattice import Lattice
+from data.inputs.mesh_file.mesh_trimmer import MeshTrimmer
+from pyLattice.lattice import Lattice
 
 trimmer = MeshTrimmer("example_mesh.stl")
 lattice = Lattice(..., mesh_trimmer=trimmer)
@@ -119,8 +119,8 @@ When passed to the `Lattice` class via the `mesh_trimmer` argument, `MeshTrimmer
 * Optionally trim beams based on the geometry
 
 ```python
-from mesh_file.mesh_trimmer import MeshTrimmer
-from lattice import Lattice
+from data.inputs.mesh_file.mesh_trimmer import MeshTrimmer
+from pyLattice.lattice import Lattice
 
 trimmer = MeshTrimmer("example_mesh.stl")
 lattice = Lattice(..., mesh_trimmer=trimmer)
