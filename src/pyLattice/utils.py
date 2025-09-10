@@ -404,16 +404,16 @@ def save_JSON_to_Grasshopper(lattice, nameLattice: str = "LatticeObject", multip
     multipleParts: int, optional (default: 1)
         Number of parts to save.
     """
-    folder = "saved_lattice_file"
-    if not os.path.exists(folder):
-        os.makedirs(folder)
+    folder_path = Path(__file__).resolve().parents[2] / "data" / "outputs" / "saved_lattice_file"
+    if not os.path.exists(folder_path):
+        os.makedirs(folder_path)
 
     numberCell = len(lattice.cells)
     cellsPerPart = max(1, numberCell // multipleParts)
 
     for partIdx in range(multipleParts):
         partName = f"{nameLattice}_part{partIdx + 1}.json" if multipleParts > 1 else f"{nameLattice}.json"
-        file_pathJSON = os.path.join(folder, partName)
+        file_pathJSON = os.path.join(folder_path, partName)
 
         partNodesX = []
         partNodesY = []
