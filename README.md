@@ -22,25 +22,30 @@ The structures are defined by cells, beams, and nodes. The code supports various
 - **Visualization**: Use matplotlib or Plotly for 3D visualization of the generated structures.
 
 ## Project Structure
-- **Lattice.py**: Main class for generating and managing lattice structures.
-- **Beam.py**: Defines the properties and methods of beams connecting nodes in the lattice.
-- **Cell.py**: Defines cells in the lattice structure.
-- **Point.py**: Defines points (nodes) in 3D space for the lattice.
-- **Materials.py**: Handles the material properties.
-- **Geometry_Lattice.py**: Definition of geometries and contains methods for specific geometric manipulations (e.g., cylindrical transformation).
-- **Main.py**: Example script to generate and visualize lattice structures.
-- **settings.py**: Configuration file to set lattice settings.
+- **src/pyLattice/lattice.py**: Main class for generating and managing lattice structures.
+- **src/pyLattice/beam.py**: Defines the properties and methods of beams connecting nodes in the lattice.
+- **src/pyLattice/cell.py**: Defines cells in the lattice structure.
+- **src/pyLattice/point.py**: Defines points (nodes) in 3D space for the lattice.
+- **src/pyLattice/materials.py**: Handles the material properties.
+- **src/pyLattice/geometries/**: Contains geometry definitions for various lattice types.
+- **src/pyLatticeSim/**: Simulation backend using FEniCSx for finite element analysis.
+- **src/pyLatticeOpti/**: Optimization tools for lattice design.
+- **examples/**: Example scripts demonstrating various use cases.
+- **main.py**: Main example script to generate and visualize lattice structures.
 
 ## Installation
 
 1. Clone the repository:
    ```bash
-   git clone https://github.com/yourusername/Lattice.git
+   git clone https://github.com/Tcadart/pyLattice.git
+   cd pyLattice
    ```
 2. Set up the project:
    ```bash
-   pip install -r requirements.txt
+   pip install -e .
    ```
+
+For detailed installation instructions including optional dependencies for simulation and mesh operations, see the [Installation Guide](docs/source/Installation_tutorial.md).
 
 ## Usage
 
@@ -48,78 +53,64 @@ The structures are defined by cells, beams, and nodes. The code supports various
 To generate a simple lattice structure:
 
 ```python
-from lattice import Lattice
+from pyLattice.lattice import Lattice
+from pyLattice.plotting_lattice import LatticePlotting
 
-lattice = Lattice.simpleLattice(
-    cell_size_x=1.0,
-    cell_size_y=1.0,
-    cell_size_z=1.0,
-    num_cells_x=5,
-    num_cells_y=5,
-    num_cells_z=5,
-    Lattice_Type=0,
-    Radius=0.1
-)
+# Load lattice from JSON parameter file
+name_file = "design/simple_BCC"
+lattice = Lattice(name_file)
+
+# Visualize the lattice
+visualizer = LatticePlotting()
+visualizer.visualize_lattice(lattice, beam_color_type="radii")
 ```
 
-### Custom Lattice with Gradients
-To generate a lattice with custom gradient settings:
-```python
-gradDimProperty = ['linear', [1, 0, 1], [0.2, 0.0, 0.5]]
-gradRadiusProperty = ['parabolic', [0, 0, 1], [0.0, 0.0, 0.1]]
+### Advanced Lattice with Custom Parameters
+For more complex lattice configurations, create a JSON parameter file with custom settings:
 
-lattice = Lattice(
-    cell_size_x=1.0, 
-    cell_size_y=1.0, 
-    cell_size_z=1.0, 
-    num_cells_x=10, 
-    num_cells_y=10, 
-    num_cells_z=10,
-    Lattice_Type=5, 
-    Radius=0.1,
-    gradRadiusProperty=gradRadiusProperty, 
-    gradDimProperty=gradDimProperty,
-    gradMatProperty=[0, 3]
-)
+```json
+{
+  "cell_size": [1.0, 1.0, 1.0],
+  "num_cells": [5, 5, 5],
+  "geom_types": ["BCC"],
+  "beam_radius": 0.1,
+  "materials": {"E": 200000, "nu": 0.3, "rho": 7800}
+}
 ```
 
-### Visualizing the Lattice
-To visualize the generated lattice structure in 3D:
-
+Then load and visualize:
 ```python
-lattice.visualize_lattice()
-```
-
-### Simulation Preparation
-Prepare the lattice for a simulation with node uncertainty and boundary conditions:
-```python
-lattice = Lattice.hybridgeometry(
-    cell_size_x=1.0, 
-    cell_size_y=1.0, 
-    cell_size_z=1.0, 
-    simMethod=1, 
-    uncertaintyNode=1,
-    hybridLatticeData=[0.1, 0.2, 0.15]
-)
+lattice = Lattice("path/to/your/config")
+visualizer = LatticePlotting()
+visualizer.visualize_lattice(lattice)
 ```
 
 ## Configuration
 
-The configuration file `settings.py` allows setting default parameters such as:
-- `Radius`: Initial beam radius.
-- `Lattice_Type`: Type of lattice geometry to generate.
-- `GradDimRule`: Rule for gradient of cell dimensions.
-- `GradRadRule`: Rule for gradient of beam radii.
-- `MethodSim`: Simulation method (e.g., node modification).
-- `uncertaintyNodeSD`: Standard deviation for node uncertainty.
+Lattice parameters are configured using JSON files stored in the `data/inputs/` directory. These files define:
+- **Cell dimensions**: Size of unit cells
+- **Lattice geometry**: Type of lattice structure (BCC, Octet, Kelvin, etc.)
+- **Material properties**: Elastic modulus, Poisson's ratio, density
+- **Beam properties**: Radius and gradient settings
+- **Simulation settings**: Boundary conditions and solver parameters
+
+Example parameter files can be found in the `examples/` directory.
 
 ## Dependencies
 
-- Python 3.x
-- Matplotlib
-- Plotly
-- NumPy
-- SciPy
+### Core Dependencies
+- Python 3.12+
+- NumPy >= 1.26.4
+- Matplotlib >= 3.8.0
+- Gmsh >= 4.14.0
+- SymPy >= 1.12
+
+### Optional Dependencies
+- **Simulation**: FEniCSx, UFL, Basix (install via conda-forge)
+- **Mesh Operations**: Trimesh, RTree, PyEmbree
+- **Optimization**: Scikit-learn
+
+See [Installation Guide](docs/source/Installation_tutorial.md) for detailed setup instructions.
 
 ## License
 
