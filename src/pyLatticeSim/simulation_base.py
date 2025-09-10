@@ -9,7 +9,7 @@ from colorama import Style, Fore
 
 import numpy as np
 
-
+import ufl
 from ufl import (TestFunction, TrialFunction, split, as_vector, dot, grad, diag, Measure,
                  dx, action)
 from basix.ufl import element, mixed_element
@@ -223,17 +223,6 @@ class SimulationBase:
     def apply_constraint_at_node(self, node_tag: int, value_constraint: float, dof_idx: int, type_constraint: str):
         """
         Apply a constraint at a specific node.
-
-        Parameters:
-        -----------
-        node_tag: int
-            Tag identifying the node.
-        valueConstraint: float
-            The value of the constraint.
-        dofIdx: int
-            The degree of freedom where the constraint is applied.
-        typeConstraint: string
-            Type of the constraint ("Displacement", "Force")
         """
         dictType = {"Displacement", "Force"}
         if type_constraint not in dictType:
@@ -241,38 +230,41 @@ class SimulationBase:
 
         # Locate the node indices with the given tag
         nodeIndices = self.BeamModel.facets.find(node_tag)
-
         if len(nodeIndices) == 0:
             raise ValueError("No nodes found with tag " + str(node_tag))
 
-        # Find the DOFs associated with the node
-        nodesLocatedDofs = fem.locate_dofs_topological(self._V, self.domain.topology.dim - 1, nodeIndices)
-
-        nodesLocatedDofs = nodesLocatedDofs[dof_idx]
-
         if type_constraint == "Displacement":
-            # Define the displacement function and set the values
+            # Find the DOFs associated with the node (mixed space)
+            nodesLocatedDofs = fem.locate_dofs_topological(self._V, self.domain.topology.dim - 1, nodeIndices)
+            # Keep only the targeted component dof
+            target_dof = nodesLocatedDofs[dof_idx]
             u_bc = fem.Function(self._V)
             with u_bc.vector.localForm() as loc:
-                loc[nodesLocatedDofs] = value_constraint
-            # Apply the boundary condition
-            self._bcs.append(fem.dirichletbc(u_bc, nodesLocatedDofs))
+                loc[target_dof] = value_constraint
+            self._bcs.append(fem.dirichletbc(u_bc, np.array([target_dof], dtype=np.int32)))
+
         elif type_constraint == "Force":
+            # DOFs at this vertex for the displacement subspace
+            dofs_node = fem.locate_dofs_topological(self._V.sub(0), self.domain.topology.dim - 1, nodeIndices)
+
+            # Indicator on the *mixed* space (so it can be used directly in the UFL form)
             indicator = fem.Function(self._V)
-            with indicator.vector.localForm() as local_vec:
-                local_vec.set(0.0)
-                local_vec[nodesLocatedDofs] = 1.0  # Marquer uniquement les DOFs ciblés
+            with indicator.x.petsc_vec.localForm() as loc:
+                loc.set(0.0)
+                for idx in np.atleast_1d(dofs_node):
+                    loc[idx] = 1.0
 
-            forceVector = np.zeros(3)
-            forceVector[dof_idx] = value_constraint
-            force_expr = fem.Constant(self.domain, forceVector)
+            (w_, theta_) = ufl.split(self._u_)
+            (ind_w, ind_theta) = ufl.split(indicator)
 
-            # Add nodal force contribution to the L-form
-            (w_, theta_) = split(self._u_)
-            if self._l_form is None:
-                self._l_form = dot(force_expr, as_vector([indicator[i] * w_[i] for i in range(3)])) * self._dx
-            else:
-                self._l_form += dot(force_expr, as_vector([indicator[i] * w_[i] for i in range(3)])) * self._dx
+            # Only the requested component carries the value; others are zero
+            f_vec = np.zeros(3, dtype=float)
+            f_vec[dof_idx] = value_constraint
+
+            for i in range(3):
+                if not np.isclose(f_vec[i], 0.0):
+                    term = f_vec[i] * ind_w[i] * w_[i] * self._dx
+                    self._l_form = term if self._l_form is None else self._l_form + term
 
     def apply_all_boundary_condition_on_lattice(self, cell_only=None):
         """

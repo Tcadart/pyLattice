@@ -32,14 +32,12 @@
         "Surface": ["Xmin"],
         "DOF": ["X", "Y", "Z", "RX", "RY", "RZ"],
         "Value": [0, 0, 0, 0, 0, 0]
-      }
-    },
-    "Force": {
-      "Force": {
-        "Surface": ["Xmax"],
-        "DOF": ["Z"],
-        "Value": [-0.01]
-      }
+      },
+        "Displacement": {
+            "Surface": ["Xmax"],
+            "DOF": ["Z"],
+            "Value": [-0.01]
+        }
     }
   },
     "optimization_informations": {

@@ -763,6 +763,7 @@ class LatticeSim(Lattice):
         alpha_train = np.array(self.alpha_coefficients_greedy)  # shape (N, m)
         self.radial_basis_function = RBFInterpolator(mu_train, alpha_train, kernel='thin_plate_spline')
 
+
     def define_parameters(self, enable_precondioner: bool = True, numberIterationMax: int = 1000):
         """
         Define parameters for the domain decomposition solver.
