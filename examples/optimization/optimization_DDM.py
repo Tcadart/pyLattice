@@ -15,10 +15,10 @@ lattice_object = LatticeOpti(path + name_file, verbose=1, convergence_plotting =
 
 lattice_object.optimize_lattice()
 
-# lattice_object.reset_penalized_beams()
-# save_JSON_to_Grasshopper(lattice_object, name_file + "_optimized")
+lattice_object.reset_penalized_beams()
+save_JSON_to_Grasshopper(lattice_object, name_file + "_optimized")
 
 # Visualization optimized lattice
-vizualizer = LatticePlotting()
-vizualizer.visualize_lattice(lattice_object, beam_color_type="radii", enable_boundary_conditions=True,
-                             deformedForm = True)
+# vizualizer = LatticePlotting()
+# vizualizer.visualize_lattice(lattice_object, beam_color_type="radii", enable_boundary_conditions=True,
+#                              deformedForm = True)

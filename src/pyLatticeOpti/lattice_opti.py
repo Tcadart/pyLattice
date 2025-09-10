@@ -100,7 +100,7 @@ class LatticeOpti(LatticeSim):
         self.plotting_densities.clear()
 
         self._initialize_optimization_solver()
-        # self._add_constraint_density()
+        self._add_constraint_density()
         minimize_kwargs = dict(
             fun=self.objective,
             x0=self.initial_parameters,
