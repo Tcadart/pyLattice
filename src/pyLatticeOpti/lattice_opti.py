@@ -217,7 +217,7 @@ class LatticeOpti(LatticeSim):
         self.bounds = Bounds(lb=[borneMin] * self.number_parameters, ub=[borneMax] * self.number_parameters)
 
         if self.optimization_parameters["type"] == "unit_cell":
-            self.initial_parameters = [0.8] * self.number_parameters
+            self.initial_parameters = [1] * self.number_parameters
         elif self.optimization_parameters["type"] == "linear":
             if self.radius_field is None:
                 self._build_radius_field()
@@ -801,6 +801,7 @@ class LatticeOpti(LatticeSim):
             for k in range(self.n_DOF_per_node):
                 if node.applied_force[k] != 0.0:
                     coefficient = node.applied_force[k] * u[k]
+                    print("coefficient", node.applied_force[k], u[k])
                     if coefficient < 0:
                         print(node)
                         print("Displacement at node", node.index, "DOF", k, ":", u[k])
