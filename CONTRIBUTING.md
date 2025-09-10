@@ -5,7 +5,7 @@ We welcome contributions to pyLattice! This document provides guidelines for con
 ## Contact
 
 For questions, suggestions, or collaboration opportunities, please contact:
-📧 [thomas.cadart@utbm.fr](mailto:thomas.cadart@utbm.fr)
+📧 [thomas.cadart@utbm.fr](mailto:thomas.cadart19@gmail.com)
 
 ## Development Setup
 
