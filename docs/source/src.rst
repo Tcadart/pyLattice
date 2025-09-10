@@ -1,101 +1,194 @@
-src package
-===========
+pyLattice packages
+==================
 
-Submodules
-----------
-
-src.Beam module
----------------
-
-.. automodule:: src.Beam
-   :members:
-   :show-inheritance:
-   :undoc-members:
-
-src.Cell module
----------------
-
-.. automodule:: src.Cell
-   :members:
-   :show-inheritance:
-   :undoc-members:
-
-src.Geometry\_Lattice module
-----------------------------
-
-.. automodule:: src.Geometry_Lattice
-   :members:
-   :show-inheritance:
-   :undoc-members:
-
-src.Lattice module
-------------------
-
-.. automodule:: src.Lattice
-   :members:
-   :show-inheritance:
-   :undoc-members:
-
-src.LatticePlotting module
---------------------------
-
-.. automodule:: src.LatticePlotting
-   :members:
-   :show-inheritance:
-   :undoc-members:
-
-src.Main\_open\_saved\_Lattice module
--------------------------------------
-
-.. automodule:: src.Main_open_saved_Lattice
-   :members:
-   :show-inheritance:
-   :undoc-members:
-
-src.Materials module
---------------------
-
-.. automodule:: src.Materials
-   :members:
-   :show-inheritance:
-   :undoc-members:
-
-src.Point module
-----------------
-
-.. automodule:: src.Point
-   :members:
-   :show-inheritance:
-   :undoc-members:
-
-src.Timing module
+pyLattice package
 -----------------
 
-.. automodule:: src.Timing
+.. automodule:: pyLattice
    :members:
    :show-inheritance:
    :undoc-members:
 
-src.Utils module
-----------------
+pyLattice.beam module
+---------------------
 
-.. automodule:: src.Utils
+.. automodule:: pyLattice.beam
    :members:
    :show-inheritance:
    :undoc-members:
 
-src.gradientProperties module
------------------------------
+pyLattice.cell module
+---------------------
 
-.. automodule:: src.gradientProperties
+.. automodule:: pyLattice.cell
    :members:
    :show-inheritance:
    :undoc-members:
 
-Module contents
----------------
+pyLattice.lattice module
+------------------------
 
-.. automodule:: src
+.. automodule:: pyLattice.lattice
+   :members:
+   :show-inheritance:
+   :undoc-members:
+
+pyLattice.plotting\_lattice module
+----------------------------------
+
+.. automodule:: pyLattice.plotting_lattice
+   :members:
+   :show-inheritance:
+   :undoc-members:
+
+pyLattice.materials module
+--------------------------
+
+.. automodule:: pyLattice.materials
+   :members:
+   :show-inheritance:
+   :undoc-members:
+
+pyLattice.point module
+----------------------
+
+.. automodule:: pyLattice.point
+   :members:
+   :show-inheritance:
+   :undoc-members:
+
+pyLattice.timing module
+-----------------------
+
+.. automodule:: pyLattice.timing
+   :members:
+   :show-inheritance:
+   :undoc-members:
+
+pyLattice.utils module
+----------------------
+
+.. automodule:: pyLattice.utils
+   :members:
+   :show-inheritance:
+   :undoc-members:
+
+pyLattice.gradient\_properties module
+-------------------------------------
+
+.. automodule:: pyLattice.gradient_properties
+   :members:
+   :show-inheritance:
+   :undoc-members:
+
+pyLattice.design\_transformation module
+---------------------------------------
+
+.. automodule:: pyLattice.design_transformation
+   :members:
+   :show-inheritance:
+   :undoc-members:
+
+pyLatticeOpti package
+---------------------
+
+.. automodule:: pyLatticeOpti
+   :members:
+   :show-inheritance:
+   :undoc-members:
+
+pyLatticeOpti.lattice\_opti module
+----------------------------------
+
+.. automodule:: pyLatticeOpti.lattice_opti
+   :members:
+   :show-inheritance:
+   :undoc-members:
+
+pyLatticeOpti.plotting\_lattice\_optim module
+--------------------------------------------
+
+.. automodule:: pyLatticeOpti.plotting_lattice_optim
+   :members:
+   :show-inheritance:
+   :undoc-members:
+
+pyLatticeOpti.cell\_hybrid\_relative\_density module
+--------------------------------------------------
+
+.. automodule:: pyLatticeOpti.cell_hybrid_relative_density
+   :members:
+   :show-inheritance:
+   :undoc-members:
+
+pyLatticeOpti.surrogate\_model\_relative\_densities module
+--------------------------------------------------------
+
+.. automodule:: pyLatticeOpti.surrogate_model_relative_densities
+   :members:
+   :show-inheritance:
+   :undoc-members:
+
+pyLatticeSim package
+--------------------
+
+.. automodule:: pyLatticeSim
+   :members:
+   :show-inheritance:
+   :undoc-members:
+
+pyLatticeSim.lattice\_sim module
+-------------------------------
+
+.. automodule:: pyLatticeSim.lattice_sim
+   :members:
+   :show-inheritance:
+   :undoc-members:
+
+pyLatticeSim.beam\_model module
+------------------------------
+
+.. automodule:: pyLatticeSim.beam_model
+   :members:
+   :show-inheritance:
+   :undoc-members:
+
+pyLatticeSim.simulation\_base module
+------------------------------------
+
+.. automodule:: pyLatticeSim.simulation_base
+   :members:
+   :show-inheritance:
+   :undoc-members:
+
+pyLatticeSim.lattice\_generation module
+---------------------------------------
+
+.. automodule:: pyLatticeSim.lattice_generation
+   :members:
+   :show-inheritance:
+   :undoc-members:
+
+pyLatticeSim.homogenization\_cell module
+----------------------------------------
+
+.. automodule:: pyLatticeSim.homogenization_cell
+   :members:
+   :show-inheritance:
+   :undoc-members:
+
+pyLatticeSim.schur\_complement module
+-------------------------------------
+
+.. automodule:: pyLatticeSim.schur_complement
+   :members:
+   :show-inheritance:
+   :undoc-members:
+
+pyLatticeSim.utils module
+-------------------------
+
+.. automodule:: pyLatticeSim.utils
    :members:
    :show-inheritance:
    :undoc-members:
