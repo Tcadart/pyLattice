@@ -98,78 +98,36 @@ class FullScaleLatticeSimulation(SimulationBase):
                             np.array([node.x, node.y, node.z]))
                         node.set_reaction_force(RF)
 
-    # def apply_force_on_all_nodes_with_lattice_data(self):
-    #     """
-    #     Applying force at all nodes with lattice data.
-    #
-    #     This function applies forces stored in the lattice structure onto the corresponding nodes in the finite element model.
-    #     """
-    #     nodePosition = np.round(self.domain.geometry.x, 3)
-    #     triplet_tuples = [tuple(row) for row in nodePosition]
-    #     dictNode = {triplet: idx for idx, triplet in enumerate(triplet_tuples)}
-    #
-    #     for cell in self.BeamModel.lattice.cells:
-    #         for beam in cell.beams_cell:
-    #             for node in [beam.point1, beam.point2]:
-    #                 if np.any(node.applied_force):  # Check if any force is applied
-    #                     key = tuple(np.round([node.x, node.y, node.z], 3))
-    #                     node_idx = dictNode.get(key, None)
-    #                     if node_idx is None:
-    #                         continue
-    #
-    #                     # DOFs at this vertex for the displacement subspace
-    #                     entities = np.array([node_idx], dtype=np.int32)
-    #                     dofs_node = fem.locate_dofs_topological(
-    #                         self._V.sub(0), self.domain.topology.dim - 1, entities
-    #                     )
-    #
-    #                     # Build a Dirac-like indicator on the *mixed* space so it can appear in the UFL form
-    #                     indicator = fem.Function(self._V)
-    #                     with indicator.x.petsc_vec.localForm() as local_vec:
-    #                         local_vec.set(0.0)
-    #                         for idx in np.atleast_1d(dofs_node):
-    #                             local_vec[idx] += 1.0
-    #
-    #                     # Split test function and indicator
-    #                     (w_, theta_) = ufl.split(self._u_)
-    #                     (ind_w, ind_theta) = ufl.split(indicator)
-    #
-    #                     f = np.asarray(node.applied_force, dtype=float)
-    #                     for i in range(3):
-    #                         if not np.isclose(f[i], 0.0):
-    #                             term = f[i] * ind_w[i] * w_[i] * self._dx
-    #                             self._l_form = term if self._l_form is None else self._l_form + term
     def apply_force_on_all_nodes_with_lattice_data(self):
         """
-        Register TRUE nodal point loads by collecting the global DOF indices
-        and values (no smearing with dx). They will be injected in the RHS
-        vector just before solving.
+        Applying force at all nodes with lattice data.
+
+        This function applies forces stored in the lattice structure onto the corresponding nodes in the finite element model.
         """
         self._point_loads.clear()
         node_pos = np.round(self.domain.geometry.x, 3)
         map_pos2idx = {tuple(p): i for i, p in enumerate(node_pos)}
 
         for cell in self.BeamModel.lattice.cells:
-            for beam in cell.beams_cell:
-                for node in (beam.point1, beam.point2):
-                    if not np.any(node.applied_force):
+            for node in cell.points_cell:
+                if not np.any(node.applied_force):
+                    continue
+                key = tuple(np.round([node.x, node.y, node.z], 3))
+                vertex = map_pos2idx.get(key, None)
+                if vertex is None:
+                    continue
+                entities = np.array([vertex], dtype=np.int32)
+                # displacement subspace (0), component i = 0,1,2
+                for i in range(3):
+                    fi = float(node.applied_force[i])
+                    if fi == 0.0:
                         continue
-                    key = tuple(np.round([node.x, node.y, node.z], 3))
-                    vertex = map_pos2idx.get(key, None)
-                    if vertex is None:
-                        continue
-                    entities = np.array([vertex], dtype=np.int32)
-                    # displacement subspace (0), component i = 0,1,2
-                    for i in range(3):
-                        fi = float(node.applied_force[i])
-                        if fi == 0.0:
-                            continue
-                        dofs = fem.locate_dofs_topological(
-                            self._V.sub(0).sub(i), self.domain.topology.dim - 1, entities
-                        )
-                        # dofs are indices into the PARENT mixed space -> usable directly on RHS Vec
-                        for di in np.atleast_1d(dofs):
-                            self._point_loads.append((int(di), fi))
+                    dofs = fem.locate_dofs_topological(
+                        self._V.sub(0).sub(i), self.domain.topology.dim - 1, entities
+                    )
+                    # dofs are indices into the PARENT mixed space -> usable directly on RHS Vec
+                    for di in np.atleast_1d(dofs):
+                        self._point_loads.append((int(di), fi))
 
     def print_number_DOFs(self):
         """

@@ -364,7 +364,11 @@ class SimulationBase:
         # --- replace in SimulationBase.solve_problem ---
     def solve_problem(self):
         """
-        Assemble A and b, inject true nodal point loads on b, then solve.
+        Solve the problem with a linear solver
+
+        Uses PETSc KSP solver with LU preconditioner.
+        This implementation allows to add true nodal point loads collected in self._point_loads before calling this
+        method.
         """
         from dolfinx.fem import petsc as fem_petsc
         from petsc4py import PETSc
@@ -403,7 +407,7 @@ class SimulationBase:
 
         self.u = fem.Function(self._V)
         print("Solving linear problem...")
-        ksp.solve(b, self.u.x.petsc_vec)  # <-- use .x.petsc_vec with recent dolfinx
+        ksp.solve(b, self.u.x.petsc_vec)
         self.u.x.scatter_forward()
         print(Fore.GREEN + "Problem solved" + Style.RESET_ALL)
 
