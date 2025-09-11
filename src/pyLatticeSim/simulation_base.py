@@ -50,6 +50,8 @@ class SimulationBase:
         self._boundaryTags = None
         self._K = None
         self._simulation_prepared = False
+        self._point_loads = []  # list of (global_dof_index, value) for true nodal point loads
+
 
 
 
@@ -347,16 +349,62 @@ class SimulationBase:
                 self._boundaryTags.append(tag)
         return self._boundaryTags
 
+    # def solve_problem(self):
+    #     """
+    #     Solve the problem with a linear solver
+    #     """
+    #     self.define_L_form_null()
+    #     self.u = fem.Function(self._V)
+    #     problem = LinearProblem(self._k_form, self._l_form, u=self.u, bcs=self._bcs,
+    #                                       petsc_options={"ksp_type": "preonly", "pc_type": "lu"})
+    #     print("Solving linear problem...")
+    #     problem.solve()
+    #     print(Fore.GREEN + "Problem solved" + Style.RESET_ALL)
+
+        # --- replace in SimulationBase.solve_problem ---
     def solve_problem(self):
         """
-        Solve the problem with a linear solver
+        Assemble A and b, inject true nodal point loads on b, then solve.
         """
+        from dolfinx.fem import petsc as fem_petsc
+        from petsc4py import PETSc
         self.define_L_form_null()
+        a_form = fem.form(self._k_form)
+        l_form = fem.form(self._l_form)
+
+        # Assemble matrix
+        A = fem_petsc.assemble_matrix(a_form, bcs=self._bcs)
+        A.assemble()
+
+        # Assemble RHS
+        b = fem_petsc.create_vector(l_form)
+        with b.localForm() as b_loc:
+            b_loc.set(0.0)
+        fem_petsc.assemble_vector(b, l_form)
+
+        # Apply lifting and BCs to RHS
+        fem_petsc.apply_lifting(b, [a_form], bcs=[self._bcs])
+        b.ghostUpdate(addv=PETSc.InsertMode.ADD_VALUES, mode=PETSc.ScatterMode.REVERSE)
+        fem_petsc.set_bc(b, self._bcs)
+
+        # Inject TRUE nodal point loads collected earlier
+        if self._point_loads:
+            idx = np.array([i for (i, _) in self._point_loads], dtype=np.int32)
+            val = np.array([v for (_, v) in self._point_loads], dtype=PETSc.ScalarType)
+            b.setValues(idx, val, addv=PETSc.InsertMode.ADD_VALUES)
+            b.assemble()
+
+        # Solve with LU
+        ksp = PETSc.KSP().create(self._COMM)
+        ksp.setOperators(A)
+        ksp.setType(PETSc.KSP.Type.PREONLY)
+        pc = ksp.getPC()
+        pc.setType(PETSc.PC.Type.LU)
+
         self.u = fem.Function(self._V)
-        problem = LinearProblem(self._k_form, self._l_form, u=self.u, bcs=self._bcs,
-                                          petsc_options={"ksp_type": "preonly", "pc_type": "lu"})
         print("Solving linear problem...")
-        problem.solve()
+        ksp.solve(b, self.u.x.petsc_vec)  # <-- use .x.petsc_vec with recent dolfinx
+        self.u.x.scatter_forward()
         print(Fore.GREEN + "Problem solved" + Style.RESET_ALL)
 
     def calculate_reaction_force(self, node_tag: int, solution: fem.Function = None):

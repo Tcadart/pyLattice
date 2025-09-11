@@ -38,7 +38,7 @@
       "Load" : {
         "Surface": ["Xmax"],
         "DOF": ["Z"],
-        "Value": [-0.1]
+        "Value": [-0.01]
       }
     }
   },
