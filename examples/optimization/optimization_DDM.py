@@ -15,7 +15,6 @@ name_file = "optimization_DDM_surrogate"
 lattice_Sim_object = LatticeSim(path + name_file, enable_domain_decomposition_solver = False)
 
 x_fem = solve_FEM_FenicsX(lattice_Sim_object)[0]
-print("FEM displacement", x_fem)
 
 vizualizer = LatticePlotting()
 vizualizer.visualize_lattice(lattice_Sim_object, beam_color_type="radii",
@@ -27,11 +26,10 @@ lattice_object = LatticeSim(path + name_file, enable_domain_decomposition_solver
 
 x_DDM = lattice_object.solve_DDM()[0]
 
-print("DDM displacement", x_DDM)
 relative_error = np.linalg.norm(x_fem - x_DDM) / np.linalg.norm(x_fem)
 print("Relative error between FEM and DDM", relative_error)
-for i in range(len(x_fem)):
-    print(i, x_fem[i], x_DDM[i], abs(x_fem[i]-x_DDM[i]))
+# for i in range(len(x_fem)):
+#     print(i, x_fem[i], x_DDM[i], abs(x_fem[i]-x_DDM[i]))
 
 vizualizer = LatticePlotting()
 vizualizer.visualize_lattice(lattice_object, beam_color_type="radii",

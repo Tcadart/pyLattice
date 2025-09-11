@@ -6,12 +6,12 @@
         "z": 1
       },
     "number_of_cells": {
-      "x": 1,
+      "x": 5,
       "y": 1,
       "z": 1
     },
-    "radii": [0.1],
-    "geom_types": ["BCC"]
+    "radii": [0.1, 0.1, 0.1],
+    "geom_types": ["BCC", "Hybrid1", "Hybrid4"]
   },
     "simulation_parameters": {
       "enable" : true,
