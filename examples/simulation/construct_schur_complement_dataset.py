@@ -30,7 +30,5 @@ for i, radius_combinations in enumerate(product(radius_range, repeat=len(lattice
 
     radius_values_batch.append(list(radius_combinations))
     schur_matrix_batch.append(schur_complement)
-    if sum(radius_combinations) == 0.1:
-        print(schur_complement)
 
 save_schur_complement_npz(lattice_object, radius_values_batch, schur_matrix_batch)

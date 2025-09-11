@@ -1037,6 +1037,7 @@ class LatticeSim(Lattice):
     def reset_cell_with_new_radii(self, new_radii: list[float], index_cell: int = 0) -> None:
         """
         Reset a cell with new radii for each beam type
+        WARNING: BUG for multiple geometry cells
 
         Parameters:
         ------------
@@ -1091,7 +1092,11 @@ class LatticeSim(Lattice):
         self.beams.update(new_cell.beams_cell)
         self.nodes.update(new_cell.points_cell)
 
-        # Refresh all data
+        # IMPORTANT for hybrid cells: rebuild split segments created by geometry collisions
+        if len(self.geom_types) > 1:
+            self.check_hybrid_collision()
+
+        # Refresh all data (after potential hybrid collision updates)
         self.define_beam_node_index()
         self.define_cell_index()
         self.define_cell_neighbours()
