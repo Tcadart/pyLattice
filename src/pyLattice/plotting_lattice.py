@@ -106,7 +106,7 @@ class LatticePlotting:
         domain_decomposition_plotting = False
         try:
             if lattice_object.domain_decomposition_solver:
-                domain_decomposition_plotting = True
+                domain_decomposition_plotting = False
         except AttributeError:
             pass
 

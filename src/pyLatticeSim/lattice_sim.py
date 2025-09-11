@@ -208,19 +208,38 @@ class LatticeSim(Lattice):
             List of surfaces to find points on cells (e.g., ["Xmin", "Xmax", "Ymin"]). If None, uses surfaceNames.
         """
         pointSet = self.find_point_on_lattice_surface(surfaces, surface_cells)
+        indexBoundaryList = {p.index_boundary for p in pointSet}
+        if not indexBoundaryList:
+            raise ValueError("No nodes found on the specified surfaces for constraint application.")
 
-        indexBoundaryList = {point.index_boundary for point in pointSet}
+        # Count how many TARGET boundary nodes are FREE on each requested DOF
+        # (so a total surface force is split only over DOFs that actually receive it)
+        targets_per_dof = {d: 0 for d in DOF}
+        seen = set()
+        for cell in self.cells:
+            for node in cell.points_cell:
+                ib = node.index_boundary
+                if ib is None or ib not in indexBoundaryList or ib in seen:
+                    continue
+                for d in DOF:
+                    if node.fixed_DOF[d] == 0:
+                        targets_per_dof[d] += 1
+                seen.add(ib)
 
-        for node in self.nodes:
-            if node.index_boundary in indexBoundaryList:
-                for val, DOFi in zip(value, DOF):
-                    if type_constraint == "Displacement":
-                        node.displacement_vector[DOFi] = val
-                        node.fix_DOF([DOFi])
-                    elif type_constraint == "Force":
-                        node.applied_force[DOFi] = val
-                    else:
-                        raise ValueError("Invalid type of constraint. Use 'Displacement' or 'Force'.")
+        for cell in self.cells:
+            for node in cell.points_cell:
+                ib = node.index_boundary
+                if ib in indexBoundaryList:
+                    for val, d in zip(value, DOF):
+                        if type_constraint == "Displacement":
+                            node.displacement_vector[d] = val
+                            node.fix_DOF([d])
+                        elif type_constraint == "Force":
+                            n_tgt = max(1, targets_per_dof[d])
+                            node.applied_force[d] = val / n_tgt
+                        else:
+                            raise ValueError("Invalid type of constraint. Use 'Displacement' or 'Force'.")
+
 
     def apply_force_surface(self, surfaceName: list[str], valueForce: list[float], DOF: list[int]) -> None:
         """
@@ -391,7 +410,7 @@ class LatticeSim(Lattice):
             if appliedForceAdded and sum(node.applied_force) > 0:
                 for i in range(6):
                     if node.applied_force[i] != 0:
-                        globalReactionForce[node.index_boundary][i] = node.applied_force[i]
+                        globalReactionForce[node.index_boundary][i] += node.applied_force[i]
         return globalReactionForce
 
 
@@ -606,9 +625,6 @@ class LatticeSim(Lattice):
                 S = schur_cache[geom_key][radius_key]["S"]
                 dS_list = schur_cache[geom_key][radius_key]["dS"]
 
-            print(list(radius_key))
-            print(S)
-
             cell.schur_complement = S
             cell.schur_complement_gradient = dS_list
 
@@ -805,11 +821,17 @@ class LatticeSim(Lattice):
 
         # Calculate b
         if self._verbose > -1:
-            print(Fore.GREEN + "Calculate right-hand side" + Style.RESET_ALL)
-        globalDisplacement, _ = self.get_global_displacement_DDM()
+            print(Fore.GREEN + "Assemble right-hand side" + Style.RESET_ALL)
+        u_imp, _ = self.get_global_displacement_DDM()
 
-        b = self.calculate_reaction_force_global(globalDisplacement, rightHandSide=True)
-        b = -b # Change sign to have the right-hand side
+        # Reactions induced by imposed (Dirichlet) displacements on the boundary
+        r_free = self.calculate_reaction_force_global(u_imp, rightHandSide=False)
+
+        # External applied forces on free DOFs
+        f_free = self.get_global_reaction_force_without_fixed_DOF(
+            self.get_global_reaction_force(appliedForceAdded=True), rightHandSide=True)
+
+        b = (f_free - r_free) * 1
 
         # Initialize local displacement to zero
         self._initialize_displacement()
