@@ -47,7 +47,7 @@ class LatticeOpti(LatticeSim):
         self.constraints = []
         self.iteration = 0
         self.optim_max_iteration = 1000
-        self.optim_ftol = 1e-9
+        self.optim_ftol = 1e-5
         self.optim_disp = True
         self.optim_eps = 1e-3
         self.objectif_data = None
@@ -801,7 +801,6 @@ class LatticeOpti(LatticeSim):
             for k in range(self.n_DOF_per_node):
                 if node.applied_force[k] != 0.0:
                     coefficient = node.applied_force[k] * u[k]
-                    print("coefficient", node.applied_force[k], u[k])
                     if coefficient < 0:
                         print(node)
                         print("Displacement at node", node.index, "DOF", k, ":", u[k])
@@ -861,13 +860,14 @@ class LatticeOpti(LatticeSim):
             self._simulate_lattice_equilibrium()
 
         g_raw = self.calculate_gradient()
+        g_raw = - g_raw # i don't know why but a negative sign is needed here
         g = self._to_normalized_theta_space(g_raw)
 
-        finite_diff_g = self.finite_difference_gradient(r, eps=1e-2, scheme="central")
-        print("Raw gradient:", g)
-        print("Finite-difference gradient:", finite_diff_g)
-        diff = (g - finite_diff_g)
-        print("Gradient difference:", diff)
+        # finite_diff_g = self.finite_difference_gradient(r, eps=1e-2, scheme="central")
+        # print("Raw gradient:", g)
+        # print("Finite-difference gradient:", finite_diff_g)
+        # diff = (g - finite_diff_g)
+        # print("Gradient difference:", diff)
 
         # Optionally store for callbacks/plots
         self.actualGradient = g.copy()

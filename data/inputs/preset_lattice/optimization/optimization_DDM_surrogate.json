@@ -52,11 +52,11 @@
       },
       "constraints": {
         "relative_density": {
-          "value": 0.07
+          "value": 0.2
         }
       },
       "enable_parameter_normalization": true,
       "simulation_type": "DDM",
-      "enable_gradient_computing": false
+      "enable_gradient_computing": true
   }
 }
