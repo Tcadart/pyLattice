@@ -50,7 +50,7 @@ class Point:
         self.fixed_DOF: List[bool] = [False] * 6  # Fixed DOF vector (False: free, True: fixed).
         self.global_free_DOF_index: List[Optional[float]] = [None] * 6  # Global free DOF index.
         self.node_mod: bool = False
-        self.magnification_factor: float = 50.0  # Magnification factor for visualization.
+        self.magnification_factor: float = 5.0  # Magnification factor for visualization.
         self.connected_beams: List = []  # List of beams connected to the point.
 
     def __eq__(self, other: object) -> bool:

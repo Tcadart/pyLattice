@@ -717,7 +717,7 @@ class Lattice(object):
             self.get_cell_occupancy_matrix()
         for cell in self.cells:
             local_box = self.get_relative_boundary_box(cell)
-            for n in cell.nodes_cell:
+            for n in cell.points_cell:
                 n.tag = n.tag_point(local_box)
 
     def get_cell_occupancy_matrix(self):

@@ -166,9 +166,9 @@ class LatticeSim(Lattice):
                         raise ValueError("Precision for greedy algorithm must be defined in the input file.")
             else:
                 raise ValueError("Schur complement computation method must be defined in the input file.")
-
-        elif self.domain_decomposition_solver:
-            raise ValueError("DDM parameters must be defined in the input file if DDM solver is enabled.")
+        else:
+            if self.domain_decomposition_solver:
+                raise ValueError("Schur complement computation method must be defined in the input file.")
 
         self.boundary_conditions = lattice_parameters.get("boundary_conditions", {})
 
@@ -414,22 +414,51 @@ class LatticeSim(Lattice):
         return globalReactionForce
 
 
-    def get_global_reaction_force_without_fixed_DOF(self, globalReactionForce: dict, rightHandSide: bool = False) \
-            -> np.ndarray:
-        """
-        Get global reaction force of free degree of freedom
+    # def get_global_reaction_force_without_fixed_DOF(self, globalReactionForce: dict, rightHandSide: bool = False) \
+    #         -> np.ndarray:
+    #     """
+    #     Get global reaction force of free degree of freedom
+    #
+    #     Parameters:
+    #     -----------
+    #     globalReactionForce: dict
+    #         Dictionary of global reaction force with index_boundary as key and reaction force vector as value
+    #
+    #     Returns:
+    #     --------
+    #     globalReactionForceWithoutFixedDOF: np.ndarray
+    #         Array of global reaction force without fixed degree of freedom
+    #     """
+    #     y = np.zeros(self.free_DOF)
+    #     processed_nodes = set()
+    #
+    #     for cell in self.cells:
+    #         for node in cell.points_cell:
+    #             if node.index_boundary is None or node.index_boundary in processed_nodes:
+    #                 continue
+    #
+    #             for i in range(6):
+    #                 gi = node.global_free_DOF_index[i]
+    #                 if gi is None:
+    #                     continue
+    #                 if rightHandSide and node.applied_force[i] != 0:
+    #                     y[gi] = node.applied_force[i]
+    #                 else:
+    #                     y[gi] = globalReactionForce[node.index_boundary][i]
+    #
+    #             processed_nodes.add(node.index_boundary)
+    #
+    #     return y
 
-        Parameters:
-        -----------
-        globalReactionForce: dict
-            Dictionary of global reaction force with index_boundary as key and reaction force vector as value
-
-        Returns:
-        --------
-        globalReactionForceWithoutFixedDOF: np.ndarray
-            Array of global reaction force without fixed degree of freedom
+    def get_global_reaction_force_without_fixed_DOF(self, globalReactionForce: dict,
+                                                    rightHandSide: bool = False) -> np.ndarray:
         """
-        y = np.zeros(self.free_DOF)
+        Get vector on free DOFs:
+          - if rightHandSide=False -> return reactions on free DOFs
+          - if rightHandSide=True  -> return *only external applied forces* on free DOFs
+                                      (no fallback to reactions when no force is present)
+        """
+        y = np.zeros(self.free_DOF, dtype=float)
         processed_nodes = set()
 
         for cell in self.cells:
@@ -441,10 +470,13 @@ class LatticeSim(Lattice):
                     gi = node.global_free_DOF_index[i]
                     if gi is None:
                         continue
-                    if rightHandSide and node.applied_force[i] != 0:
-                        y[gi] = node.applied_force[i]
+
+                    if rightHandSide:
+                        # Strictly take the applied forces; zeros where none.
+                        y[gi] = float(node.applied_force[i])
                     else:
-                        y[gi] = globalReactionForce[node.index_boundary][i]
+                        # Reactions (e.g., due to imposed displacements)
+                        y[gi] = float(globalReactionForce[node.index_boundary][i])
 
                 processed_nodes.add(node.index_boundary)
 
@@ -822,16 +854,19 @@ class LatticeSim(Lattice):
         # Calculate b
         if self._verbose > -1:
             print(Fore.GREEN + "Assemble right-hand side" + Style.RESET_ALL)
-        u_imp, _ = self.get_global_displacement_DDM()
 
         # Reactions induced by imposed (Dirichlet) displacements on the boundary
-        r_free = self.calculate_reaction_force_global(u_imp, rightHandSide=False)
+        r_free = self.calculate_reaction_force_global(np.zeros(self.free_DOF, dtype=float), rightHandSide=False)
 
         # External applied forces on free DOFs
         f_free = self.get_global_reaction_force_without_fixed_DOF(
             self.get_global_reaction_force(appliedForceAdded=True), rightHandSide=True)
 
-        b = (f_free - r_free) * 1
+        b = f_free - r_free
+        if np.linalg.norm(b) == 0:
+            print(Fore.YELLOW + "No external forces or imposed displacements in the lattice. Process aborted."+
+                  Style.RESET_ALL)
+            return None, None, None, None
 
         # Initialize local displacement to zero
         self._initialize_displacement()
