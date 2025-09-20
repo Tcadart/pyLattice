@@ -13,8 +13,8 @@ class FullScaleLatticeSimulation(SimulationBase):
     A class to handle full-scale lattice simulation using FenicsX.
     """
 
-    def __init__(self, BeamModel):
-        super().__init__(BeamModel)
+    def __init__(self, BeamModel, verbose: int = 1):
+        super().__init__(BeamModel, verbose)
         self.prepare_simulation()
 
     def apply_displacement_all_nodes_with_lattice_data(self):
@@ -26,33 +26,32 @@ class FullScaleLatticeSimulation(SimulationBase):
         triplet_tuples = [tuple(row) for row in nodePosition]
         dictNode = {triplet: idx for idx, triplet in enumerate(triplet_tuples)}
         for cell in self.BeamModel.lattice.cells:
-            for beam in cell.beams_cell:
-                for node in [beam.point1, beam.point2]:
-                    if 1 in node.fixed_DOF:
-                        key = tuple(np.round([node.x, node.y, node.z], 3))
-                        nodeIndices = dictNode.get(key, None)
-                        # Find the degrees of freedom associated with these nodes
-                        nodesLocatedDofs = fem.locate_dofs_topological(
-                            self._V, self.domain.topology.dim - 1,
-                            np.array([nodeIndices], dtype=np.int32)
-                        )
-                        # Filter the values to apply
-                        nodesLocatedDofs_filtered = [
-                            val for i, val in enumerate(nodesLocatedDofs)
-                            if node.fixed_DOF[i] == 1
-                        ]
-                        displacement_filtered = [
-                            val for i, val in enumerate(node.displacement_vector)
-                            if node.fixed_DOF[i] == 1
-                        ]
-                        # Define the displacement function and set the values
-                        u_bc = fem.Function(self._V)
-                        u_bc.x.array[nodesLocatedDofs_filtered] = displacement_filtered
-                        # Apply the boundary condition
-                        self._bcs.append(
-                            fem.dirichletbc(u_bc, np.array(nodesLocatedDofs_filtered, dtype=np.int32))
-                        )
-                        alreadyDone.append(node.index_boundary)
+            for node in cell.points_cell:
+                if 1 in node.fixed_DOF:
+                    key = tuple(np.round([node.x, node.y, node.z], 3))
+                    nodeIndices = dictNode.get(key, None)
+                    # Find the degrees of freedom associated with these nodes
+                    nodesLocatedDofs = fem.locate_dofs_topological(
+                        self._V, self.domain.topology.dim - 1,
+                        np.array([nodeIndices], dtype=np.int32)
+                    )
+                    # Filter the values to apply
+                    nodesLocatedDofs_filtered = [
+                        val for i, val in enumerate(nodesLocatedDofs)
+                        if node.fixed_DOF[i] == 1
+                    ]
+                    displacement_filtered = [
+                        val for i, val in enumerate(node.displacement_vector)
+                        if node.fixed_DOF[i] == 1
+                    ]
+                    # Define the displacement function and set the values
+                    u_bc = fem.Function(self._V)
+                    u_bc.x.array[nodesLocatedDofs_filtered] = displacement_filtered
+                    # Apply the boundary condition
+                    self._bcs.append(
+                        fem.dirichletbc(u_bc, np.array(nodesLocatedDofs_filtered, dtype=np.int32))
+                    )
+                    alreadyDone.append(node.index_boundary)
 
     def set_result_diplacement_on_lattice_object(self):
         """
@@ -91,12 +90,11 @@ class FullScaleLatticeSimulation(SimulationBase):
         Set reaction force on boundary condition nodes with FEM results.
         """
         for cell in self.BeamModel.lattice.cells:
-            for beam in cell.beams_cell:
-                for node in [beam.point1, beam.point2]:
-                    if 1 in node.fixed_DOF:
-                        RF = self.calculate_reaction_force_and_moment_at_position(
-                            np.array([node.x, node.y, node.z]))
-                        node.set_reaction_force(RF)
+            for node in cell.points_cell:
+                if 1 in node.fixed_DOF:
+                    RF = self.calculate_reaction_force_and_moment_at_position(
+                        np.array([node.x, node.y, node.z]))
+                    node.set_reaction_force(RF)
 
     def apply_force_on_all_nodes_with_lattice_data(self):
         """

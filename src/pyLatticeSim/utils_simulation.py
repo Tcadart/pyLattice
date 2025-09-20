@@ -46,6 +46,30 @@ def solve_FEM_FenicsX(lattice : "LatticeSim"):
     xsol, globalDisplacementIndex = lattice.get_global_displacement()
     return xsol, simulationModel
 
+def solve_FEM_cell(lattice: "LatticeSim", cell):
+    """
+    Solve the finite element method problem for a specific cell in the lattice using FenicsX.
+
+    Parameters:
+    -----------
+    lattice: Lattice object
+        The lattice structure to be simulated.
+    cell: object
+        The specific cell within the lattice to be analyzed.
+
+    """
+    # Generate the lattice model and mesh for the specific cell
+    cell_model = BeamModel(MPI.COMM_SELF, lattice=lattice, cell_index=cell.index)
+
+    # Define the FE model and apply boundary conditions
+    simulation_model = FullScaleLatticeSimulation(cell_model, verbose=0)
+    simulation_model.apply_all_boundary_condition_on_cell_without_distinction(cell)
+
+    # Solve the problem
+    simulation_model.solve_problem()
+
+    return simulation_model
+
 def get_homogenized_properties(lattice: "LatticeSim"):
     """
     Perform homogenization analysis on a lattice structure.

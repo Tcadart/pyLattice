@@ -14,6 +14,7 @@ from pyLattice.utils import open_lattice_parameters
 from pyLatticeSim.greedy_algorithm import load_reduced_basis
 from pyLatticeSim.utils_schur import get_schur_complement
 from pyLatticeSim.conjugate_gradient_solver import conjugate_gradient_solver
+from pyLatticeSim.utils_simulation import solve_FEM_cell
 
 if TYPE_CHECKING:
     from data.inputs.mesh_file.mesh_trimmer import MeshTrimmer
@@ -50,7 +51,7 @@ class LatticeSim(Lattice):
         self.global_displacement_index = None
         self.n_DOF_per_node: int = 6  # Number of DOF per node (3 translation + 3 rotation)
         self.penalization_coefficient: float = 1.5  # Fixed with previous optimization
-        self.surrogate_model_implemented = ["exact", "nearest_neighbor", "linear", "RBF"]
+        self.surrogate_model_implemented = ["exact", "FE2", "nearest_neighbor", "linear", "RBF"]
         self.enable_gradient_computing = False # Enable gradient computing for optimization
 
         self.define_connected_beams_for_all_nodes()
@@ -63,7 +64,7 @@ class LatticeSim(Lattice):
         self.are_cells_identical()
 
         if self.domain_decomposition_solver:
-            if not self.type_schur_complement_computation == "exact":
+            if not self.type_schur_complement_computation in ["exact", "FE2"]:
                 self.reduce_basis_dict = load_reduced_basis(self, self.precision_greedy)
                 self.alpha_coefficients_greedy = self.reduce_basis_dict["alpha_ortho"].T
 
@@ -160,7 +161,7 @@ class LatticeSim(Lattice):
             schur_complement_computation = DDM_parameters.get("schur_complement_computation", None)
             if schur_complement_computation is not None:
                 self.type_schur_complement_computation = schur_complement_computation.get("type", None)
-                if not self.type_schur_complement_computation == "exact":
+                if not self.type_schur_complement_computation in ["exact", "FE2"]:
                     self.precision_greedy = schur_complement_computation.get("precision_greedy", None)
                     if self.precision_greedy is None:
                         raise ValueError("Precision for greedy algorithm must be defined in the input file.")
@@ -638,7 +639,7 @@ class LatticeSim(Lattice):
 
             if radius_key not in schur_cache[geom_key]:
                 # Base Schur complement
-                if self.type_schur_complement_computation == "exact":
+                if self.type_schur_complement_computation in ["exact", "FE2"]:
                     S = get_schur_complement(self, cell.index)
                 elif self.type_schur_complement_computation in self.surrogate_model_implemented:
                     S = self.get_schur_complement_from_reduced_basis(list(radius_key))
@@ -880,8 +881,8 @@ class LatticeSim(Lattice):
         print(Fore.GREEN + "Conjugate Gradient started."+ Style.RESET_ALL)
 
         tol = 1e-6
-        mintol = 1e-5
-        restart_every = 50
+        mintol = 1e-12
+        restart_every = 500000
         alpha_max = 100
         xsol, info = conjugate_gradient_solver(A_operator, b, M = self.preconditioner, maxiter=self.number_iteration_max,
                                                tol = tol, mintol = mintol, restart_every = restart_every, alpha_max= alpha_max,
@@ -950,16 +951,20 @@ class LatticeSim(Lattice):
 
         # Check displacement null
         displacement_cell = cell.get_displacement_at_nodes(cell.node_in_order_simulation)
-        if np.sum(displacement_cell) != 0:
-            # Solve the local problem
-            displacement = np.array(displacement_cell).flatten()
-            reaction_force_cell = np.dot(cell.schur_complement, displacement)
-            reaction_force_cell = reaction_force_cell.reshape(-1, 6)
+        if self.type_schur_complement_computation != "FE2":
+            if np.sum(displacement_cell) != 0:
+                # Solve the local problem
+                displacement = np.array(displacement_cell).flatten()
+                reaction_force_cell = np.dot(cell.schur_complement, displacement)
+                reaction_force_cell = reaction_force_cell.reshape(-1, 6)
+            else:
+                # If displacement is null, set reaction force to zero
+                reaction_force_cell = displacement_cell
+                if self._verbose > 1:
+                    print("Displacement is null")
         else:
-            # If displacement is null, set reaction force to zero
-            reaction_force_cell = displacement_cell
-            if self._verbose > 1:
-                print("Displacement is null")
+            simulation_model = solve_FEM_cell(self, cell)
+            reaction_force_cell = simulation_model.calculate_reaction_force_and_moment_all_boundary_nodes(cell)[0]
         return reaction_force_cell
 
     def cg_progress(self, xk, b, A_operator):
@@ -985,14 +990,6 @@ class LatticeSim(Lattice):
         plotting = False
         # Increment iteration count
         self.iteration += 1
-
-        # Calculate the residual norm
-        residual = b - A_operator @ xk
-        residual_norm = np.linalg.norm(residual) / np.linalg.norm(b)
-
-        # Append the residual norm for tracking
-        self.residuals.append(residual_norm)
-        print(f"Residual norm: {residual_norm:.6e}")
 
         if plotting:
             # Calculate the residual norm

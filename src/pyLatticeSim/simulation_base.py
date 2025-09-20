@@ -21,9 +21,10 @@ class SimulationBase:
     """
     Parent class with all utilities to compute simulation in FenicsX
     """
-    def __init__(self, BeamModel):
+    def __init__(self, BeamModel, verbose: int = 1):
 
         self.BeamModel = BeamModel
+        self._verbose = verbose
         self._COMM = self.BeamModel.COMM
         self.domain = self.BeamModel.domain
         self._t = self.BeamModel.t
@@ -222,6 +223,52 @@ class SimulationBase:
         """
         self.apply_constraint_at_node(node_tag, displacementValue, dofIdx, "Displacement")
 
+    # def apply_constraint_at_node(self, node_tag: int, value_constraint: float, dof_idx: int, type_constraint: str):
+    #     """
+    #     Apply a constraint at a specific node.
+    #     """
+    #     dictType = {"Displacement", "Force"}
+    #     if type_constraint not in dictType:
+    #         raise ValueError("Type of constraint must be 'Displacement' or 'Force'")
+    #
+    #     # Locate the node indices with the given tag
+    #     nodeIndices = self.BeamModel.facets.find(node_tag)
+    #     if len(nodeIndices) == 0:
+    #         raise ValueError("No nodes found with tag " + str(node_tag))
+    #
+    #     if type_constraint == "Displacement":
+    #         # Find the DOFs associated with the node (mixed space)
+    #         nodesLocatedDofs = fem.locate_dofs_topological(self._V, self.domain.topology.dim - 1, nodeIndices)
+    #         # Keep only the targeted component dof
+    #         target_dof = nodesLocatedDofs[dof_idx]
+    #         u_bc = fem.Function(self._V)
+    #         with u_bc.vector.localForm() as loc:
+    #             loc[target_dof] = value_constraint
+    #         self._bcs.append(fem.dirichletbc(u_bc, np.array([target_dof], dtype=np.int32)))
+    #
+    #     elif type_constraint == "Force":
+    #         # DOFs at this vertex for the displacement subspace
+    #         dofs_node = fem.locate_dofs_topological(self._V.sub(0), self.domain.topology.dim - 1, nodeIndices)
+    #
+    #         # Indicator on the *mixed* space (so it can be used directly in the UFL form)
+    #         indicator = fem.Function(self._V)
+    #         with indicator.x.petsc_vec.localForm() as loc:
+    #             loc.set(0.0)
+    #             for idx in np.atleast_1d(dofs_node):
+    #                 loc[idx] = 1.0
+    #
+    #         (w_, theta_) = ufl.split(self._u_)
+    #         (ind_w, ind_theta) = ufl.split(indicator)
+    #
+    #         # Only the requested component carries the value; others are zero
+    #         f_vec = np.zeros(3, dtype=float)
+    #         f_vec[dof_idx] = value_constraint
+    #
+    #         for i in range(3):
+    #             if not np.isclose(f_vec[i], 0.0):
+    #                 term = f_vec[i] * ind_w[i] * w_[i] * self._dx
+    #                 self._l_form = term if self._l_form is None else self._l_form + term
+    #
     def apply_constraint_at_node(self, node_tag: int, value_constraint: float, dof_idx: int, type_constraint: str):
         """
         Apply a constraint at a specific node.
@@ -236,14 +283,17 @@ class SimulationBase:
             raise ValueError("No nodes found with tag " + str(node_tag))
 
         if type_constraint == "Displacement":
-            # Find the DOFs associated with the node (mixed space)
-            nodesLocatedDofs = fem.locate_dofs_topological(self._V, self.domain.topology.dim - 1, nodeIndices)
-            # Keep only the targeted component dof
-            target_dof = nodesLocatedDofs[dof_idx]
-            u_bc = fem.Function(self._V)
-            with u_bc.vector.localForm() as loc:
-                loc[target_dof] = value_constraint
-            self._bcs.append(fem.dirichletbc(u_bc, np.array([target_dof], dtype=np.int32)))
+            # Map global dof_idx (0..5) to mixed subspace/component
+            sub = 0 if dof_idx < 3 else 1
+            comp = dof_idx if dof_idx < 3 else dof_idx - 3
+
+            # DOFs for this boundary entity on the chosen subspace/component
+            dofs = fem.locate_dofs_topological(self._V.sub(sub).sub(comp),
+                                               self.domain.topology.dim - 1, nodeIndices)
+
+            # Dirichlet BC on this scalar component (new dolfinx API)
+            C = fem.Constant(self.domain, float(value_constraint))
+            self._bcs.append(fem.dirichletbc(C, np.asarray(dofs, dtype=np.int32), self._V.sub(sub).sub(comp)))
 
         elif type_constraint == "Force":
             # DOFs at this vertex for the displacement subspace
@@ -259,7 +309,6 @@ class SimulationBase:
             (w_, theta_) = ufl.split(self._u_)
             (ind_w, ind_theta) = ufl.split(indicator)
 
-            # Only the requested component carries the value; others are zero
             f_vec = np.zeros(3, dtype=float)
             f_vec[dof_idx] = value_constraint
 
@@ -268,6 +317,7 @@ class SimulationBase:
                     term = f_vec[i] * ind_w[i] * w_[i] * self._dx
                     self._l_form = term if self._l_form is None else self._l_form + term
 
+
     def apply_all_boundary_condition_on_lattice(self, cell_only=None):
         """
         Apply all boundary conditions on the lattice
@@ -275,33 +325,50 @@ class SimulationBase:
         for cell in self.BeamModel.lattice.cells:
             if cell_only is not None and cell_only != cell:
                 continue
-            cell.getNodeOrderToSimulate()
-            for beam in cell.beams:
-                for node in [beam.point1, beam.point2]:
-                    if any(dof == 1 for dof in node.fixedDOF) or any(force != 0 for force in node.appliedForce):
-                        for i in range(6):
-                            if node.fixedDOF[i] == 1:
-                                self.apply_displacement_at_node(node.localTag[0], node.displacementValue[i], i)
-                            if node.appliedForce[i] != 0:
-                                self.apply_force_at_node(node.localTag[0], node.appliedForce[i], i)
+            for node in cell.points_cell:
+                if any(dof == 1 for dof in node.fixed_DOF) or any(force != 0 for force in node.applied_force):
+                    for i in range(6):
+                        if node.fixed_DOF[i] == 1:
+                            self.apply_displacement_at_node(node.tag, node.displacement_vector[i], i)
+                        if node.applied_force[i] != 0:
+                            self.apply_force_at_node(node.tag, node.applied_force[i], i)
 
     def apply_all_boundary_condition_on_cell_without_distinction(self, cellToApply):
         """
-        Apply all boundary conditions on a specific cell without distinction between fixed DOF and applied force
-        Args:
-            cellToApply: 
-
-        Returns:
-
+        Apply all boundary conditions on a specific cell without distinction between fixed DOF and applied force.
+        Here we *always* impose the current node.displacement_vector on each boundary DOF of the target cell.
+        Uses the **cell-local tag** to avoid None tags and wrong entity mapping.
         """
         for cell in self.BeamModel.lattice.cells:
-            if cell == cellToApply:
-                cell.getNodeOrderToSimulate()
-                for beam in cell.beams:
-                    for node in [beam.point1, beam.point2]:
-                        if node.indexBoundary is not None:
-                            for i in range(6):
-                                self.apply_displacement_at_node(node.localTag[0], node.displacementValue[i], i)
+            if cell is not cellToApply:
+                continue
+
+            # Ensure order exists (matches usage elsewhere in your code)
+            if getattr(cell, "node_in_order_simulation", None) is None:
+                cell.define_node_order_to_simulate()
+
+            for node in cell.node_in_order_simulation:
+                # Only boundary nodes are represented in the FenicsX mesh tags
+                if node.index_boundary is None:
+                    continue
+
+                # Get the FEniCS tag local to this cell
+                tag = (node.cell_local_tag.get(cell.index)
+                       if isinstance(node.cell_local_tag, dict)
+                       else node.cell_local_tag[cell.index])
+
+                if tag is None:
+                    continue  # no mapped entity -> skip safely
+
+                # Skip if this entity isn't present in the mesh (robust to trimming/collisions)
+                ent = self.BeamModel.facets.find(int(tag))
+                if ent.size == 0:
+                    continue
+
+                # Impose the current displacement vector component-wise
+                for i in range(6):
+                    self.apply_displacement_at_node(int(tag), float(node.displacement_vector[i]), i)
+
 
 
     def apply_displacement_at_node_all_DOF(self, node_tag: int, displacementVector: list):
@@ -349,19 +416,6 @@ class SimulationBase:
                 self._boundaryTags.append(tag)
         return self._boundaryTags
 
-    # def solve_problem(self):
-    #     """
-    #     Solve the problem with a linear solver
-    #     """
-    #     self.define_L_form_null()
-    #     self.u = fem.Function(self._V)
-    #     problem = LinearProblem(self._k_form, self._l_form, u=self.u, bcs=self._bcs,
-    #                                       petsc_options={"ksp_type": "preonly", "pc_type": "lu"})
-    #     print("Solving linear problem...")
-    #     problem.solve()
-    #     print(Fore.GREEN + "Problem solved" + Style.RESET_ALL)
-
-        # --- replace in SimulationBase.solve_problem ---
     def solve_problem(self):
         """
         Solve the problem with a linear solver
@@ -406,10 +460,12 @@ class SimulationBase:
         pc.setType(PETSc.PC.Type.LU)
 
         self.u = fem.Function(self._V)
-        print("Solving linear problem...")
+        if self._verbose > 0:
+            print("Solving linear problem...")
         ksp.solve(b, self.u.x.petsc_vec)
         self.u.x.scatter_forward()
-        print(Fore.GREEN + "Problem solved" + Style.RESET_ALL)
+        if self._verbose > 0:
+            print(Fore.GREEN + "Problem solved" + Style.RESET_ALL)
 
     def calculate_reaction_force(self, node_tag: int, solution: fem.Function = None):
         """
@@ -567,13 +623,14 @@ class SimulationBase:
 
         return arrayOfReaction, r
 
-    def calculate_reaction_force_and_moment_all_boundary_nodes(self, node_in_order: dict, full_nodes: bool = False):
+    def calculate_reaction_force_and_moment_all_boundary_nodes(self, cell, full_nodes: bool = False):
         """
         Calculate reaction force on all boundary nodes
         """
         reactionForces = []
         positions = []
-        for tag in node_in_order:
+        for node in cell.node_in_order_simulation:
+            tag = node.cell_local_tag[cell.index]
             if len(self.BeamModel.facets.find(tag)) != 0:
                 force, position = self.calculate_reaction_force_and_moment(tag)
                 reactionForces.append(force)

@@ -575,6 +575,7 @@ class Cell(object):
         if not self.node_in_order_simulation:
             raise ValueError("Boundary node order not defined. Call define_node_order_to_simulate() first.")
         if len(reactionForce) < len(self.node_in_order_simulation):
+            print(f"Number of reaction force entries: {len(reactionForce)} vs. boundary nodes: {len(self.node_in_order_simulation)}")
             raise ValueError("Not enough reaction force entries for boundary nodes.")
 
         for idx, node in enumerate(self.node_in_order_simulation):
