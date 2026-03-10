@@ -1965,7 +1965,7 @@ class Lattice(object):
     @timing.timeit
     def generate_mesh_lattice_rough(self, name_file_rough_parameters: str, name_stl_out: str, print_volume: bool = True,
                                     save_mesh: bool = True, cut_mesh_at_boundary: bool = False,
-                                    refine_mesh: bool = True) -> None:
+                                    refine_mesh: bool = False) -> None:
         """
         Generate a mesh of the lattice structure with Pyrough library.
 
@@ -2085,7 +2085,7 @@ class Lattice(object):
             p2 = np.array(beam.point2.coordinates)
             # Use initial radius if defined
             radius = beam.initial_radius if getattr(beam, "initial_radius", None) is not None else beam.radius
-            vertices, faces = Sample_class.make_wire(
+            vertices, faces, _ = Sample_class.make_wire(
                 param.type_S,
                 2 * (1 + param.eta),
                 param.C1,
@@ -2098,9 +2098,7 @@ class Lattice(object):
                 param.alpha,
                 param.raw_stl,
                 path_out,
-                param.ext_fem,
-                make_stl=False,
-                verbose=0
+                param.ext_fem
             )
             # Positioning the wire at the correct location
             direction = p2 - p1
