@@ -154,7 +154,6 @@ def grad_material_setting(numCellsX, numCellsY, numCellsZ, gradMatProperty: list
         3D list representing the material type_beam in the structure.
     """
     multimat, direction = gradMatProperty
-    print(f"Gradient material setting: multimat={multimat}, direction={direction}")
 
     # Initialize grad_mat based on `multimat` value
     if multimat == -1:  # Random materials
