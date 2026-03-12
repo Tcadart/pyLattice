@@ -1984,82 +1984,6 @@ class Lattice(object):
         refine_mesh: bool
             If True, refine the generated mesh using Pyrough's refinement function.
         """
-
-        def rotation_matrix(axis: np.ndarray, angle: float) -> np.ndarray:
-            """
-            Generate a rotation matrix for rotating around a given axis by a specified angle.
-
-            Parameters:
-            -----------
-            axis: np.ndarray
-                A 3D vector representing the axis of rotation.
-            angle: float
-                The angle of rotation in radians.
-
-            Returns:
-            --------
-            np.ndarray
-            """
-            axis = axis / np.linalg.norm(axis)
-            x, y, z = axis
-            c = np.cos(angle)
-            s = np.sin(angle)
-            C = 1.0 - c
-
-            return np.array([
-                [c + x * x * C, x * y * C - z * s, x * z * C + y * s],
-                [y * x * C + z * s, c + y * y * C, y * z * C - x * s],
-                [z * x * C - y * s, z * y * C + x * s, c + z * z * C]
-            ])
-
-        def apply_rigid_transform(vertices: np.ndarray,
-                                  R: np.ndarray,
-                                  t: np.ndarray) -> np.ndarray:
-            """
-            Apply a rigid transformation to a set of vertices.
-
-            Parameters:
-            -----------
-            vertices: np.ndarray
-                An array of shape (N, 3) representing the vertices to transform.
-            R: np.ndarray
-                A 3x3 rotation matrix.
-            t: np.ndarray
-                A translation vector of shape (3,).
-
-            Returns:
-            --------
-            np.ndarray
-            """
-            return (R @ vertices.T).T + t
-
-        def rotation_from_z_axis(target_direction: np.ndarray) -> np.ndarray:
-            """
-            Generate a rotation matrix that aligns the z-axis with the target direction.
-
-            Parameters:
-            -----------
-            target_direction: np.ndarray
-                A 3D vector representing the target direction.
-
-            Returns:
-            --------
-            np.ndarray
-            """
-            z_axis = np.array([0.0, 0.0, 1.0])
-            v = target_direction / np.linalg.norm(target_direction)
-
-            axis = np.cross(z_axis, v)
-            norm_axis = np.linalg.norm(axis)
-
-            if norm_axis < 1e-12:
-                return np.eye(3)
-
-            axis /= norm_axis
-            angle = np.arccos(np.clip(np.dot(z_axis, v), -1.0, 1.0))
-
-            return rotation_matrix(axis, angle)
-
         try:
             from src import Param_class, Sample_class, Func_pyrough as fp
         except ImportError:
@@ -2067,9 +1991,44 @@ class Lattice(object):
                               "More information in documentation")
 
         try:
+            import manifold3d as manifold
+        except ImportError:
+            raise ImportError("manifold3d library is not installed. Please install it with: pip install manifold3d")
+
+        try:
             import trimesh
         except ImportError:
-            raise ImportError("trimesh library is not installed. Please install it to use this feature.")
+            raise ImportError("trimesh library is not installed. Please install it with: pip install trimesh")
+
+        try:
+            import pymeshlab
+        except ImportError:
+            raise ImportError("pymeshlab library is not installed. Please install it with: pip install pymeshlab")
+
+        try:
+            from pyLatticeDSO.src.pyLatticeDesign.lattice import Lattice
+        except ImportError:
+            raise ImportError("pyLatticeDSO library is not installed as submodule."
+                              "Please install it to use this feature. See documentation.")
+
+        def numpy_to_manifold(vertices, faces):
+            """
+            Converts numpy arrays of vertices and faces into a manifold3d Manifold object.
+            This includes repairing the mesh to ensure it is watertight and suitable for boolean operations.
+            """
+            tmp = trimesh.Trimesh(vertices=vertices, faces=faces)
+            tmp.remove_unreferenced_vertices()
+            tmp.fix_normals()
+            trimesh.repair.fix_winding(tmp)
+            trimesh.repair.fix_normals(tmp)
+            trimesh.repair.fill_holes(tmp)
+
+            return manifold.Manifold(
+                mesh=manifold.Mesh(
+                    vert_properties=np.array(tmp.vertices, dtype=np.float32),
+                    tri_verts=np.array(tmp.faces, dtype=np.uint32)
+                )
+            )
 
         project_root = Path(__file__).resolve().parents[2]
         path_out = str(project_root / "data" / "outputs" / "Pyrough" / name_stl_out)
@@ -2077,65 +2036,144 @@ class Lattice(object):
         path_file_rough_parameters = str(project_root / "data" / "inputs" / "preset_lattice"
                                          / "Pyrough" / name_file_rough_parameters)
         param = Param_class.Parameter(path_file_rough_parameters)
+        param.ext_fem = ["stl"]
 
-        all_meshes = []
+        all_manifolds = []
+
         # Generate the rough wire mesh for each beam
         for beam in self.beams:
             p1 = np.array(beam.point1.coordinates)
             p2 = np.array(beam.point2.coordinates)
-            # Use initial radius if defined
             radius = beam.initial_radius if getattr(beam, "initial_radius", None) is not None else beam.radius
-            vertices, faces, _ = Sample_class.make_wire(
-                param.type_S,
-                2 * (1 + param.eta),
-                param.C1,
-                param.RMS,
-                param.N,
-                param.M,
-                radius,
-                beam.length,
-                param.ns,
-                param.alpha,
-                param.raw_stl,
-                path_out,
-                param.ext_fem
-            )
+            param.radius = radius
+            param.length = beam.length
+            if param.beam_type == "cwire":
+                param.type_S = "cwire"
+                vertices, faces, _, _ = Sample_class.make_cwire(param, path_out)
+            elif param.beam_type == "fwire":
+                param.type_S = "fwire"
+                vertices, faces, _, _ = Sample_class.make_fwire(param, path_out)
+            else:
+                raise ValueError("No valid beam type found in the JSON file.")
+
             # Positioning the wire at the correct location
             direction = p2 - p1
-            # Rotate
-            R = rotation_from_z_axis(direction)
-            vertices = apply_rigid_transform(vertices, R, np.zeros(3))
-            # Translate so that the wire starts at point 1
+            R = fp.rotation_from_z_axis(direction)
+            vertices = fp.apply_rigid_transform(vertices, R, np.zeros(3))
             vertices += p1
-            beam_mesh = trimesh.Trimesh(vertices, faces)
-            beam_mesh.fix_normals()
-            all_meshes.append(beam_mesh)
 
-        # Perform boolean union of all beam meshes
-        union_mesh = trimesh.boolean.union(all_meshes)
+            beam_manifold = numpy_to_manifold(vertices, faces)
+            all_manifolds.append(beam_manifold)
+
+        # Perform boolean union of all beam manifolds
+        union_manifold = all_manifolds[0]
+        for m in all_manifolds[1:]:
+            union_manifold = union_manifold + m
 
         if cut_mesh_at_boundary:
-            # Bounding box definition
             x0, y0, z0 = self.x_min, self.y_min, self.z_min
-            dx, dy, dz = self.x_max - x0, self.y_max - y0, self.z_max - z0
+            dx, dy, dz = (self.x_max - x0, self.y_max - y0, self.z_max - z0)
 
-            box = trimesh.creation.box(
-                extents=[dx, dy, dz],
-                transform=trimesh.transformations.translation_matrix(
-                    [x0 + dx / 2, y0 + dy / 2, z0 + dz / 2]
+            # Generate a rough box mesh that will be used to trim the beams at the lattice boundaries
+            obj_points, obj_faces = fp.cube_faces(dy, dx, dz)
+            list_n = fp.faces_normals(obj_points, obj_faces)
+
+            box_vertices, box_faces = fp.read_stl("cube", param.raw_stl, dy, dx, dz, 0, param.ns, 0)
+            box_vertices, box_nodenumber = fp.node_indexing(box_vertices)
+
+            nodesurf = fp.node_surface("cube", box_vertices, box_nodenumber, obj_points, obj_faces)
+            node_edge, node_corner = fp.node_corner(nodesurf)
+
+            C1_box = param.cube_trimmer_param.get("C1", param.C1)
+            eta_box = param.cube_trimmer_param.get("eta", param.eta)
+            B_box = 2 * (1 + eta_box)
+            RMS_box = param.cube_trimmer_param.get("RMS", param.RMS)
+            N_box = param.cube_trimmer_param.get("N", param.N)
+            M_box = param.cube_trimmer_param.get("M", param.M)
+            box_vertices = fp.make_rough_wulff(
+                box_vertices, B_box, C1_box, RMS_box, N_box, M_box,
+                nodesurf, node_edge, node_corner, list_n
+            )
+
+            # Translate the box to the correct position
+            box_vertices = box_vertices[:, :3]
+            box_vertices += np.array([x0, y0, z0])
+
+            rough_box_trimesh = trimesh.Trimesh(vertices=box_vertices, faces=box_faces)
+            rough_box_trimesh.remove_unreferenced_vertices()
+            rough_box_trimesh.fix_normals()
+            trimesh.repair.fix_winding(rough_box_trimesh)
+            trimesh.repair.fill_holes(rough_box_trimesh)
+            rough_box_trimesh.export(path_out + "_rough_box.stl")
+
+            rough_box = manifold.Manifold(
+                mesh=manifold.Mesh(
+                    vert_properties=np.array(rough_box_trimesh.vertices, dtype=np.float32),
+                    tri_verts=np.array(rough_box_trimesh.faces, dtype=np.uint32)
                 )
             )
-            union_mesh = union_mesh.intersection(box)
 
-        if print_volume:
-            # Print the volume of the generated mesh
-            print("Lattice volume (pyrough mesh): ", union_mesh.volume)
+            union_manifold = union_manifold ^ rough_box
+            print("====== > Rough bounding box applied.")
+
+            if union_manifold.is_empty():
+                raise ValueError(
+                    f"Intersection vide !\n"
+                    f"Rough box bounds: {rough_box_trimesh.bounds}\n"
+                    f"Lattice: x=[{x0},{x0 + dx}], y=[{y0},{y0 + dy}], z=[{z0},{z0 + dz}]"
+                )
+
+        # Convert the final manifold back to a mesh and export as STL
+        mesh = union_manifold.to_mesh()
+
+        mesh = trimesh.Trimesh(
+            vertices=mesh.vert_properties,
+            faces=mesh.tri_verts
+        )
+
+        # name_mesh = out_pre + "temp.stl"
+        # tmp.export(name_mesh)
+
+        if refine_mesh:
+            # Determine target edge length for remeshing based on the average edge length of the current mesh
+            edge_lengths = mesh.edges_unique_length
+            target_len = float(np.mean(edge_lengths))
+
+            # print(f"Target edge length: {target_len:.4f}")
+
+            bbox_diagonal = np.linalg.norm(mesh.bounds[1] - mesh.bounds[0])
+            target_percentage = (target_len / bbox_diagonal) * 100
+
+            # print(f"Target edge length: {target_len:.4f}")
+            # print(f"Bbox diagonal: {bbox_diagonal:.4f}")
+            # print(f"Target percentage: {target_percentage:.4f}%")
+            target_percentage /= 2.0
+
+            # Remesh the mesh using PyMeshLab to achieve a more uniform distribution of vertices
+            ms = pymeshlab.MeshSet()
+            ms.add_mesh(pymeshlab.Mesh(
+                vertex_matrix=mesh.vertices,
+                face_matrix=mesh.faces
+            ))
+
+            # Remesh the mesh using isotropic explicit remeshing to achieve a more uniform distribution of vertices
+            ms.meshing_isotropic_explicit_remeshing(
+                targetlen=pymeshlab.PercentageValue(target_percentage),
+                iterations=5
+            )
+
+            remeshed = ms.current_mesh()
+            mesh = trimesh.Trimesh(vertices=remeshed.vertex_matrix(), faces=remeshed.face_matrix())
 
         if save_mesh:
             # Save the final mesh
-            union_mesh.export(path_out + ".stl")
+            mesh.export(path_out + ".stl")
             full_path = Path(path_out + ".stl").resolve()
             print("Mesh saved at: ", full_path)
 
-        if refine_mesh:
-            fp.refine_3Dmesh(param.type_S, path_out, param.ns, param.alpha, param.ext_fem)
+        # fp.stl_rotate_euler(out_pre + ".stl", out_pre + "_rot.stl", param.angles, order='zyx')
+
+        if print_volume:
+            # Print the volume of the generated mesh
+            print("Lattice volume (pyrough mesh): ", mesh.volume)
+

@@ -123,8 +123,6 @@ def open_lattice_parameters(file_name: str):
     if not json_path.exists():
         project_root_fallback = Path(__file__).resolve().parents[3]
         json_path = project_root_fallback / "examples" / file_name
-    else:
-        json_path = json_path / file_name
 
     if json_path.suffix != ".json":
         json_path = json_path.with_suffix('.json')
