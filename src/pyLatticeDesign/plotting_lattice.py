@@ -338,13 +338,34 @@ class LatticePlotting:
                 )
 
         if legend_map:
-            bc_elems = [Patch(facecolor=color, label=f"{n} DOF")
-                        for n, color in sorted(legend_map.items())]
-            bc_elems.append(
-                Line2D([0], [0], marker='o', color='k', label="Initial Position",
-                       markerfacecolor='none', markersize=8, linestyle='None')
-            )
-            legend_elements_all.extend(bc_elems)
+            # Separate numeric (DOF) and string (force) keys
+            dof_items = {k: v for k, v in legend_map.items() if isinstance(k, int)}
+            force_items = {k: v for k, v in legend_map.items() if isinstance(k, str)}
+
+            # Add boundary condition elements (DOF)
+            if dof_items:
+                bc_elems = [Patch(facecolor=color, label=f"{n} DOF")
+                            for n, color in sorted(dof_items.items())]
+                bc_elems.append(
+                    Line2D([0], [0], marker='o', color='k', label="Initial Position",
+                           markerfacecolor='none', markersize=8, linestyle='None')
+                )
+                legend_elements_all.extend(bc_elems)
+
+            # Add force elements
+            if force_items:
+                force_elems = []
+                if 'Applied Force' in force_items:
+                    force_elems.append(
+                        Line2D([0], [0], marker='>', color=force_items['Applied Force'],
+                               label="Applied Force", markersize=10, linewidth=2, linestyle='-')
+                    )
+                if 'Applied Moment' in force_items:
+                    force_elems.append(
+                        Line2D([0], [0], marker='>', color=force_items['Applied Moment'],
+                               label="Applied Moment", markersize=8, linewidth=1.5, linestyle='--')
+                    )
+                legend_elements_all.extend(force_elems)
 
         if legend_elements_all:
             self.ax.legend(handles=legend_elements_all, title="Legend", loc='upper right')
@@ -419,6 +440,7 @@ class LatticePlotting:
                                 self.ax.text(nodeX[-1], nodeY[-1], nodeZ[-1], str(beam_indices[i]),
                                              fontsize=5, color='gray')
                             if enable_boundary_conditions and any(node.fixed_DOF):
+                                # Displacement
                                 bc_color = get_boundary_condition_color(node.fixed_DOF)
                                 nb_fixed = sum(node.fixed_DOF)
                                 legend_map.setdefault(nb_fixed, bc_color)
@@ -431,6 +453,58 @@ class LatticePlotting:
                                 if deformedForm:
                                     self.ax.scatter(node.x, node.y, node.z, facecolor='none', edgecolor='k',
                                                     s=70, label="Initial Position")
+                            if enable_boundary_conditions and any(abs(f) > 1e-10 for f in node.applied_force):
+                                # Forces
+                                node_pos = (nodeX[-1], nodeY[-1], nodeZ[-1])
+                                force_scale = node.magnification_factor
+                                # Plot translational forces (first 3 components: Fx, Fy, Fz)
+                                force_trans = np.array(node.applied_force[:3])
+                                force_magnitude = np.linalg.norm(force_trans)
+
+                                if force_magnitude > 1e-10:
+                                    # Normalize and scale the force vector
+                                    force_direction = force_trans / force_magnitude
+                                    arrow_length = force_magnitude * force_scale
+
+                                    # Draw arrow for translational force
+                                    self.ax.quiver(
+                                        node_pos[0], node_pos[1], node_pos[2],
+                                        force_direction[0] * arrow_length,
+                                        force_direction[1] * arrow_length,
+                                        force_direction[2] * arrow_length,
+                                        color='red', arrow_length_ratio=0.3, linewidth=2,
+                                        label='Applied Force' if 'Applied Force' not in legend_map else ''
+                                    )
+                                    legend_map['Applied Force'] = 'red'
+
+                                    # Add force magnitude text
+                                    self.ax.text(
+                                        node_pos[0] + force_direction[0] * arrow_length * 1.1,
+                                        node_pos[1] + force_direction[1] * arrow_length * 1.1,
+                                        node_pos[2] + force_direction[2] * arrow_length * 1.1,
+                                        f"F={force_magnitude:.2e}", fontsize=8, color='red'
+                                    )
+
+                                # Plot moments (last 3 components: Mx, My, Mz) - optional
+                                moment = np.array(node.applied_force[3:])
+                                moment_magnitude = np.linalg.norm(moment)
+
+                                if moment_magnitude > 1e-10:
+                                    # Draw a smaller arrow for moments with different color
+                                    moment_direction = moment / moment_magnitude
+                                    arrow_length_moment = moment_magnitude * force_scale * 0.5
+
+                                    self.ax.quiver(
+                                        node_pos[0], node_pos[1], node_pos[2],
+                                        moment_direction[0] * arrow_length_moment,
+                                        moment_direction[1] * arrow_length_moment,
+                                        moment_direction[2] * arrow_length_moment,
+                                        color='orange', arrow_length_ratio=0.3, linewidth=1.5,
+                                        linestyle='--',
+                                        label='Applied Moment' if 'Applied Moment' not in legend_map else ''
+                                    )
+                                    legend_map['Applied Moment'] = 'orange'
+
                     beamDraw.add(beam)
 
             if plotCellIndex:

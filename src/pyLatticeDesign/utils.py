@@ -119,13 +119,14 @@ def open_lattice_parameters(file_name: str):
     """
     project_root_primary = Path(__file__).resolve().parents[2]
     json_path = project_root_primary / "data" / "inputs" / "preset_lattice" / file_name
+    if json_path.suffix != ".json":
+        json_path = json_path.with_suffix('.json')
 
     if not json_path.exists():
         project_root_fallback = Path(__file__).resolve().parents[3]
         json_path = project_root_fallback / "examples" / file_name
-
-    if json_path.suffix != ".json":
-        json_path = json_path.with_suffix('.json')
+        if json_path.suffix != ".json":
+            json_path = json_path.with_suffix('.json')
 
     try:
         with open(json_path, 'r') as file:

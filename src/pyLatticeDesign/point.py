@@ -73,7 +73,7 @@ class Point:
         self.node_mod: bool = False
 
         # Visualization attributes
-        self.magnification_factor: float = 5.0  # Magnification factor for visualization.
+        self.magnification_factor: float = 50.0  # Magnification factor for visualization.
 
     def destroy(self) -> None:
         """
